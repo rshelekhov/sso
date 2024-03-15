@@ -1,7 +1,8 @@
-package sso
+package main
 
 import (
 	"github.com/rshelekhov/sso/config"
+	"github.com/rshelekhov/sso/internal/app"
 	"github.com/rshelekhov/sso/pkg/logger"
 	"log/slog"
 )
@@ -18,7 +19,10 @@ func main() {
 	log.Info("starting application", slog.Any("config", cfg))
 	log.Debug("logger debug mode enabled")
 
-	// TODO: initialize app
+	// TODO: refactor it to use jwtoken which I used in Reframed
+	application := app.New(log, cfg.GRPCServer.Port, cfg.JWTAuth.AccessTokenTTL)
+
+	application.GRPCServer.MustRun()
 
 	// TODO: start server
 }
