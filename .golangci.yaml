@@ -1,0 +1,73 @@
+run:
+  timeout: 5m
+  tests: false
+linters-settings:
+  dogsled:
+    max-blank-identifiers: 2
+  gocognit:
+    min-complexity: 20
+  goconst:
+    min-occurrences: 4
+  gofumpt:
+    extra-rules: true
+  lll:
+    line-length: 150
+    tab-width: 1
+  nestif:
+    min-complexity: 4
+  testpackage:
+    skip-regexp: "(whitebox)_test\\.go"
+  wsl:
+    strict-append: true
+    allow-assign-and-anything: false
+    allow-multiline-assign: false
+    allow-cuddle-declarations: false
+    allow-trailing-comment: false
+    force-case-trailing-whitespace: 0
+    force-err-cuddling: true
+    allow-separated-leading-comment: false
+linters:
+  disable-all: true
+  enable:
+    - dogsled
+    - errcheck
+    - gochecknoinits
+    - gocognit
+    - gocritic
+    - goconst
+    - gofmt
+    - gofumpt
+    - gosimple
+    - gocyclo
+    - ineffassign
+    - lll
+    - misspell
+    - nakedret
+    - nestif
+    - noctx
+    - revive
+    - staticcheck
+    - testpackage
+    - unconvert
+    - unparam
+    - unused
+    - wsl
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - revive
+        - wsl
+    - linters:
+        - wsl
+      text: "only one cuddle assignment allowed before if statement"
+    - linters:
+        - wsl
+      text: "if statements should only be cuddled with assignments"
+    - linters:
+        - wsl
+      text: "assignments should only be cuddled with other assignments"
+    - linters:
+        - wsl
+      text: "return statements should not be cuddled if block has more than two lines"
