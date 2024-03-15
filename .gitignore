@@ -1,0 +1,8 @@
+# IDE
+/.idea/
+
+# ENV
+.env
+
+# Other
+.DS_Store
