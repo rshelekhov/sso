@@ -1,11 +1,14 @@
 package sso
 
-import "github.com/rshelekhov/sso/config"
+import (
+	"github.com/rshelekhov/sso/config"
+	"github.com/rshelekhov/sso/pkg/logger"
+)
 
 func main() {
 	cfg := config.MustLoad()
 
-	// TODO: add log/slog
+	log := logger.SetupLogger(cfg.AppEnv)
 
 	// TODO: initialize app
 
