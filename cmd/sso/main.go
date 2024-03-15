@@ -1,7 +1,9 @@
 package sso
 
+import "github.com/rshelekhov/sso/config"
+
 func main() {
-	// TODO: add config
+	cfg := config.MustLoad()
 
 	// TODO: add log/slog
 
