@@ -5,6 +5,9 @@ import (
 	"github.com/rshelekhov/sso/internal/app"
 	"github.com/rshelekhov/sso/pkg/logger"
 	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -22,7 +25,15 @@ func main() {
 	// TODO: refactor it to use jwtoken which I used in Reframed
 	application := app.New(log, cfg.GRPCServer.Port, cfg.JWTAuth.AccessTokenTTL)
 
-	application.GRPCServer.MustRun()
+	go application.GRPCServer.MustRun()
 
-	// TODO: start server
+	// Graceful shutdown
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
+	sign := <-stop
+	log.Info("shutting down...", slog.String("signal", sign.String()))
+
+	application.GRPCServer.Stop()
+	log.Info("graceful shutdown completed")
 }
