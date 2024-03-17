@@ -2,7 +2,7 @@ package slogdiscard
 
 import (
 	"context"
-	"github.com/rshelekhov/sso/internal/logger"
+	"github.com/rshelekhov/sso/internal/lib/logger"
 	"log/slog"
 )
 
