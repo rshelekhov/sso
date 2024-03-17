@@ -3,18 +3,22 @@ package auth
 import (
 	"context"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/internal/port"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-type serverAPI struct {
-	ssov1.UnimplementedAuthServer
-	auth port.Auth
+type Auth interface {
+	Login(ctx context.Context, email, password string, appID int) (token string, err error)
+	RegisterNewUser(ctx context.Context, email, password string) (userID string, err error)
 }
 
-func Register(gRPC *grpc.Server, auth port.Auth) {
+type serverAPI struct {
+	ssov1.UnimplementedAuthServer
+	auth Auth
+}
+
+func Register(gRPC *grpc.Server, auth Auth) {
 	ssov1.RegisterAuthServer(gRPC, &serverAPI{auth: auth})
 }
 
