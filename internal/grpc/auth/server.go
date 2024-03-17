@@ -49,19 +49,6 @@ func (s *serverAPI) Register(ctx context.Context, req *ssov1.RegisterRequest) (*
 	return &ssov1.RegisterResponse{Token: token}, nil
 }
 
-func (s *serverAPI) IsAdmin(ctx context.Context, req *ssov1.IsAdminRequest) (*ssov1.IsAdminResponse, error) {
-	if err := validateIsAdmin(req); err != nil {
-		return nil, err
-	}
-
-	isAdmin, err := s.auth.IsAdmin(ctx, req.GetToken())
-	if err != nil {
-		// TODO: ...
-		return nil, status.Error(codes.Internal, "internal error")
-	}
-	return &ssov1.IsAdminResponse{IsAdmin: isAdmin}, nil
-}
-
 func validateLogin(req *ssov1.LoginRequest) error {
 	// TODO: add validation with validator
 	if req.GetEmail() == "" {

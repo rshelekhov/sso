@@ -2,7 +2,7 @@ package app
 
 import (
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
-	"github.com/rshelekhov/sso/pkg/logger"
+	"github.com/rshelekhov/sso/internal/logger"
 	"time"
 )
 

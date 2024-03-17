@@ -3,7 +3,7 @@ package grpcapp
 import (
 	"fmt"
 	authgrpc "github.com/rshelekhov/sso/internal/grpc/auth"
-	"github.com/rshelekhov/sso/pkg/logger"
+	"github.com/rshelekhov/sso/internal/logger"
 	"google.golang.org/grpc"
 	"log/slog"
 	"net"

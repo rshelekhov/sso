@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/rshelekhov/sso/config"
 	"github.com/rshelekhov/sso/internal/app"
-	"github.com/rshelekhov/sso/pkg/logger"
+	"github.com/rshelekhov/sso/internal/logger"
 	"log/slog"
 	"os"
 	"os/signal"
