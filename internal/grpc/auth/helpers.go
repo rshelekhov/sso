@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/rshelekhov/sso/internal/model"
@@ -58,15 +57,15 @@ func extractUserDeviceData(ctx context.Context) (model.UserDeviceRequestData, er
 func validateLogin(req *ssov1.LoginRequest) error {
 	// TODO: add validation with validator
 	if req.GetEmail() == "" {
-		return status.Error(codes.InvalidArgument, fmt.Sprint(le.ErrEmailIsRequired))
+		return status.Error(codes.InvalidArgument, le.ErrEmailIsRequired.Error())
 	}
 
 	if req.GetPassword() == "" {
-		return status.Error(codes.InvalidArgument, fmt.Sprint(le.ErrPasswordIsRequired))
+		return status.Error(codes.InvalidArgument, le.ErrPasswordIsRequired.Error())
 	}
 
 	if req.GetAppId() == emptyValue {
-		return status.Error(codes.InvalidArgument, fmt.Sprint(le.ErrAppIDIsRequired))
+		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
 	}
 
 	return nil
