@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	jwt "github.com/rshelekhov/sso-jwt"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"github.com/rshelekhov/sso/internal/port"
 	"log/slog"
@@ -10,14 +11,14 @@ import (
 type Auth struct {
 	log     logger.Interface
 	storage port.AuthStorage
-	jwt     *jwtauth.TokenService
+	jwt     *jwt.TokenService
 }
 
 // New returns a new instance of the Auth service
 func New(
 	log logger.Interface,
 	storage port.AuthStorage,
-	jwt *jwtoken.TokenService,
+	jwt *jwt.TokenService,
 ) *Auth {
 	return &Auth{
 		log:     log,
@@ -37,8 +38,8 @@ func (a *Auth) Login(ctx context.Context, email, password string, appID int) (to
 // RegisterNewUser creates new user in the system and returns token
 //
 // If user with given email already exists, it will return an error
-func (a *Auth) RegisterNewUser(ctx context.Context, email, password string) (token string, err error) {
-	const op = "service.Auth.RegisterNewUser"
+func (a *Auth) CreateUser(ctx context.Context, email, password string) (userID string, err error) {
+	const op = "service.Auth.CreateUser"
 
 	log := a.log.With(
 		slog.String("op", op),
