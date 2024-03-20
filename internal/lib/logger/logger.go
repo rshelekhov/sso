@@ -46,7 +46,7 @@ func Err(err error) slog.Attr {
 	}
 }
 
-func LogWithRequest(log Interface, op, reqID string) Interface {
+func LogWithRequest(log Interface, reqID, op string) Interface {
 	log.With(
 		slog.String("op", op),
 		slog.String("request_id", reqID),
