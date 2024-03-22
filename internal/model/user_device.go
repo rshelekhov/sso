@@ -9,7 +9,7 @@ type (
 		UserAgent     string    `db:"user_agent"`
 		IP            string    `db:"ip"`
 		Detached      bool      `db:"detached"`
-		LatestLoginAt time.Time `db:"latest_login_at"`
+		LastVisitedAt time.Time `db:"last_visited_at"` // TODO: make sure that db has a correct column title
 		DetachedAt    time.Time `db:"detached_at"`
 	}
 

@@ -14,7 +14,7 @@ type App struct {
 func New(log logger.Interface, grpcPort string, tokenTTL time.Duration) *App {
 	// TODO: initialize storage
 
-	// TODO: init auth service
+	// TODO: init controller usecase
 
 	grpcApp := grpcapp.New(log, grpcPort)
 

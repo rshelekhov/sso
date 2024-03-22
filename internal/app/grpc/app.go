@@ -1,31 +1,73 @@
 package grpcapp
 
 import (
+	"context"
 	"fmt"
-	authgrpc "github.com/rshelekhov/sso/internal/grpc/auth"
-	"github.com/rshelekhov/sso/internal/lib/logger"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
+	authgrpc "github.com/rshelekhov/sso/internal/grpc/controller"
+	"github.com/rshelekhov/sso/internal/lib/constants/key"
+	"github.com/rshelekhov/sso/internal/lib/grpc/interceptor/requestid"
+	"github.com/rshelekhov/sso/internal/port"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log/slog"
 	"net"
 )
 
 type App struct {
-	log        logger.Interface
+	log        *slog.Logger
 	gRPCServer *grpc.Server
 	port       string
 }
 
-func New(log logger.Interface, port string) *App {
-	gRPCServer := grpc.NewServer()
+func New(
+	log *slog.Logger,
+	authUsecases port.AuthUsecase,
+	port string,
+) *App {
+	loggingOpts := []logging.Option{
+		logging.WithLogOnEvents(
+			//logging.StartCall, logging.FinishCall,
+			logging.PayloadReceived, logging.PayloadSent,
+		),
+		// Add any other option (check functions starting with logging.With).
+	}
 
-	// TODO: add auth service
-	authgrpc.Register(gRPCServer, auth)
+	recoveryOpts := []recovery.Option{
+		recovery.WithRecoveryHandler(func(p interface{}) (err error) {
+			log.Error("Recovered from panic", slog.Any("panic", p))
+
+			return status.Errorf(codes.Internal, "internal error")
+		}),
+	}
+
+	gRPCServer := grpc.NewServer(grpc.ChainUnaryInterceptor(
+		recovery.UnaryServerInterceptor(recoveryOpts...),
+		requestid.UnaryServerInterceptor(),
+		logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
+	))
+
+	authgrpc.RegisterController(gRPCServer, log, authUsecases)
 
 	return &App{
 		log:        log,
 		gRPCServer: gRPCServer,
 		port:       port,
 	}
+}
+
+// InterceptorLogger adapts slog logger to interceptor logger.
+// This code is simple enough to be copied and not imported.
+func InterceptorLogger(l *slog.Logger) logging.Logger {
+	return logging.LoggerFunc(func(ctx context.Context, lvl logging.Level, msg string, fields ...any) {
+		requestID := requestid.FromContext(ctx)
+
+		logFields := append(fields, slog.String(key.RequestID, requestID))
+
+		l.Log(ctx, slog.Level(lvl), msg, logFields...)
+	})
 }
 
 func (a *App) MustRun() {

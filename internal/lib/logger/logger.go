@@ -11,14 +11,6 @@ const (
 	envProd  = "prod"
 )
 
-type Interface interface {
-	With(args ...any) *Logger
-	Debug(msg string, attrs ...interface{})
-	Info(msg string, attrs ...interface{})
-	Warn(msg string, attrs ...interface{})
-	Error(msg string, attrs ...interface{})
-}
-
 type Logger struct {
 	Logger *slog.Logger
 }
@@ -46,9 +38,8 @@ func Err(err error) slog.Attr {
 	}
 }
 
-func LogWithRequest(log Interface, reqID, op string) Interface {
+func LogWithRequest(log *slog.Logger, reqID string) *slog.Logger {
 	log.With(
-		slog.String("op", op),
 		slog.String("request_id", reqID),
 	)
 
