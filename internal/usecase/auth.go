@@ -37,7 +37,7 @@ func NewAuthUsecase(
 //
 // Is user exists, but password is incorrect, it will return an error
 // If user doesn't exist, it will return an error
-func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData, userDevice model.UserDeviceRequestData) (tokenData jwtauth.TokenData, err error) {
+func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (jwtauth.TokenData, error) {
 	const method = "usecase.AuthUsecase.Login"
 
 	log := u.log.With(
@@ -60,16 +60,18 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData, us
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
 
-	tokenData, err = u.CreateUserSession(ctx, log, user.ID, userDevice)
+	userDevice := model.UserDeviceRequestData{
+		UserAgent: data.UserDevice.UserAgent,
+		IP:        data.UserDevice.IP,
+	}
+
+	tokenData, err := u.CreateUserSession(ctx, log, user.ID, userDevice)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToCreateUserSession, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
 
-	log.Info("user and tokens created",
-		slog.String(key.UserID, user.ID),
-		slog.String(key.AccessToken, tokenData.AccessToken),
-		slog.String(key.RefreshToken, tokenData.RefreshToken))
+	log.Info("user authenticated, tokens created", slog.String(key.UserID, user.ID))
 
 	return tokenData, nil
 }
@@ -98,14 +100,7 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, jwt *jwtauth.TokenServ
 // RegisterNewUser creates new user in the system and returns token
 //
 // If user with given email already exists, it will return an error
-func (u *AuthUsecase) RegisterNewUser(
-	ctx context.Context,
-	data *model.UserRequestData,
-	userDevice model.UserDeviceRequestData,
-) (
-	tokenData jwtauth.TokenData,
-	err error,
-) {
+func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserRequestData) (jwtauth.TokenData, error) {
 	const method = "usecase.AuthUsecase.CreateUser"
 
 	log := u.log.With(
@@ -137,15 +132,17 @@ func (u *AuthUsecase) RegisterNewUser(
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
 
-	tokenData, err = u.CreateUserSession(ctx, log, user.ID, userDevice)
+	userDevice := model.UserDeviceRequestData{
+		UserAgent: data.UserDevice.UserAgent,
+		IP:        data.UserDevice.IP,
+	}
+
+	tokenData, err := u.CreateUserSession(ctx, log, user.ID, userDevice)
 	if err != nil {
 		return jwtauth.TokenData{}, err
 	}
 
-	log.Info("user and tokens created",
-		slog.String(key.UserID, user.ID),
-		slog.String(key.AccessToken, tokenData.AccessToken),
-		slog.String(key.RefreshToken, tokenData.RefreshToken))
+	log.Info("user and tokens created", slog.String(key.UserID, user.ID))
 
 	return tokenData, nil
 }
@@ -156,10 +153,10 @@ func (u *AuthUsecase) CreateUserSession(
 	ctx context.Context,
 	log *slog.Logger,
 	userID string,
-	data model.UserDeviceRequestData,
+	userDeviceRequest model.UserDeviceRequestData,
 ) (
-	tokenData jwtauth.TokenData,
-	err error,
+	jwtauth.TokenData,
+	error,
 ) {
 	const method = "usecase.AuthUsecase.CreateUserSession"
 
@@ -172,7 +169,7 @@ func (u *AuthUsecase) CreateUserSession(
 		jwtauth.ContextUserID: userID,
 	}
 
-	deviceID, err := u.getDeviceID(ctx, userID, data)
+	deviceID, err := u.getDeviceID(ctx, userID, userDeviceRequest)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetDeviceID, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
@@ -202,8 +199,6 @@ func (u *AuthUsecase) CreateUserSession(
 	}
 
 	if err = u.storage.CreateUserSession(ctx, session); err != nil {
-		// TODO: add logging and return a custom error
-
 		log.Error("%w: %w", le.ErrFailedToCreateUserSession, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
@@ -214,7 +209,7 @@ func (u *AuthUsecase) CreateUserSession(
 	}
 
 	additionalFields := map[string]string{key.UserID: userID}
-	tokenData = jwtauth.TokenData{
+	tokenData := jwtauth.TokenData{
 		AccessToken:      accessToken,
 		RefreshToken:     refreshToken,
 		Domain:           u.jwt.RefreshTokenCookieDomain,
@@ -227,11 +222,11 @@ func (u *AuthUsecase) CreateUserSession(
 	return tokenData, nil
 }
 
-func (u *AuthUsecase) getDeviceID(ctx context.Context, userID string, data model.UserDeviceRequestData) (string, error) {
-	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserAgent)
+func (u *AuthUsecase) getDeviceID(ctx context.Context, userID string, userDeviceRequest model.UserDeviceRequestData) (string, error) {
+	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, userDeviceRequest.UserAgent)
 	if err != nil {
 		if errors.Is(err, le.ErrUserDeviceNotFound) {
-			return u.registerDevice(ctx, userID, data)
+			return u.registerDevice(ctx, userID, userDeviceRequest)
 		}
 		return "", err
 	}
@@ -239,12 +234,12 @@ func (u *AuthUsecase) getDeviceID(ctx context.Context, userID string, data model
 	return deviceID, nil
 }
 
-func (u *AuthUsecase) registerDevice(ctx context.Context, userID string, data model.UserDeviceRequestData) (string, error) {
+func (u *AuthUsecase) registerDevice(ctx context.Context, userID string, userDeviceRequest model.UserDeviceRequestData) (string, error) {
 	userDevice := model.UserDevice{
 		ID:            ksuid.New().String(),
 		UserID:        userID,
-		UserAgent:     data.UserAgent,
-		IP:            data.IP,
+		UserAgent:     userDeviceRequest.UserAgent,
+		IP:            userDeviceRequest.IP,
 		Detached:      false,
 		LastVisitedAt: time.Now(),
 	}
@@ -261,41 +256,68 @@ func (u *AuthUsecase) updateLastVisitedAt(ctx context.Context, deviceID string, 
 	return u.storage.UpdateLastVisitedAt(ctx, deviceID, lastVisitedAt)
 }
 
-//func (u *AuthUsecase) ExtractUserDeviceData(ctx context.Context, userEmail string) (model.UserDeviceRequestData, error) {
-//	const method = "usecase.AuthUsecase.ExtractUserDeviceData"
-//
-//	log := u.log.With(
-//		slog.String(key.Method, method),
-//		slog.String(key.Email, userEmail),
-//	)
-//
-//	md, ok := metadata.FromIncomingContext(ctx)
-//	if !ok {
-//		log.Error(le.ErrFailedToExtractMetaData.Error())
-//		return model.UserDeviceRequestData{}, le.ErrInternalServerError
-//	}
-//
-//	var userAgent, ip string
-//
-//	if len(md["user-agent"]) > 0 {
-//		userAgent = md["user-agent"][0]
-//	} else {
-//		log.Error(le.ErrUserAgentIsRequired.Error())
-//		return model.UserDeviceRequestData{}, le.ErrUserAgentIsRequired
-//	}
-//
-//	if len(md["ip"]) > 0 {
-//		ipParts := strings.Split(md["ip"][0], ":")
-//		ip = ipParts[0]
-//	} else {
-//		log.Error(le.ErrIPIsRequired.Error())
-//		return model.UserDeviceRequestData{}, le.ErrIPIsRequired
-//	}
-//
-//	return model.UserDeviceRequestData{
-//		UserAgent: userAgent,
-//		IP:        ip,
-//	}, nil
-//
-//	return model.UserDeviceRequestData{}, nil
-//}
+func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (jwtauth.TokenData, error) {
+	const method = "usecase.AuthUsecase.RefreshTokens"
+
+	log := u.log.With(
+		slog.String(key.Method, method),
+	)
+
+	session, err := u.checkSessionAndDevice(ctx, data.RefreshToken, data.UserDevice)
+	switch {
+	case errors.Is(err, le.ErrSessionNotFound):
+		log.Error("%w: %w", le.ErrSessionNotFound, err)
+		return jwtauth.TokenData{}, le.ErrSessionNotFound
+	case errors.Is(err, le.ErrSessionExpired):
+		log.Error("%w: %w", le.ErrSessionExpired, err)
+		return jwtauth.TokenData{}, le.ErrSessionExpired
+	case errors.Is(err, le.ErrUserDeviceNotFound):
+		log.Error("%w: %w", le.ErrUserDeviceNotFound, err)
+		return jwtauth.TokenData{}, le.ErrUserDeviceNotFound
+	case err != nil:
+		log.Error("%w: %w", le.ErrFailedToCheckSessionAndDevice, err)
+		return jwtauth.TokenData{}, le.ErrInternalServerError
+	}
+
+	if err = u.deleteRefreshToken(ctx, data.RefreshToken); err != nil {
+		log.Error("%w: %w", le.ErrFailedToDeleteRefreshToken, err)
+		return jwtauth.TokenData{}, le.ErrInternalServerError
+	}
+
+	tokenData, err := u.CreateUserSession(ctx, log, session.UserID, data.UserDevice)
+	if err != nil {
+		return jwtauth.TokenData{}, err
+	}
+
+	log.Info("tokens created", slog.Any(key.UserID, session.UserID))
+
+	return tokenData, nil
+}
+
+func (u *AuthUsecase) checkSessionAndDevice(ctx context.Context, refreshToken string, userDevice model.UserDeviceRequestData) (model.Session, error) {
+	session, err := u.storage.GetSessionByRefreshToken(ctx, refreshToken)
+	if errors.Is(err, le.ErrSessionNotFound) {
+		return model.Session{}, le.ErrSessionNotFound
+	}
+	if err != nil {
+		return model.Session{}, err
+	}
+
+	if session.IsExpired() {
+		return model.Session{}, le.ErrSessionExpired
+	}
+
+	_, err = u.storage.GetUserDeviceID(ctx, session.UserID, userDevice.UserAgent)
+	if errors.Is(err, le.ErrUserDeviceNotFound) {
+		return model.Session{}, le.ErrUserDeviceNotFound
+	}
+	if err != nil {
+		return model.Session{}, err
+	}
+
+	return session, nil
+}
+
+func (u *AuthUsecase) deleteRefreshToken(ctx context.Context, refreshToken string) error {
+	return u.storage.DeleteRefreshToken(ctx, refreshToken)
+}

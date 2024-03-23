@@ -25,20 +25,13 @@ func RegisterController(gRPC *grpc.Server, log *slog.Logger, usecase port.AuthUs
 }
 
 func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*ssov1.LoginResponse, error) {
-	userInput := &model.UserRequestData{}
-	if err := validateLogin(req, userInput); err != nil {
+	userData := &model.UserRequestData{}
+	if err := validateLoginData(req, userData); err != nil {
 		return nil, err
 	}
 
-	userInput.AppID = int(req.GetAppId())
-
-	userDevice := model.UserDeviceRequestData{
-		UserAgent: req.UserDeviceData.GetUserAgent(),
-		IP:        req.UserDeviceData.GetIp(),
-	}
-
 	// TODO: add other errors from usecase layer
-	tokenData, err := c.usecase.Login(ctx, userInput, userDevice)
+	tokenData, err := c.usecase.Login(ctx, userData)
 	switch {
 	case errors.Is(err, le.ErrPasswordsDontMatch):
 		return nil, status.Error(codes.Unauthenticated, le.ErrPasswordsDontMatch.Error())
@@ -60,25 +53,13 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 }
 
 func (c *authController) Register(ctx context.Context, req *ssov1.RegisterRequest) (*ssov1.RegisterResponse, error) {
-	userInput := &model.UserRequestData{}
-	if err := validateRegister(req, userInput); err != nil {
+	userData := &model.UserRequestData{}
+	if err := validateRegisterData(req, userData); err != nil {
 		return nil, err
 	}
 
-	userInput.AppID = int(req.GetAppId())
-
-	// TODO: update this part: will get userDevice from request
-	//userDevice, err := c.extractUserDeviceData(ctx, userInput.Email)
-	//if err != nil {
-	//	return nil, err
-	//}
-	userDevice := model.UserDeviceRequestData{
-		UserAgent: req.UserDeviceData.GetUserAgent(),
-		IP:        req.UserDeviceData.GetIp(),
-	}
-
 	// TODO: add other errors from usecase layer
-	tokenData, err := c.usecase.RegisterNewUser(ctx, userInput, userDevice)
+	tokenData, err := c.usecase.RegisterNewUser(ctx, userData)
 	if err != nil {
 		// TODO: add checking if user already exists
 		// TODO: ... Add errors descriptions
@@ -98,16 +79,29 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 	return &ssov1.RegisterResponse{TokenData: tokenDataResponse}, nil
 }
 
-//func (c *authController) extractUserDeviceData(ctx context.Context, email string) (model.UserDeviceRequestData, error) {
-//	userDevice, err := c.usecase.ExtractUserDeviceData(ctx, email)
-//	if err != nil {
-//		if errors.Is(err, le.ErrUserAgentIsRequired) {
-//			return model.UserDeviceRequestData{}, status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
-//		} else if errors.Is(err, le.ErrIPIsRequired) {
-//			return model.UserDeviceRequestData{}, status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
-//		}
-//		return model.UserDeviceRequestData{}, status.Error(codes.Internal, le.ErrInternalServerError.Error())
-//	}
-//
-//	return userDevice, nil
-//}
+func (c *authController) Refresh(ctx context.Context, req *ssov1.RefreshRequest) (*ssov1.RefreshResponse, error) {
+	request := &model.RefreshRequestData{}
+	if err := validateRefresh(req, request); err != nil {
+		return nil, err
+	}
+
+	// TODO: add other errors from usecase layer
+	tokenData, err := c.usecase.RefreshTokens(ctx, request)
+	if err != nil {
+		// TODO: add checking if user already exists
+		// TODO: ... Add errors descriptions
+		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	}
+
+	tokenDataResponse := &ssov1.TokenData{
+		AccessToken:      tokenData.AccessToken,
+		RefreshToken:     tokenData.RefreshToken,
+		Domain:           tokenData.Domain,
+		Path:             tokenData.Path,
+		ExpiresAt:        timestamppb.New(tokenData.ExpiresAt),
+		HttpOnly:         tokenData.HTTPOnly,
+		AdditionalFields: tokenData.AdditionalFields,
+	}
+
+	return &ssov1.RefreshResponse{TokenData: tokenDataResponse}, nil
+}

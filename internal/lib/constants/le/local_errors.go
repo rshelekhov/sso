@@ -21,6 +21,7 @@ const (
 	ErrEmailIsRequired         LocalError = "email is required"
 	ErrPasswordIsRequired      LocalError = "password is required"
 	ErrAppIDIsRequired         LocalError = "app_id is required"
+	ErrRefreshTokenIsRequired  LocalError = "refresh_token is required"
 
 	ErrUserAlreadyExists            LocalError = "user already exists"
 	ErrFailedToCheckIfPasswordMatch LocalError = "failed to check if password match"
@@ -31,9 +32,13 @@ const (
 	ErrFailedToGetUserByEmail       LocalError = "failed to get user by email"
 	ErrFailedToGetDeviceID          LocalError = "failed to get device id"
 
-	ErrFailedToCreateAccessToken   LocalError = "failed to create access token"
-	ErrFailedToCreateRefreshToken  LocalError = "failed to create refresh token"
-	ErrUserDeviceNotFound          LocalError = "user device not found"
-	ErrFailedToUpdateLastVisitedAt LocalError = "failed to update last visited at"
-	ErrFailedToCreateUserSession   LocalError = "failed to create user session"
+	ErrFailedToCreateAccessToken     LocalError = "failed to create access token"
+	ErrFailedToCreateRefreshToken    LocalError = "failed to create refresh token"
+	ErrUserDeviceNotFound            LocalError = "user device not found"
+	ErrFailedToUpdateLastVisitedAt   LocalError = "failed to update last visited at"
+	ErrFailedToCreateUserSession     LocalError = "failed to create user session"
+	ErrSessionNotFound               LocalError = "session not found"
+	ErrSessionExpired                LocalError = "session expired"
+	ErrFailedToCheckSessionAndDevice LocalError = "failed to check session and device"
+	ErrFailedToDeleteRefreshToken    LocalError = "failed to delete refresh token"
 )

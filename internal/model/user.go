@@ -11,8 +11,9 @@ type (
 	}
 
 	UserRequestData struct {
-		Email    string
-		Password string
-		AppID    int
+		Email      string
+		Password   string
+		AppID      int
+		UserDevice UserDeviceRequestData
 	}
 )
