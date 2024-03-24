@@ -346,3 +346,25 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 
 	return u.storage.DeleteSession(ctx, userID, deviceID)
 }
+
+func (u *AuthUsecase) GetUserByID(ctx context.Context, request *model.UserRequestData) (model.User, error) {
+	const method = "usecase.AuthUsecase.GetUser"
+
+	log := u.log.With(slog.String(key.Method, method))
+
+	userID, err := jwtauth.GetUserID(ctx)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
+		return model.User{}, le.ErrFailedToGetUserIDFromToken
+	}
+
+	log = log.With(slog.String(key.UserID, userID))
+
+	user, err := u.storage.GetUserByID(ctx, userID)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetUser, err)
+		return model.User{}, le.ErrFailedToGetUser
+	}
+
+	return user, nil
+}

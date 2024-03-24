@@ -136,3 +136,16 @@ func validateLogout(req *ssov1.LogoutRequest, request *model.LogoutRequestData) 
 
 	return nil
 }
+
+func validateGetUser(req *ssov1.GetUserRequest, request *model.UserRequestData) error {
+	// TODO: add validation with validator
+	if req.GetAppId() == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
+	}
+
+	request = &model.UserRequestData{
+		AppID: int(req.GetAppId()),
+	}
+
+	return nil
+}

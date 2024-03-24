@@ -30,7 +30,8 @@ const (
 	ErrFailedToCreateUser           LocalError = "failed to create user"
 	ErrFailedToGeneratePasswordHash LocalError = "failed to generate password hash"
 	ErrFailedToGetUserByEmail       LocalError = "failed to get user by email"
-	ErrFailedToGetDeviceID          LocalError = "failed to get device id"
+	ErrFailedToGetUser              LocalError = "failed to get user"
+	ErrUserNotFound                 LocalError = "user not found"
 
 	ErrFailedToCreateAccessToken     LocalError = "failed to create access token"
 	ErrFailedToCreateRefreshToken    LocalError = "failed to create refresh token"
@@ -42,4 +43,5 @@ const (
 	ErrFailedToCheckSessionAndDevice LocalError = "failed to check session and device"
 	ErrFailedToDeleteRefreshToken    LocalError = "failed to delete refresh token"
 	ErrFailedToGetUserIDFromToken    LocalError = "failed to get user id from token"
+	ErrFailedToGetDeviceID           LocalError = "failed to get device id"
 )

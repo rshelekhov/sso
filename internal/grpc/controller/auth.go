@@ -126,7 +126,26 @@ func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (
 }
 
 func (c *authController) GetUser(ctx context.Context, req *ssov1.GetUserRequest) (*ssov1.GetUserResponse, error) {
-	return &ssov1.GetUserResponse{}, nil
+	request := &model.UserRequestData{}
+	if err := validateGetUser(req, request); err != nil {
+		return nil, err
+	}
+
+	user, err := c.usecase.GetUserByID(ctx, request)
+	switch {
+	case errors.Is(err, le.ErrUserNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
+	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
+		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
+	case err != nil:
+		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	}
+
+	return &ssov1.GetUserResponse{
+		UserId:    user.ID,
+		Email:     user.Email,
+		UpdatedAt: timestamppb.New(user.UpdatedAt),
+	}, nil
 }
 
 func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.UpdateUserResponse, error) {

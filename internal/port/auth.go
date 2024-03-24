@@ -17,11 +17,13 @@ type (
 		// ExtractUserDeviceData(ctx context.Context, userEmail string) (model.UserDeviceRequestData, error)
 		RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (jwtauth.TokenData, error)
 		LogoutUser(ctx context.Context, data model.UserDeviceRequestData) error
+		GetUserByID(ctx context.Context, request *model.UserRequestData) (model.User, error)
 	}
 
 	AuthStorage interface {
 		CreateUser(ctx context.Context, data model.User) error
 		GetUserByEmail(ctx context.Context, email string) (model.User, error)
+		GetUserByID(ctx context.Context, userID string) (model.User, error)
 		GetUserData(ctx context.Context, userID string) (model.User, error)
 
 		GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
