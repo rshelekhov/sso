@@ -59,6 +59,9 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 
 	tokenData, err := c.usecase.RegisterNewUser(ctx, userData)
 	if err != nil {
+		if errors.Is(err, le.ErrEmailAlreadyTaken) {
+			return nil, status.Error(codes.AlreadyExists, le.ErrEmailAlreadyTaken.Error())
+		}
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
@@ -114,10 +117,10 @@ func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (
 
 	err := c.usecase.LogoutUser(ctx, request.UserDevice)
 	switch {
-	case errors.Is(err, le.ErrUserDeviceNotFound):
-		return nil, status.Error(codes.Unauthenticated, le.ErrUserDeviceNotFound.Error())
 	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
+	case errors.Is(err, le.ErrUserDeviceNotFound):
+		return nil, status.Error(codes.Unauthenticated, le.ErrUserDeviceNotFound.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
@@ -133,10 +136,10 @@ func (c *authController) GetUser(ctx context.Context, req *ssov1.GetUserRequest)
 
 	user, err := c.usecase.GetUserByID(ctx, request)
 	switch {
-	case errors.Is(err, le.ErrUserNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
 	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
+	case errors.Is(err, le.ErrUserNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
@@ -149,6 +152,31 @@ func (c *authController) GetUser(ctx context.Context, req *ssov1.GetUserRequest)
 }
 
 func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.UpdateUserResponse, error) {
+	request := &model.UserRequestData{}
+	if err := validateUpdateUser(req, request); err != nil {
+		return nil, err
+	}
+
+	err := c.usecase.UpdateUser(ctx, request)
+	switch {
+	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
+		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
+	case errors.Is(err, le.ErrUserNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
+	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
+		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
+	case errors.Is(err, le.ErrEmailAlreadyTaken):
+		return nil, status.Error(codes.AlreadyExists, le.ErrEmailAlreadyTaken.Error())
+	case errors.Is(err, le.ErrPasswordsDontMatch):
+		return nil, status.Error(codes.InvalidArgument, le.ErrPasswordsDontMatch.Error())
+	case errors.Is(err, le.ErrNoChangesDetected):
+		return nil, status.Error(codes.InvalidArgument, le.ErrNoChangesDetected.Error())
+	case errors.Is(err, le.ErrNoPasswordChangesDetected):
+		return nil, status.Error(codes.InvalidArgument, le.ErrNoPasswordChangesDetected.Error())
+	case err != nil:
+		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	}
+
 	return &ssov1.UpdateUserResponse{}, nil
 }
 

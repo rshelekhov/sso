@@ -128,6 +128,10 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 	if err = u.storage.CreateUser(ctx, user); err != nil {
 		// TODO: return a custom error
 
+		if errors.Is(err, le.ErrEmailAlreadyTaken) {
+			log.Error("%w: %w", le.ErrEmailAlreadyTaken, err)
+			return jwtauth.TokenData{}, le.ErrEmailAlreadyTaken
+		}
 		log.Error("%w: %w", le.ErrFailedToCreateUser, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
@@ -349,7 +353,7 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 	return u.storage.DeleteSession(ctx, userID, deviceID)
 }
 
-func (u *AuthUsecase) GetUserByID(ctx context.Context, request *model.UserRequestData) (model.User, error) {
+func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error) {
 	const method = "usecase.AuthUsecase.GetUser"
 
 	log := u.log.With(slog.String(key.Method, method))
@@ -362,7 +366,7 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, request *model.UserReques
 
 	log = log.With(slog.String(key.UserID, userID))
 
-	user, err := u.storage.GetUserByID(ctx, userID)
+	user, err := u.storage.GetUserByID(ctx, userID, data.AppID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUser, err)
 		return model.User{}, le.ErrFailedToGetUser
@@ -371,4 +375,78 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, request *model.UserReques
 	log.Info("user found by ID")
 
 	return user, nil
+}
+
+func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestData) error {
+	const method = "usecase.AuthUsecase.UpdateUser"
+
+	log := u.log.With(slog.String(key.Method, method))
+
+	userID, err := jwtauth.GetUserID(ctx)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
+		return le.ErrFailedToGetUserIDFromToken
+	}
+
+	log = log.With(slog.String(key.UserID, userID))
+
+	currentUser, err := u.storage.GetUserData(ctx, userID)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetUser, err)
+		return le.ErrFailedToGetUser
+	}
+
+	hash, err := auth.PasswordHashBcrypt(
+		data.Password,
+		u.jwt.PasswordHashCost,
+		[]byte(u.jwt.PasswordHashSalt),
+	)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGeneratePasswordHash, err)
+		return le.ErrInternalServerError
+	}
+
+	updatedUser := model.User{
+		ID:           currentUser.ID,
+		Email:        data.Email,
+		PasswordHash: hash,
+		UpdatedAt:    time.Now(),
+	}
+
+	emailChanged := updatedUser.Email != "" && updatedUser.Email != currentUser.Email
+	passwordChanged := updatedUser.PasswordHash != ""
+
+	if !emailChanged && !passwordChanged {
+		return le.ErrNoChangesDetected
+	}
+
+	if err = u.storage.CheckEmailUniqueness(ctx, updatedUser); err != nil {
+		return err
+	}
+
+	if data.Password != "" {
+		if err = u.checkPassword(currentUser.PasswordHash, data.Password); err != nil {
+			log.Error("%w: %w", le.ErrFailedToGeneratePasswordHash, err)
+			return le.ErrInternalServerError
+		}
+	}
+
+	return u.storage.UpdateUser(ctx, updatedUser)
+}
+
+func (u *AuthUsecase) checkPassword(currentPasswordHash, passwordFromRequest string) error {
+	updatedPasswordHash, err := auth.PasswordHashBcrypt(
+		passwordFromRequest,
+		u.jwt.PasswordHashCost,
+		[]byte(u.jwt.PasswordHashSalt),
+	)
+	if err != nil {
+		return err
+	}
+
+	if currentPasswordHash != updatedPasswordHash {
+		return le.ErrNoPasswordChangesDetected
+	}
+
+	return nil
 }

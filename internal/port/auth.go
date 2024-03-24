@@ -17,13 +17,14 @@ type (
 		// ExtractUserDeviceData(ctx context.Context, userEmail string) (model.UserDeviceRequestData, error)
 		RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (jwtauth.TokenData, error)
 		LogoutUser(ctx context.Context, data model.UserDeviceRequestData) error
-		GetUserByID(ctx context.Context, request *model.UserRequestData) (model.User, error)
+		GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error)
+		UpdateUser(ctx context.Context, data *model.UserRequestData) error
 	}
 
 	AuthStorage interface {
 		CreateUser(ctx context.Context, data model.User) error
 		GetUserByEmail(ctx context.Context, email string) (model.User, error)
-		GetUserByID(ctx context.Context, userID string) (model.User, error)
+		GetUserByID(ctx context.Context, userID string, appID int) (model.User, error)
 		GetUserData(ctx context.Context, userID string) (model.User, error)
 
 		GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
@@ -33,5 +34,7 @@ type (
 		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (model.Session, error)
 		DeleteRefreshToken(ctx context.Context, refreshToken string) error
 		DeleteSession(ctx context.Context, userID, deviceID string) error
+		CheckEmailUniqueness(ctx context.Context, user model.User) error
+		UpdateUser(ctx context.Context, user model.User) error
 	}
 )

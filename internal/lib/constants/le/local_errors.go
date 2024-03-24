@@ -24,14 +24,17 @@ const (
 	ErrRefreshTokenIsRequired  LocalError = "refresh_token is required"
 
 	ErrUserAlreadyExists            LocalError = "user already exists"
-	ErrFailedToCheckIfPasswordMatch LocalError = "failed to check if password match"
 	ErrPasswordsDontMatch           LocalError = "invalid credentials: passwords don't match"
 	ErrInvalidCredentials           LocalError = "invalid credentials"
+	ErrEmailAlreadyTaken            LocalError = "email already taken"
 	ErrFailedToCreateUser           LocalError = "failed to create user"
 	ErrFailedToGeneratePasswordHash LocalError = "failed to generate password hash"
 	ErrFailedToGetUserByEmail       LocalError = "failed to get user by email"
 	ErrFailedToGetUser              LocalError = "failed to get user"
+	ErrFailedToCheckIfPasswordMatch LocalError = "failed to check if password match"
 	ErrUserNotFound                 LocalError = "user not found"
+	ErrNoChangesDetected            LocalError = "no changes detected"
+	ErrNoPasswordChangesDetected    LocalError = "no password changes detected"
 
 	ErrFailedToCreateAccessToken     LocalError = "failed to create access token"
 	ErrFailedToCreateRefreshToken    LocalError = "failed to create refresh token"
