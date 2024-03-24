@@ -30,7 +30,6 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 		return nil, err
 	}
 
-	// TODO: add other errors from usecase layer
 	tokenData, err := c.usecase.Login(ctx, userData)
 	switch {
 	case errors.Is(err, le.ErrPasswordsDontMatch):
@@ -58,11 +57,8 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 		return nil, err
 	}
 
-	// TODO: add other errors from usecase layer
 	tokenData, err := c.usecase.RegisterNewUser(ctx, userData)
 	if err != nil {
-		// TODO: add checking if user already exists
-		// TODO: ... Add errors descriptions
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
@@ -85,11 +81,15 @@ func (c *authController) Refresh(ctx context.Context, req *ssov1.RefreshRequest)
 		return nil, err
 	}
 
-	// TODO: add other errors from usecase layer
 	tokenData, err := c.usecase.RefreshTokens(ctx, request)
-	if err != nil {
-		// TODO: add checking if user already exists
-		// TODO: ... Add errors descriptions
+	switch {
+	case errors.Is(err, le.ErrSessionNotFound):
+		return nil, status.Error(codes.Unauthenticated, le.ErrSessionNotFound.Error())
+	case errors.Is(err, le.ErrSessionExpired):
+		return nil, status.Error(codes.Unauthenticated, le.ErrSessionExpired.Error())
+	case errors.Is(err, le.ErrUserDeviceNotFound):
+		return nil, status.Error(codes.Unauthenticated, le.ErrUserDeviceNotFound.Error())
+	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
@@ -104,4 +104,35 @@ func (c *authController) Refresh(ctx context.Context, req *ssov1.RefreshRequest)
 	}
 
 	return &ssov1.RefreshResponse{TokenData: tokenDataResponse}, nil
+}
+
+func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.LogoutResponse, error) {
+	request := &model.LogoutRequestData{}
+	if err := validateLogout(req, request); err != nil {
+		return nil, err
+	}
+
+	err := c.usecase.LogoutUser(ctx, request.UserDevice)
+	switch {
+	case errors.Is(err, le.ErrUserDeviceNotFound):
+		return nil, status.Error(codes.Unauthenticated, le.ErrUserDeviceNotFound.Error())
+	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
+		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
+	case err != nil:
+		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	}
+
+	return &ssov1.LogoutResponse{}, nil
+}
+
+func (c *authController) GetUser(ctx context.Context, req *ssov1.GetUserRequest) (*ssov1.GetUserResponse, error) {
+	return &ssov1.GetUserResponse{}, nil
+}
+
+func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.UpdateUserResponse, error) {
+	return &ssov1.UpdateUserResponse{}, nil
+}
+
+func (c *authController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRequest) (*ssov1.DeleteUserResponse, error) {
+	return &ssov1.DeleteUserResponse{}, nil
 }

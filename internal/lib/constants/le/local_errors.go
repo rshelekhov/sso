@@ -41,4 +41,5 @@ const (
 	ErrSessionExpired                LocalError = "session expired"
 	ErrFailedToCheckSessionAndDevice LocalError = "failed to check session and device"
 	ErrFailedToDeleteRefreshToken    LocalError = "failed to delete refresh token"
+	ErrFailedToGetUserIDFromToken    LocalError = "failed to get user id from token"
 )

@@ -126,7 +126,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 	}
 
 	if err = u.storage.CreateUser(ctx, user); err != nil {
-		// TODO: add logging and return a custom error
+		// TODO: return a custom error
 
 		log.Error("%w: %w", le.ErrFailedToCreateUser, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
@@ -296,10 +296,10 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 
 func (u *AuthUsecase) checkSessionAndDevice(ctx context.Context, refreshToken string, userDevice model.UserDeviceRequestData) (model.Session, error) {
 	session, err := u.storage.GetSessionByRefreshToken(ctx, refreshToken)
-	if errors.Is(err, le.ErrSessionNotFound) {
-		return model.Session{}, le.ErrSessionNotFound
-	}
 	if err != nil {
+		if errors.Is(err, le.ErrSessionNotFound) {
+			return model.Session{}, le.ErrSessionNotFound
+		}
 		return model.Session{}, err
 	}
 
@@ -308,10 +308,10 @@ func (u *AuthUsecase) checkSessionAndDevice(ctx context.Context, refreshToken st
 	}
 
 	_, err = u.storage.GetUserDeviceID(ctx, session.UserID, userDevice.UserAgent)
-	if errors.Is(err, le.ErrUserDeviceNotFound) {
-		return model.Session{}, le.ErrUserDeviceNotFound
-	}
 	if err != nil {
+		if errors.Is(err, le.ErrUserDeviceNotFound) {
+			return model.Session{}, le.ErrUserDeviceNotFound
+		}
 		return model.Session{}, err
 	}
 
@@ -320,4 +320,29 @@ func (u *AuthUsecase) checkSessionAndDevice(ctx context.Context, refreshToken st
 
 func (u *AuthUsecase) deleteRefreshToken(ctx context.Context, refreshToken string) error {
 	return u.storage.DeleteRefreshToken(ctx, refreshToken)
+}
+
+func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData) error {
+	const method = "usecase.AuthUsecase.LogoutUser"
+
+	log := u.log.With(slog.String(key.Method, method))
+
+	userID, err := jwtauth.GetUserID(ctx)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
+		return le.ErrFailedToGetUserIDFromToken
+	}
+
+	log = log.With(slog.String(key.UserID, userID))
+
+	// Check if the device exists
+	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserAgent)
+	if err != nil {
+		if errors.Is(err, le.ErrUserDeviceNotFound) {
+			return le.ErrUserDeviceNotFound
+		}
+		return err
+	}
+
+	return u.storage.DeleteSession(ctx, userID, deviceID)
 }

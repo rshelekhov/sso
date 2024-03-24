@@ -16,4 +16,9 @@ type (
 		AppID      int
 		UserDevice UserDeviceRequestData
 	}
+
+	LogoutRequestData struct {
+		AppID      int
+		UserDevice UserDeviceRequestData
+	}
 )

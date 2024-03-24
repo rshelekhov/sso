@@ -16,6 +16,7 @@ type (
 		CreateUserSession(ctx context.Context, log *slog.Logger, userID string, data model.UserDeviceRequestData) (jwtauth.TokenData, error)
 		// ExtractUserDeviceData(ctx context.Context, userEmail string) (model.UserDeviceRequestData, error)
 		RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (jwtauth.TokenData, error)
+		LogoutUser(ctx context.Context, data model.UserDeviceRequestData) error
 	}
 
 	AuthStorage interface {
@@ -29,5 +30,6 @@ type (
 		CreateUserSession(ctx context.Context, session model.Session) error
 		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (model.Session, error)
 		DeleteRefreshToken(ctx context.Context, refreshToken string) error
+		DeleteSession(ctx context.Context, userID, deviceID string) error
 	}
 )

@@ -8,6 +8,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+// TODO: refactor this methods for using general validator
+
 const emptyValue = 0
 
 func validateLoginData(req *ssov1.LoginRequest, userInput *model.UserRequestData) error {
@@ -44,6 +46,7 @@ func validateLoginData(req *ssov1.LoginRequest, userInput *model.UserRequestData
 
 	return nil
 }
+
 func validateRegisterData(req *ssov1.RegisterRequest, userInput *model.UserRequestData) error {
 	// TODO: add validation with validator
 	if req.GetEmail() == "" {
@@ -100,6 +103,31 @@ func validateRefresh(req *ssov1.RefreshRequest, request *model.RefreshRequestDat
 	request = &model.RefreshRequestData{
 		RefreshToken: req.GetRefreshToken(),
 		AppID:        int(req.GetAppId()),
+		UserDevice: model.UserDeviceRequestData{
+			UserAgent: req.UserDeviceData.GetUserAgent(),
+			IP:        req.UserDeviceData.GetIp(),
+		},
+	}
+
+	return nil
+}
+
+func validateLogout(req *ssov1.LogoutRequest, request *model.LogoutRequestData) error {
+	// TODO: add validation with validator
+	if req.GetAppId() == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
+	}
+
+	if req.UserDeviceData.GetUserAgent() == "" {
+		return status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
+	}
+
+	if req.UserDeviceData.GetIp() == "" {
+		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
+	}
+
+	request = &model.LogoutRequestData{
+		AppID: int(req.GetAppId()),
 		UserDevice: model.UserDeviceRequestData{
 			UserAgent: req.UserDeviceData.GetUserAgent(),
 			IP:        req.UserDeviceData.GetIp(),
