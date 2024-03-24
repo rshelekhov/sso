@@ -11,4 +11,5 @@ const (
 	RequestID    = "request_id"
 	UserID       = "user_id"
 	Email        = "email"
+	DeviceID     = "device_id"
 )

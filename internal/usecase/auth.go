@@ -344,6 +344,8 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 		return err
 	}
 
+	log.Info("user logged out", slog.String(key.DeviceID, deviceID))
+
 	return u.storage.DeleteSession(ctx, userID, deviceID)
 }
 
@@ -365,6 +367,8 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, request *model.UserReques
 		log.Error("%w: %w", le.ErrFailedToGetUser, err)
 		return model.User{}, le.ErrFailedToGetUser
 	}
+
+	log.Info("user found by ID")
 
 	return user, nil
 }
