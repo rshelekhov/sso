@@ -36,12 +36,12 @@ type User struct {
 }
 
 type UserDevice struct {
-	ID            string             `db:"id"`
-	UserID        string             `db:"user_id"`
-	AppID         int32              `db:"app_id"`
-	UserAgent     string             `db:"user_agent"`
-	Ip            string             `db:"ip"`
-	Detached      bool               `db:"detached"`
-	LatestLoginAt time.Time          `db:"latest_login_at"`
-	DetachedAt    pgtype.Timestamptz `db:"detached_at"`
+	ID          string             `db:"id"`
+	UserID      string             `db:"user_id"`
+	AppID       int32              `db:"app_id"`
+	UserAgent   string             `db:"user_agent"`
+	Ip          string             `db:"ip"`
+	Detached    bool               `db:"detached"`
+	LastLoginAt time.Time          `db:"last_login_at"`
+	DetachedAt  pgtype.Timestamptz `db:"detached_at"`
 }

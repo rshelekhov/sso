@@ -53,6 +53,10 @@ WHERE user_id = $1
 
 -- name: UpdateLatestLoginAt :exec
 UPDATE user_devices
-SET latest_login_at = $1
+SET last_login_at = $1
 WHERE id = $2
   AND app_id = $3;
+
+-- name: RegisterDevice :exec
+INSERT INTO user_devices (id, user_id, app_id, user_agent, ip, detached, last_login_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7);

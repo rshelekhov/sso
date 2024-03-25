@@ -176,6 +176,34 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 	return err
 }
 
+const registerDevice = `-- name: RegisterDevice :exec
+INSERT INTO user_devices (id, user_id, app_id, user_agent, ip, detached, last_login_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+`
+
+type RegisterDeviceParams struct {
+	ID          string    `db:"id"`
+	UserID      string    `db:"user_id"`
+	AppID       int32     `db:"app_id"`
+	UserAgent   string    `db:"user_agent"`
+	Ip          string    `db:"ip"`
+	Detached    bool      `db:"detached"`
+	LastLoginAt time.Time `db:"last_login_at"`
+}
+
+func (q *Queries) RegisterDevice(ctx context.Context, arg RegisterDeviceParams) error {
+	_, err := q.db.Exec(ctx, registerDevice,
+		arg.ID,
+		arg.UserID,
+		arg.AppID,
+		arg.UserAgent,
+		arg.Ip,
+		arg.Detached,
+		arg.LastLoginAt,
+	)
+	return err
+}
+
 const setDeletedUserAtNull = `-- name: SetDeletedUserAtNull :exec
 UPDATE users
 SET deleted_at = NULL
@@ -189,18 +217,18 @@ func (q *Queries) SetDeletedUserAtNull(ctx context.Context, email string) error 
 
 const updateLatestLoginAt = `-- name: UpdateLatestLoginAt :exec
 UPDATE user_devices
-SET latest_login_at = $1
+SET last_login_at = $1
 WHERE id = $2
   AND app_id = $3
 `
 
 type UpdateLatestLoginAtParams struct {
-	LatestLoginAt time.Time `db:"latest_login_at"`
-	ID            string    `db:"id"`
-	AppID         int32     `db:"app_id"`
+	LastLoginAt time.Time `db:"last_login_at"`
+	ID          string    `db:"id"`
+	AppID       int32     `db:"app_id"`
 }
 
 func (q *Queries) UpdateLatestLoginAt(ctx context.Context, arg UpdateLatestLoginAtParams) error {
-	_, err := q.db.Exec(ctx, updateLatestLoginAt, arg.LatestLoginAt, arg.ID, arg.AppID)
+	_, err := q.db.Exec(ctx, updateLatestLoginAt, arg.LastLoginAt, arg.ID, arg.AppID)
 	return err
 }

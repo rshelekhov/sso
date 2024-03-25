@@ -178,7 +178,7 @@ func (u *AuthUsecase) CreateUserSession(
 		jwtauth.ContextUserID: userID,
 	}
 
-	deviceID, err := u.getDeviceID(ctx, userID, userDeviceRequest)
+	deviceID, err := u.getDeviceID(ctx, userID, appID, userDeviceRequest)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetDeviceID, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
@@ -231,11 +231,11 @@ func (u *AuthUsecase) CreateUserSession(
 	return tokenData, nil
 }
 
-func (u *AuthUsecase) getDeviceID(ctx context.Context, userID string, userDeviceRequest model.UserDeviceRequestData) (string, error) {
+func (u *AuthUsecase) getDeviceID(ctx context.Context, userID string, appID int32, userDeviceRequest model.UserDeviceRequestData) (string, error) {
 	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, userDeviceRequest.UserAgent)
 	if err != nil {
 		if errors.Is(err, le.ErrUserDeviceNotFound) {
-			return u.registerDevice(ctx, userID, userDeviceRequest)
+			return u.registerDevice(ctx, userID, appID, userDeviceRequest)
 		}
 		return "", err
 	}
@@ -243,10 +243,11 @@ func (u *AuthUsecase) getDeviceID(ctx context.Context, userID string, userDevice
 	return deviceID, nil
 }
 
-func (u *AuthUsecase) registerDevice(ctx context.Context, userID string, userDeviceRequest model.UserDeviceRequestData) (string, error) {
+func (u *AuthUsecase) registerDevice(ctx context.Context, userID string, appID int32, userDeviceRequest model.UserDeviceRequestData) (string, error) {
 	userDevice := model.UserDevice{
 		ID:            ksuid.New().String(),
 		UserID:        userID,
+		AppID:         appID,
 		UserAgent:     userDeviceRequest.UserAgent,
 		IP:            userDeviceRequest.IP,
 		Detached:      false,
@@ -262,7 +263,7 @@ func (u *AuthUsecase) registerDevice(ctx context.Context, userID string, userDev
 }
 
 func (u *AuthUsecase) updateLastVisitedAt(ctx context.Context, deviceID string, appID int32, lastVisitedAt time.Time) error {
-	return u.storage.UpdateLastVisitedAt(ctx, deviceID, appID, lastVisitedAt)
+	return u.storage.UpdateLastLoginAt(ctx, deviceID, appID, lastVisitedAt)
 }
 
 func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (jwtauth.TokenData, error) {

@@ -205,13 +205,13 @@ func (s *AuthStorage) GetUserDeviceID(ctx context.Context, userID, userAgent str
 	return deviceID, nil
 }
 
-func (s *AuthStorage) UpdateLastVisitedAt(ctx context.Context, deviceID string, appID int32, latestLoginAt time.Time) error {
-	const method = "user.storage.UpdateLastVisitedAt"
+func (s *AuthStorage) UpdateLastLoginAt(ctx context.Context, deviceID string, appID int32, latestLoginAt time.Time) error {
+	const method = "user.storage.UpdateLastLoginAt"
 
 	if err := s.Queries.UpdateLatestLoginAt(ctx, sqlc.UpdateLatestLoginAtParams{
-		ID:            deviceID,
-		LatestLoginAt: latestLoginAt,
-		AppID:         appID,
+		ID:          deviceID,
+		LastLoginAt: latestLoginAt,
+		AppID:       appID,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to update latest login at: %w", method, err)
 	}
@@ -219,7 +219,21 @@ func (s *AuthStorage) UpdateLastVisitedAt(ctx context.Context, deviceID string, 
 }
 
 func (s *AuthStorage) RegisterDevice(ctx context.Context, device model.UserDevice) error {
-	panic("implement me")
+	const method = "user.storage.RegisterDevice"
+
+	if err := s.Queries.RegisterDevice(ctx, sqlc.RegisterDeviceParams{
+		ID:          device.ID,
+		UserID:      device.UserID,
+		AppID:       device.AppID,
+		UserAgent:   device.UserAgent,
+		Ip:          device.IP,
+		Detached:    device.Detached,
+		LastLoginAt: device.LastVisitedAt,
+	}); err != nil {
+		return fmt.Errorf("%s: failed to register user device: %w", method, err)
+	}
+
+	return nil
 }
 
 func (s *AuthStorage) CreateUserSession(ctx context.Context, session model.Session) error {
