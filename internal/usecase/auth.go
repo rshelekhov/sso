@@ -421,6 +421,7 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 		ID:           currentUser.ID,
 		Email:        data.Email,
 		PasswordHash: hash,
+		AppID:        data.AppID,
 		UpdatedAt:    time.Now(),
 	}
 

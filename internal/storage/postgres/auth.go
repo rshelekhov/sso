@@ -10,6 +10,7 @@ import (
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/rshelekhov/sso/internal/storage/postgres/sqlc"
+	"strconv"
 	"time"
 )
 
@@ -320,7 +321,41 @@ func (s *AuthStorage) CheckEmailUniqueness(ctx context.Context, user model.User)
 }
 
 func (s *AuthStorage) UpdateUser(ctx context.Context, user model.User) error {
-	panic("implement me")
+	const method = "user.storage.UpdateUser"
+
+	// Prepare the dynamic update query based on the provided fields
+	queryUpdate := "UPDATE users SET updated_at = $1"
+	queryParams := []interface{}{user.UpdatedAt}
+
+	if user.Email != "" {
+		queryUpdate += ", email = $" + strconv.Itoa(len(queryParams)+1)
+		queryParams = append(queryParams, user.Email)
+	}
+
+	if user.PasswordHash != "" {
+		queryUpdate += ", password_hash = $" + strconv.Itoa(len(queryParams)+1)
+		queryParams = append(queryParams, user.PasswordHash)
+	}
+
+	// Add condition for the specific user ID
+	queryUpdate += " WHERE id = $" + strconv.Itoa(len(queryParams)+1)
+	queryParams = append(queryParams, user.ID)
+
+	// Add condition for the specific app ID
+	queryUpdate += " AND app_id = $" + strconv.Itoa(len(queryParams)+1)
+	queryParams = append(queryParams, user.AppID)
+
+	// Execute the update query
+	_, err := s.Exec(ctx, queryUpdate, queryParams...)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return le.ErrUserNotFound
+		}
+		return fmt.Errorf("%s: failed to execute update query: %w", method, err)
+	}
+
+	return nil
 }
 
 func (s *AuthStorage) DeleteUser(ctx context.Context, user model.User) error {
