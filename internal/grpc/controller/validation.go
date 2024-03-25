@@ -37,7 +37,7 @@ func validateLoginData(req *ssov1.LoginRequest, userInput *model.UserRequestData
 	userInput = &model.UserRequestData{
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),
-		AppID:    int(req.GetAppId()),
+		AppID:    req.GetAppId(),
 		UserDevice: model.UserDeviceRequestData{
 			UserAgent: req.UserDeviceData.GetUserAgent(),
 			IP:        req.UserDeviceData.GetIp(),
@@ -72,7 +72,7 @@ func validateRegisterData(req *ssov1.RegisterRequest, userInput *model.UserReque
 	userInput = &model.UserRequestData{
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),
-		AppID:    int(req.GetAppId()),
+		AppID:    req.GetAppId(),
 		UserDevice: model.UserDeviceRequestData{
 			UserAgent: req.UserDeviceData.GetUserAgent(),
 			IP:        req.UserDeviceData.GetIp(),
@@ -127,7 +127,7 @@ func validateLogout(req *ssov1.LogoutRequest, request *model.UserRequestData) er
 	}
 
 	request = &model.UserRequestData{
-		AppID: int(req.GetAppId()),
+		AppID: req.GetAppId(),
 		UserDevice: model.UserDeviceRequestData{
 			UserAgent: req.UserDeviceData.GetUserAgent(),
 			IP:        req.UserDeviceData.GetIp(),
@@ -144,7 +144,7 @@ func validateGetUser(req *ssov1.GetUserRequest, request *model.UserRequestData) 
 	}
 
 	request = &model.UserRequestData{
-		AppID: int(req.GetAppId()),
+		AppID: req.GetAppId(),
 	}
 
 	return nil
@@ -167,7 +167,7 @@ func validateUpdateUser(req *ssov1.UpdateUserRequest, request *model.UserRequest
 	request = &model.UserRequestData{
 		Email:    req.Email,
 		Password: req.Password,
-		AppID:    int(req.GetAppId()),
+		AppID:    req.GetAppId(),
 	}
 
 	return nil
@@ -188,7 +188,7 @@ func validateDeleteUser(req *ssov1.DeleteUserRequest, request *model.UserRequest
 	}
 
 	request = &model.UserRequestData{
-		AppID: int(req.GetAppId()),
+		AppID: req.GetAppId(),
 		UserDevice: model.UserDeviceRequestData{
 			UserAgent: req.UserDeviceData.GetUserAgent(),
 			IP:        req.UserDeviceData.GetIp(),
