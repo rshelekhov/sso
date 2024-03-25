@@ -2,6 +2,6 @@ package model
 
 type RefreshRequestData struct {
 	RefreshToken string
-	AppID        int
+	AppID        int32
 	UserDevice   UserDeviceRequestData
 }

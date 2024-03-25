@@ -186,3 +186,21 @@ func (q *Queries) SetDeletedUserAtNull(ctx context.Context, email string) error 
 	_, err := q.db.Exec(ctx, setDeletedUserAtNull, email)
 	return err
 }
+
+const updateLatestLoginAt = `-- name: UpdateLatestLoginAt :exec
+UPDATE user_devices
+SET latest_login_at = $1
+WHERE id = $2
+  AND app_id = $3
+`
+
+type UpdateLatestLoginAtParams struct {
+	LatestLoginAt time.Time `db:"latest_login_at"`
+	ID            string    `db:"id"`
+	AppID         int32     `db:"app_id"`
+}
+
+func (q *Queries) UpdateLatestLoginAt(ctx context.Context, arg UpdateLatestLoginAtParams) error {
+	_, err := q.db.Exec(ctx, updateLatestLoginAt, arg.LatestLoginAt, arg.ID, arg.AppID)
+	return err
+}

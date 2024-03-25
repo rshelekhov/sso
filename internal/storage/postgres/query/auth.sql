@@ -50,3 +50,9 @@ FROM user_devices
 WHERE user_id = $1
   AND user_agent = $2
   AND detached = FALSE;
+
+-- name: UpdateLatestLoginAt :exec
+UPDATE user_devices
+SET latest_login_at = $1
+WHERE id = $2
+  AND app_id = $3;

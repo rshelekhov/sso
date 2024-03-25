@@ -26,7 +26,7 @@ type (
 		GetUserByID(ctx context.Context, userID string, appID int32) (model.User, error)
 		GetUserData(ctx context.Context, userID string, appID int32) (model.User, error)
 		GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
-		UpdateLastVisitedAt(ctx context.Context, deviceID string, latestLoginAt time.Time) error
+		UpdateLastVisitedAt(ctx context.Context, deviceID string, appID int32, latestLoginAt time.Time) error
 		RegisterDevice(ctx context.Context, device model.UserDevice) error
 		CreateUserSession(ctx context.Context, session model.Session) error
 		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (model.Session, error)

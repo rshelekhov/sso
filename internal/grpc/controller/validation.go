@@ -102,7 +102,7 @@ func validateRefresh(req *ssov1.RefreshRequest, request *model.RefreshRequestDat
 
 	request = &model.RefreshRequestData{
 		RefreshToken: req.GetRefreshToken(),
-		AppID:        int(req.GetAppId()),
+		AppID:        req.GetAppId(),
 		UserDevice: model.UserDeviceRequestData{
 			UserAgent: req.UserDeviceData.GetUserAgent(),
 			IP:        req.UserDeviceData.GetIp(),

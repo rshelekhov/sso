@@ -205,8 +205,17 @@ func (s *AuthStorage) GetUserDeviceID(ctx context.Context, userID, userAgent str
 	return deviceID, nil
 }
 
-func (s *AuthStorage) UpdateLastVisitedAt(ctx context.Context, deviceID string, latestLoginAt time.Time) error {
-	panic("implement me")
+func (s *AuthStorage) UpdateLastVisitedAt(ctx context.Context, deviceID string, appID int32, latestLoginAt time.Time) error {
+	const method = "user.storage.UpdateLastVisitedAt"
+
+	if err := s.Queries.UpdateLatestLoginAt(ctx, sqlc.UpdateLatestLoginAtParams{
+		ID:            deviceID,
+		LatestLoginAt: latestLoginAt,
+		AppID:         appID,
+	}); err != nil {
+		return fmt.Errorf("%s: failed to update latest login at: %w", method, err)
+	}
+	return nil
 }
 
 func (s *AuthStorage) RegisterDevice(ctx context.Context, device model.UserDevice) error {

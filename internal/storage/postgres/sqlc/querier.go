@@ -16,6 +16,7 @@ type Querier interface {
 	GetUserStatus(ctx context.Context, email string) (string, error)
 	InsertUser(ctx context.Context, arg InsertUserParams) error
 	SetDeletedUserAtNull(ctx context.Context, email string) error
+	UpdateLatestLoginAt(ctx context.Context, arg UpdateLatestLoginAtParams) error
 }
 
 var _ Querier = (*Queries)(nil)

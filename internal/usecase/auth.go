@@ -65,7 +65,8 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (j
 		IP:        data.UserDevice.IP,
 	}
 
-	tokenData, err := u.CreateUserSession(ctx, log, user.ID, userDevice)
+	// TODO: add transaction here
+	tokenData, err := u.CreateUserSession(ctx, log, user.ID, user.AppID, userDevice)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToCreateUserSession, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
@@ -144,7 +145,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		IP:        data.UserDevice.IP,
 	}
 
-	tokenData, err := u.CreateUserSession(ctx, log, user.ID, userDevice)
+	tokenData, err := u.CreateUserSession(ctx, log, user.ID, user.AppID, userDevice)
 	if err != nil {
 		return jwtauth.TokenData{}, err
 	}
@@ -160,6 +161,7 @@ func (u *AuthUsecase) CreateUserSession(
 	ctx context.Context,
 	log *slog.Logger,
 	userID string,
+	appID int32,
 	userDeviceRequest model.UserDeviceRequestData,
 ) (
 	jwtauth.TokenData,
@@ -210,7 +212,7 @@ func (u *AuthUsecase) CreateUserSession(
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
 
-	if err = u.updateLastVisitedAt(ctx, deviceID, lastVisitedAt); err != nil {
+	if err = u.updateLastVisitedAt(ctx, deviceID, appID, lastVisitedAt); err != nil {
 		log.Error("%w: %w", le.ErrFailedToUpdateLastVisitedAt, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
@@ -259,8 +261,8 @@ func (u *AuthUsecase) registerDevice(ctx context.Context, userID string, userDev
 	return userDevice.ID, nil
 }
 
-func (u *AuthUsecase) updateLastVisitedAt(ctx context.Context, deviceID string, lastVisitedAt time.Time) error {
-	return u.storage.UpdateLastVisitedAt(ctx, deviceID, lastVisitedAt)
+func (u *AuthUsecase) updateLastVisitedAt(ctx context.Context, deviceID string, appID int32, lastVisitedAt time.Time) error {
+	return u.storage.UpdateLastVisitedAt(ctx, deviceID, appID, lastVisitedAt)
 }
 
 func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (jwtauth.TokenData, error) {
@@ -291,7 +293,7 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
 
-	tokenData, err := u.CreateUserSession(ctx, log, session.UserID, data.UserDevice)
+	tokenData, err := u.CreateUserSession(ctx, log, session.UserID, data.AppID, data.UserDevice)
 	if err != nil {
 		return jwtauth.TokenData{}, err
 	}
