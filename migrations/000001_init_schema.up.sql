@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS user_devices
     user_agent      character varying NOT NULL,
     ip              character varying NOT NULL,
     detached        boolean NOT NULL,
-    latest_login_at timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
+    last_login_at   timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     detached_at     timestamp WITH TIME ZONE DEFAULT NULL
 );
 
