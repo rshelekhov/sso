@@ -10,6 +10,32 @@ import (
 	"time"
 )
 
+const createUserSession = `-- name: CreateUserSession :exec
+INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, last_login_at, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type CreateUserSessionParams struct {
+	UserID       string    `db:"user_id"`
+	AppID        int32     `db:"app_id"`
+	DeviceID     string    `db:"device_id"`
+	RefreshToken string    `db:"refresh_token"`
+	LastLoginAt  time.Time `db:"last_login_at"`
+	ExpiresAt    time.Time `db:"expires_at"`
+}
+
+func (q *Queries) CreateUserSession(ctx context.Context, arg CreateUserSessionParams) error {
+	_, err := q.db.Exec(ctx, createUserSession,
+		arg.UserID,
+		arg.AppID,
+		arg.DeviceID,
+		arg.RefreshToken,
+		arg.LastLoginAt,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, email, app_id, updated_at
 FROM users

@@ -3,11 +3,12 @@ package model
 import "time"
 
 type Session struct {
-	UserID        string    `db:"user_id"`
-	DeviceID      string    `db:"device_id"`
-	RefreshToken  string    `db:"refresh_token"`
-	LastVisitedAt time.Time `db:"last_visited_at"` // TODO: make sure that db has a correct column title
-	ExpiresAt     time.Time `db:"expires_at"`
+	UserID       string
+	DeviceID     string
+	AppID        int32
+	RefreshToken string
+	LastLoginAt  time.Time
+	ExpiresAt    time.Time
 }
 
 func (s Session) IsExpired() bool {

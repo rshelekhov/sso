@@ -237,7 +237,20 @@ func (s *AuthStorage) RegisterDevice(ctx context.Context, device model.UserDevic
 }
 
 func (s *AuthStorage) CreateUserSession(ctx context.Context, session model.Session) error {
-	panic("implement me")
+	const method = "user.storage.CreateUserSession"
+
+	if err := s.Queries.CreateUserSession(ctx, sqlc.CreateUserSessionParams{
+		UserID:       session.UserID,
+		AppID:        session.AppID,
+		DeviceID:     session.DeviceID,
+		RefreshToken: session.RefreshToken,
+		LastLoginAt:  session.LastLoginAt,
+		ExpiresAt:    session.ExpiresAt,
+	}); err != nil {
+		return fmt.Errorf("%s: failed to create user session: %w", method, err)
+	}
+
+	return nil
 }
 
 func (s *AuthStorage) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (model.Session, error) {

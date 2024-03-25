@@ -22,7 +22,7 @@ type RefreshSession struct {
 	AppID        int32     `db:"app_id"`
 	DeviceID     string    `db:"device_id"`
 	RefreshToken string    `db:"refresh_token"`
-	LastVisitAt  time.Time `db:"last_visit_at"`
+	LastLoginAt  time.Time `db:"last_login_at"`
 	ExpiresAt    time.Time `db:"expires_at"`
 }
 
