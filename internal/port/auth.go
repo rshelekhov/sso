@@ -22,9 +22,9 @@ type (
 
 	AuthStorage interface {
 		CreateUser(ctx context.Context, user model.User) error
-		GetUserByEmail(ctx context.Context, email string) (model.User, error)
-		GetUserByID(ctx context.Context, userID string, appID int) (model.User, error)
-		GetUserData(ctx context.Context, userID string) (model.User, error)
+		GetUserByEmail(ctx context.Context, email string, appID int32) (model.User, error)
+		GetUserByID(ctx context.Context, userID string, appID int32) (model.User, error)
+		GetUserData(ctx context.Context, userID string, appID int32) (model.User, error)
 		GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
 		UpdateLastVisitedAt(ctx context.Context, deviceID string, latestLoginAt time.Time) error
 		RegisterDevice(ctx context.Context, device model.UserDevice) error

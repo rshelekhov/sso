@@ -45,7 +45,7 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (j
 		slog.String(key.Email, data.Email),
 	)
 
-	user, err := u.storage.GetUserByEmail(ctx, data.Email)
+	user, err := u.storage.GetUserByEmail(ctx, data.Email, data.AppID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUserByEmail, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
@@ -80,7 +80,7 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (j
 func (u *AuthUsecase) verifyPassword(ctx context.Context, jwt *jwtauth.TokenService, user model.User, password string) error {
 	const method = "user.AuthUsecase.verifyPassword"
 
-	user, err := u.storage.GetUserData(ctx, user.ID)
+	user, err := u.storage.GetUserData(ctx, user.ID, user.AppID)
 	if err != nil {
 		return err
 	}
@@ -398,7 +398,7 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 
 	log = log.With(slog.String(key.UserID, userID))
 
-	currentUser, err := u.storage.GetUserData(ctx, userID)
+	currentUser, err := u.storage.GetUserData(ctx, userID, data.AppID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUser, err)
 		return le.ErrFailedToGetUser

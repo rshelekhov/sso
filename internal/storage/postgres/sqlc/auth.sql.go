@@ -10,6 +10,104 @@ import (
 	"time"
 )
 
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, email, app_id, updated_at
+FROM users
+WHERE email = $1
+  AND app_id = $2
+  AND deleted_at IS NULL
+`
+
+type GetUserByEmailParams struct {
+	Email string `db:"email"`
+	AppID int32  `db:"app_id"`
+}
+
+type GetUserByEmailRow struct {
+	ID        string    `db:"id"`
+	Email     string    `db:"email"`
+	AppID     int32     `db:"app_id"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, arg.Email, arg.AppID)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.AppID,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, email, app_id, updated_at
+FROM users
+WHERE id = $1
+  AND app_id = $2
+  AND deleted_at IS NULL
+`
+
+type GetUserByIDParams struct {
+	ID    string `db:"id"`
+	AppID int32  `db:"app_id"`
+}
+
+type GetUserByIDRow struct {
+	ID        string    `db:"id"`
+	Email     string    `db:"email"`
+	AppID     int32     `db:"app_id"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUserByIDRow, error) {
+	row := q.db.QueryRow(ctx, getUserByID, arg.ID, arg.AppID)
+	var i GetUserByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.AppID,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserData = `-- name: GetUserData :one
+SELECT id, email, password_hash, app_id, updated_at
+FROM users
+WHERE id = $1
+  AND app_id = $2
+  AND deleted_at IS NULL
+`
+
+type GetUserDataParams struct {
+	ID    string `db:"id"`
+	AppID int32  `db:"app_id"`
+}
+
+type GetUserDataRow struct {
+	ID           string    `db:"id"`
+	Email        string    `db:"email"`
+	PasswordHash string    `db:"password_hash"`
+	AppID        int32     `db:"app_id"`
+	UpdatedAt    time.Time `db:"updated_at"`
+}
+
+func (q *Queries) GetUserData(ctx context.Context, arg GetUserDataParams) (GetUserDataRow, error) {
+	row := q.db.QueryRow(ctx, getUserData, arg.ID, arg.AppID)
+	var i GetUserDataRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.PasswordHash,
+		&i.AppID,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserStatus = `-- name: GetUserStatus :one
 SELECT CASE
 WHEN EXISTS(

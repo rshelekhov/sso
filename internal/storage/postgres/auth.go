@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/rshelekhov/sso/internal/model"
@@ -45,7 +47,7 @@ func (s *AuthStorage) Transaction(ctx context.Context, fn func(storage port.Auth
 }
 
 func (s *AuthStorage) CreateUser(ctx context.Context, user model.User) error {
-	const method = "storage.AuthStorage.CreateUser"
+	const method = "storage.storage.CreateUser"
 
 	userStatus, err := s.getUserStatus(ctx, user.Email)
 	if err != nil {
@@ -118,16 +120,71 @@ func (s *AuthStorage) insertUser(ctx context.Context, user model.User) error {
 	return nil
 }
 
-func (s *AuthStorage) GetUserByEmail(ctx context.Context, email string) (model.User, error) {
-	panic("implement me")
+func (s *AuthStorage) GetUserByEmail(ctx context.Context, email string, appID int32) (model.User, error) {
+	const method = "user.storage.GetUserByEmail"
+
+	user, err := s.Queries.GetUserByEmail(ctx, sqlc.GetUserByEmailParams{
+		Email: email,
+		AppID: appID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.User{}, le.ErrUserNotFound
+		}
+		return model.User{}, fmt.Errorf("%s: failed to get user credentials: %w", method, err)
+	}
+
+	return model.User{
+		ID:        user.ID,
+		Email:     user.Email,
+		AppID:     user.AppID,
+		UpdatedAt: user.UpdatedAt,
+	}, nil
 }
 
-func (s *AuthStorage) GetUserByID(ctx context.Context, userID string, appID int) (model.User, error) {
-	panic("implement me")
+func (s *AuthStorage) GetUserByID(ctx context.Context, userID string, appID int32) (model.User, error) {
+	const method = "user.storage.GetUserByID"
+
+	user, err := s.Queries.GetUserByID(ctx, sqlc.GetUserByIDParams{
+		ID:    userID,
+		AppID: appID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.User{}, le.ErrUserNotFound
+		}
+		return model.User{}, fmt.Errorf("%s: failed to get user: %w", method, err)
+	}
+
+	return model.User{
+		ID:        user.ID,
+		Email:     user.Email,
+		AppID:     user.AppID,
+		UpdatedAt: user.UpdatedAt,
+	}, nil
 }
 
-func (s *AuthStorage) GetUserData(ctx context.Context, userID string) (model.User, error) {
-	panic("implement me")
+func (s *AuthStorage) GetUserData(ctx context.Context, userID string, appID int32) (model.User, error) {
+	const method = "user.storage.GetUserData"
+
+	user, err := s.Queries.GetUserData(ctx, sqlc.GetUserDataParams{
+		ID:    userID,
+		AppID: appID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.User{}, le.ErrUserNotFound
+		}
+		return model.User{}, fmt.Errorf("%s: failed to get user credentials: %w", method, err)
+	}
+
+	return model.User{
+		ID:           user.ID,
+		Email:        user.Email,
+		PasswordHash: user.PasswordHash,
+		AppID:        user.AppID,
+		UpdatedAt:    user.UpdatedAt,
+	}, nil
 }
 
 func (s *AuthStorage) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {

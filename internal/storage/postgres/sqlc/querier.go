@@ -9,6 +9,9 @@ import (
 )
 
 type Querier interface {
+	GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error)
+	GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUserByIDRow, error)
+	GetUserData(ctx context.Context, arg GetUserDataParams) (GetUserDataRow, error)
 	GetUserStatus(ctx context.Context, email string) (string, error)
 	InsertUser(ctx context.Context, arg InsertUserParams) error
 	SetDeletedUserAtNull(ctx context.Context, email string) error

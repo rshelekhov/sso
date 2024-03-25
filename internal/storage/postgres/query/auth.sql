@@ -22,3 +22,24 @@ WHERE email = $1;
 -- name: InsertUser :exec
 INSERT INTO users (id, email, password_hash, app_id,updated_at)
 VALUES ($1, $2, $3, $4, $5);
+
+-- name: GetUserByEmail :one
+SELECT id, email, app_id, updated_at
+FROM users
+WHERE email = $1
+  AND app_id = $2
+  AND deleted_at IS NULL;
+
+-- name: GetUserByID :one
+SELECT id, email, app_id, updated_at
+FROM users
+WHERE id = $1
+  AND app_id = $2
+  AND deleted_at IS NULL;
+
+-- name: GetUserData :one
+SELECT id, email, password_hash, app_id, updated_at
+FROM users
+WHERE id = $1
+  AND app_id = $2
+  AND deleted_at IS NULL;
