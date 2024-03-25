@@ -200,11 +200,11 @@ func (u *AuthUsecase) CreateUserSession(
 	expiresAt := time.Now().Add(u.jwt.RefreshTokenTTL)
 
 	session := model.Session{
-		UserID:        userID,
-		DeviceID:      deviceID,
-		RefreshToken:  refreshToken,
-		LastVisitedAt: lastVisitedAt,
-		ExpiresAt:     expiresAt,
+		UserID:       userID,
+		DeviceID:     deviceID,
+		RefreshToken: refreshToken,
+		LastLoginAt:  lastVisitedAt,
+		ExpiresAt:    expiresAt,
 	}
 
 	if err = u.storage.CreateUserSession(ctx, session); err != nil {
@@ -332,7 +332,7 @@ func (u *AuthUsecase) deleteRefreshToken(ctx context.Context, refreshToken strin
 	return u.storage.DeleteRefreshToken(ctx, refreshToken)
 }
 
-func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData) error {
+func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error {
 	const method = "usecase.AuthUsecase.LogoutUser"
 
 	log := u.log.With(slog.String(key.Method, method))
@@ -356,7 +356,7 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 
 	log.Info("user logged out", slog.String(key.DeviceID, deviceID))
 
-	if err = u.storage.DeleteSession(ctx, userID, deviceID); err != nil {
+	if err = u.storage.DeleteSession(ctx, userID, deviceID, appID); err != nil {
 		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
 		return le.ErrFailedToDeleteSession
 	}
@@ -493,7 +493,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 		return le.ErrUserDeviceNotFound
 	}
 
-	if err = u.storage.DeleteSession(ctx, userID, deviceID); err != nil {
+	if err = u.storage.DeleteSession(ctx, userID, deviceID, data.AppID); err != nil {
 		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
 		return le.ErrFailedToDeleteSession
 	}

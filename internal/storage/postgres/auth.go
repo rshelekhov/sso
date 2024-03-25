@@ -285,8 +285,21 @@ func (s *AuthStorage) DeleteRefreshToken(ctx context.Context, refreshToken strin
 	return nil
 }
 
-func (s *AuthStorage) DeleteSession(ctx context.Context, userID, deviceID string) error {
-	panic("implement me")
+func (s *AuthStorage) DeleteSession(ctx context.Context, userID, deviceID string, appID int32) error {
+	const method = "user.storage.DeleteSession"
+
+	if err := s.Queries.DeleteSession(ctx, sqlc.DeleteSessionParams{
+		UserID:   userID,
+		AppID:    appID,
+		DeviceID: deviceID,
+	}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return le.ErrSessionNotFound
+		}
+		return fmt.Errorf("%s: failed to delete session: %w", method, err)
+	}
+
+	return nil
 }
 
 func (s *AuthStorage) CheckEmailUniqueness(ctx context.Context, user model.User) error {

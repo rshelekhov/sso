@@ -46,6 +46,24 @@ func (q *Queries) DeleteRefreshTokenFromSession(ctx context.Context, refreshToke
 	return err
 }
 
+const deleteSession = `-- name: DeleteSession :exec
+DELETE FROM refresh_sessions
+WHERE user_id = $1
+  AND app_id = $2
+  AND device_id = $3
+`
+
+type DeleteSessionParams struct {
+	UserID   string `db:"user_id"`
+	AppID    int32  `db:"app_id"`
+	DeviceID string `db:"device_id"`
+}
+
+func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) error {
+	_, err := q.db.Exec(ctx, deleteSession, arg.UserID, arg.AppID, arg.DeviceID)
+	return err
+}
+
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
 SELECT user_id, app_id, device_id, last_login_at, expires_at
 FROM refresh_sessions

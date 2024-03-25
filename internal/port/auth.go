@@ -14,7 +14,7 @@ type (
 		RegisterNewUser(ctx context.Context, data *model.UserRequestData) (jwtauth.TokenData, error)
 		CreateUserSession(ctx context.Context, log *slog.Logger, userID string, data model.UserDeviceRequestData) (jwtauth.TokenData, error)
 		RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (jwtauth.TokenData, error)
-		LogoutUser(ctx context.Context, data model.UserDeviceRequestData) error
+		LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error
 		GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error)
 		UpdateUser(ctx context.Context, data *model.UserRequestData) error
 		DeleteUser(ctx context.Context, data *model.UserRequestData) error
@@ -31,7 +31,7 @@ type (
 		CreateUserSession(ctx context.Context, session model.Session) error
 		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (model.Session, error)
 		DeleteRefreshToken(ctx context.Context, refreshToken string) error
-		DeleteSession(ctx context.Context, userID, deviceID string) error
+		DeleteSession(ctx context.Context, userID, deviceID string, appID int32) error
 		CheckEmailUniqueness(ctx context.Context, user model.User) error
 		UpdateUser(ctx context.Context, user model.User) error
 		DeleteUser(ctx context.Context, user model.User) error

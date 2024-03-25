@@ -73,3 +73,9 @@ WHERE refresh_token = $1;
 -- name: DeleteRefreshTokenFromSession :exec
 DELETE FROM refresh_sessions
 WHERE refresh_token = $1;
+
+-- name: DeleteSession :exec
+DELETE FROM refresh_sessions
+WHERE user_id = $1
+  AND app_id = $2
+  AND device_id = $3;
