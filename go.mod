@@ -14,7 +14,12 @@ require (
 	google.golang.org/protobuf v1.33.0
 )
 
-require github.com/rshelekhov/sso-protos v0.0.9 // indirect
+require (
+	github.com/golang-migrate/migrate/v4 v4.17.0 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/rshelekhov/sso-protos v0.0.9 // indirect
+)
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
