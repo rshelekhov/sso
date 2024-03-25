@@ -45,7 +45,7 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (j
 		slog.String(key.Email, data.Email),
 	)
 
-	user, err := u.storage.GetUserByEmail(ctx, data.Email)
+	user, err := u.storage.GetUserByEmail(ctx, data.Email, data.AppID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUserByEmail, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
@@ -65,7 +65,8 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (j
 		IP:        data.UserDevice.IP,
 	}
 
-	tokenData, err := u.CreateUserSession(ctx, log, user.ID, userDevice)
+	// TODO: add transaction here
+	tokenData, err := u.CreateUserSession(ctx, log, user.ID, user.AppID, userDevice)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToCreateUserSession, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
@@ -80,7 +81,7 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (j
 func (u *AuthUsecase) verifyPassword(ctx context.Context, jwt *jwtauth.TokenService, user model.User, password string) error {
 	const method = "user.AuthUsecase.verifyPassword"
 
-	user, err := u.storage.GetUserData(ctx, user.ID)
+	user, err := u.storage.GetUserData(ctx, user.ID, user.AppID)
 	if err != nil {
 		return err
 	}
@@ -122,6 +123,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		ID:           ksuid.New().String(),
 		Email:        data.Email,
 		PasswordHash: hash,
+		AppID:        data.AppID,
 		UpdatedAt:    time.Now(),
 	}
 
@@ -143,7 +145,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		IP:        data.UserDevice.IP,
 	}
 
-	tokenData, err := u.CreateUserSession(ctx, log, user.ID, userDevice)
+	tokenData, err := u.CreateUserSession(ctx, log, user.ID, user.AppID, userDevice)
 	if err != nil {
 		return jwtauth.TokenData{}, err
 	}
@@ -159,6 +161,7 @@ func (u *AuthUsecase) CreateUserSession(
 	ctx context.Context,
 	log *slog.Logger,
 	userID string,
+	appID int32,
 	userDeviceRequest model.UserDeviceRequestData,
 ) (
 	jwtauth.TokenData,
@@ -175,7 +178,7 @@ func (u *AuthUsecase) CreateUserSession(
 		jwtauth.ContextUserID: userID,
 	}
 
-	deviceID, err := u.getDeviceID(ctx, userID, userDeviceRequest)
+	deviceID, err := u.getDeviceID(ctx, userID, appID, userDeviceRequest)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetDeviceID, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
@@ -197,11 +200,11 @@ func (u *AuthUsecase) CreateUserSession(
 	expiresAt := time.Now().Add(u.jwt.RefreshTokenTTL)
 
 	session := model.Session{
-		UserID:        userID,
-		DeviceID:      deviceID,
-		RefreshToken:  refreshToken,
-		LastVisitedAt: lastVisitedAt,
-		ExpiresAt:     expiresAt,
+		UserID:       userID,
+		DeviceID:     deviceID,
+		RefreshToken: refreshToken,
+		LastLoginAt:  lastVisitedAt,
+		ExpiresAt:    expiresAt,
 	}
 
 	if err = u.storage.CreateUserSession(ctx, session); err != nil {
@@ -209,7 +212,7 @@ func (u *AuthUsecase) CreateUserSession(
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
 
-	if err = u.updateLastVisitedAt(ctx, deviceID, lastVisitedAt); err != nil {
+	if err = u.updateLastVisitedAt(ctx, deviceID, appID, lastVisitedAt); err != nil {
 		log.Error("%w: %w", le.ErrFailedToUpdateLastVisitedAt, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
@@ -228,11 +231,11 @@ func (u *AuthUsecase) CreateUserSession(
 	return tokenData, nil
 }
 
-func (u *AuthUsecase) getDeviceID(ctx context.Context, userID string, userDeviceRequest model.UserDeviceRequestData) (string, error) {
+func (u *AuthUsecase) getDeviceID(ctx context.Context, userID string, appID int32, userDeviceRequest model.UserDeviceRequestData) (string, error) {
 	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, userDeviceRequest.UserAgent)
 	if err != nil {
 		if errors.Is(err, le.ErrUserDeviceNotFound) {
-			return u.registerDevice(ctx, userID, userDeviceRequest)
+			return u.registerDevice(ctx, userID, appID, userDeviceRequest)
 		}
 		return "", err
 	}
@@ -240,10 +243,11 @@ func (u *AuthUsecase) getDeviceID(ctx context.Context, userID string, userDevice
 	return deviceID, nil
 }
 
-func (u *AuthUsecase) registerDevice(ctx context.Context, userID string, userDeviceRequest model.UserDeviceRequestData) (string, error) {
+func (u *AuthUsecase) registerDevice(ctx context.Context, userID string, appID int32, userDeviceRequest model.UserDeviceRequestData) (string, error) {
 	userDevice := model.UserDevice{
 		ID:            ksuid.New().String(),
 		UserID:        userID,
+		AppID:         appID,
 		UserAgent:     userDeviceRequest.UserAgent,
 		IP:            userDeviceRequest.IP,
 		Detached:      false,
@@ -258,8 +262,8 @@ func (u *AuthUsecase) registerDevice(ctx context.Context, userID string, userDev
 	return userDevice.ID, nil
 }
 
-func (u *AuthUsecase) updateLastVisitedAt(ctx context.Context, deviceID string, lastVisitedAt time.Time) error {
-	return u.storage.UpdateLastVisitedAt(ctx, deviceID, lastVisitedAt)
+func (u *AuthUsecase) updateLastVisitedAt(ctx context.Context, deviceID string, appID int32, lastVisitedAt time.Time) error {
+	return u.storage.UpdateLastLoginAt(ctx, deviceID, appID, lastVisitedAt)
 }
 
 func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (jwtauth.TokenData, error) {
@@ -290,7 +294,7 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
 
-	tokenData, err := u.CreateUserSession(ctx, log, session.UserID, data.UserDevice)
+	tokenData, err := u.CreateUserSession(ctx, log, session.UserID, data.AppID, data.UserDevice)
 	if err != nil {
 		return jwtauth.TokenData{}, err
 	}
@@ -328,7 +332,7 @@ func (u *AuthUsecase) deleteRefreshToken(ctx context.Context, refreshToken strin
 	return u.storage.DeleteRefreshToken(ctx, refreshToken)
 }
 
-func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData) error {
+func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error {
 	const method = "usecase.AuthUsecase.LogoutUser"
 
 	log := u.log.With(slog.String(key.Method, method))
@@ -352,7 +356,7 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 
 	log.Info("user logged out", slog.String(key.DeviceID, deviceID))
 
-	if err = u.storage.DeleteSession(ctx, userID, deviceID); err != nil {
+	if err = u.storage.DeleteSession(ctx, userID, deviceID, appID); err != nil {
 		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
 		return le.ErrFailedToDeleteSession
 	}
@@ -397,7 +401,7 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 
 	log = log.With(slog.String(key.UserID, userID))
 
-	currentUser, err := u.storage.GetUserData(ctx, userID)
+	currentUser, err := u.storage.GetUserData(ctx, userID, data.AppID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUser, err)
 		return le.ErrFailedToGetUser
@@ -417,6 +421,7 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 		ID:           currentUser.ID,
 		Email:        data.Email,
 		PasswordHash: hash,
+		AppID:        data.AppID,
 		UpdatedAt:    time.Now(),
 	}
 
@@ -489,7 +494,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 		return le.ErrUserDeviceNotFound
 	}
 
-	if err = u.storage.DeleteSession(ctx, userID, deviceID); err != nil {
+	if err = u.storage.DeleteSession(ctx, userID, deviceID, data.AppID); err != nil {
 		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
 		return le.ErrFailedToDeleteSession
 	}

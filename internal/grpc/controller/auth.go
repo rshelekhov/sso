@@ -115,7 +115,7 @@ func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (
 		return nil, err
 	}
 
-	err := c.usecase.LogoutUser(ctx, request.UserDevice)
+	err := c.usecase.LogoutUser(ctx, request.UserDevice, request.AppID)
 	switch {
 	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
