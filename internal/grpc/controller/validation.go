@@ -112,7 +112,7 @@ func validateRefresh(req *ssov1.RefreshRequest, request *model.RefreshRequestDat
 	return nil
 }
 
-func validateLogout(req *ssov1.LogoutRequest, request *model.LogoutRequestData) error {
+func validateLogout(req *ssov1.LogoutRequest, request *model.UserRequestData) error {
 	// TODO: add validation with validator
 	if req.GetAppId() == emptyValue {
 		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
@@ -126,7 +126,7 @@ func validateLogout(req *ssov1.LogoutRequest, request *model.LogoutRequestData) 
 		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
 	}
 
-	request = &model.LogoutRequestData{
+	request = &model.UserRequestData{
 		AppID: int(req.GetAppId()),
 		UserDevice: model.UserDeviceRequestData{
 			UserAgent: req.UserDeviceData.GetUserAgent(),

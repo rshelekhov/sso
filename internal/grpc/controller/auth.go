@@ -110,7 +110,7 @@ func (c *authController) Refresh(ctx context.Context, req *ssov1.RefreshRequest)
 }
 
 func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.LogoutResponse, error) {
-	request := &model.LogoutRequestData{}
+	request := &model.UserRequestData{}
 	if err := validateLogout(req, request); err != nil {
 		return nil, err
 	}
