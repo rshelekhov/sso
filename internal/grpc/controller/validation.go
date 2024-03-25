@@ -172,3 +172,28 @@ func validateUpdateUser(req *ssov1.UpdateUserRequest, request *model.UserRequest
 
 	return nil
 }
+
+func validateDeleteUser(req *ssov1.DeleteUserRequest, request *model.UserRequestData) error {
+	// TODO: add validation with validator
+	if req.GetAppId() == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
+	}
+
+	if req.UserDeviceData.GetUserAgent() == "" {
+		return status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
+	}
+
+	if req.UserDeviceData.GetIp() == "" {
+		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
+	}
+
+	request = &model.UserRequestData{
+		AppID: int(req.GetAppId()),
+		UserDevice: model.UserDeviceRequestData{
+			UserAgent: req.UserDeviceData.GetUserAgent(),
+			IP:        req.UserDeviceData.GetIp(),
+		},
+	}
+
+	return nil
+}

@@ -13,15 +13,12 @@ const (
 	//	auth errors
 	// ===========================================================================
 
-	ErrFailedToExtractMetaData LocalError = "failed to extract metadata from context"
-	ErrValidationFailed        LocalError = "validation failed"
-	ErrRequestIDIsRequired     LocalError = "request-id is required"
-	ErrUserAgentIsRequired     LocalError = "user-agent is required"
-	ErrIPIsRequired            LocalError = "ip is required"
-	ErrEmailIsRequired         LocalError = "email is required"
-	ErrPasswordIsRequired      LocalError = "password is required"
-	ErrAppIDIsRequired         LocalError = "app_id is required"
-	ErrRefreshTokenIsRequired  LocalError = "refresh_token is required"
+	ErrUserAgentIsRequired    LocalError = "user-agent is required"
+	ErrIPIsRequired           LocalError = "ip is required"
+	ErrEmailIsRequired        LocalError = "email is required"
+	ErrPasswordIsRequired     LocalError = "password is required"
+	ErrAppIDIsRequired        LocalError = "app_id is required"
+	ErrRefreshTokenIsRequired LocalError = "refresh_token is required"
 
 	ErrUserAlreadyExists            LocalError = "user already exists"
 	ErrPasswordsDontMatch           LocalError = "invalid credentials: passwords don't match"
@@ -35,6 +32,7 @@ const (
 	ErrUserNotFound                 LocalError = "user not found"
 	ErrNoChangesDetected            LocalError = "no changes detected"
 	ErrNoPasswordChangesDetected    LocalError = "no password changes detected"
+	ErrFailedToDeleteUser           LocalError = "failed to delete user"
 
 	ErrFailedToCreateAccessToken     LocalError = "failed to create access token"
 	ErrFailedToCreateRefreshToken    LocalError = "failed to create refresh token"
@@ -47,4 +45,5 @@ const (
 	ErrFailedToDeleteRefreshToken    LocalError = "failed to delete refresh token"
 	ErrFailedToGetUserIDFromToken    LocalError = "failed to get user id from token"
 	ErrFailedToGetDeviceID           LocalError = "failed to get device id"
+	ErrFailedToDeleteSession         LocalError = "failed to delete session"
 )

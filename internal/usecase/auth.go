@@ -125,6 +125,8 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		UpdatedAt:    time.Now(),
 	}
 
+	// TODO: add transaction here
+
 	if err = u.storage.CreateUser(ctx, user); err != nil {
 		// TODO: return a custom error
 
@@ -350,7 +352,12 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 
 	log.Info("user logged out", slog.String(key.DeviceID, deviceID))
 
-	return u.storage.DeleteSession(ctx, userID, deviceID)
+	if err = u.storage.DeleteSession(ctx, userID, deviceID); err != nil {
+		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
+		return le.ErrFailedToDeleteSession
+	}
+
+	return nil
 }
 
 func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error) {
@@ -446,6 +453,45 @@ func (u *AuthUsecase) checkPassword(currentPasswordHash, passwordFromRequest str
 
 	if currentPasswordHash != updatedPasswordHash {
 		return le.ErrNoPasswordChangesDetected
+	}
+
+	return nil
+}
+
+func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestData) error {
+	const method = "usecase.AuthUsecase.DeleteUser"
+
+	log := u.log.With(slog.String(key.Method, method))
+
+	userID, err := jwtauth.GetUserID(ctx)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
+		return le.ErrFailedToGetUserIDFromToken
+	}
+
+	log = log.With(slog.String(key.UserID, userID))
+
+	// TODO: add transaction here
+
+	user := model.User{
+		ID:        userID,
+		DeletedAt: time.Now(),
+	}
+
+	if err = u.storage.DeleteUser(ctx, user); err != nil {
+		log.Error("%w: %w", le.ErrFailedToDeleteUser, err)
+		return le.ErrFailedToDeleteUser
+	}
+
+	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserDevice.UserAgent)
+	if err != nil {
+		log.Error("%w: %w", le.ErrUserDeviceNotFound, err)
+		return le.ErrUserDeviceNotFound
+	}
+
+	if err = u.storage.DeleteSession(ctx, userID, deviceID); err != nil {
+		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
+		return le.ErrFailedToDeleteSession
 	}
 
 	return nil

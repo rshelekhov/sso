@@ -8,6 +8,7 @@ type (
 		Email        string
 		PasswordHash string
 		UpdatedAt    time.Time
+		DeletedAt    time.Time
 	}
 
 	UserRequestData struct {

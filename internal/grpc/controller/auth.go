@@ -120,7 +120,9 @@ func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (
 	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrUserDeviceNotFound):
-		return nil, status.Error(codes.Unauthenticated, le.ErrUserDeviceNotFound.Error())
+		return nil, status.Error(codes.NotFound, le.ErrUserDeviceNotFound.Error())
+	case errors.Is(err, le.ErrFailedToDeleteSession):
+		return nil, status.Error(codes.Internal, le.ErrFailedToDeleteSession.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
@@ -181,5 +183,24 @@ func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRe
 }
 
 func (c *authController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRequest) (*ssov1.DeleteUserResponse, error) {
+	request := &model.UserRequestData{}
+	if err := validateDeleteUser(req, request); err != nil {
+		return nil, err
+	}
+
+	err := c.usecase.DeleteUser(ctx, request)
+	switch {
+	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
+		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
+	case errors.Is(err, le.ErrUserNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
+	case errors.Is(err, le.ErrUserDeviceNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrUserDeviceNotFound.Error())
+	case errors.Is(err, le.ErrFailedToDeleteSession):
+		return nil, status.Error(codes.Internal, le.ErrFailedToDeleteSession.Error())
+	case err != nil:
+		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	}
+
 	return &ssov1.DeleteUserResponse{}, nil
 }
