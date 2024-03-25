@@ -21,7 +21,7 @@ type (
 	}
 
 	AuthStorage interface {
-		CreateUser(ctx context.Context, data model.User) error
+		CreateUser(ctx context.Context, user model.User) error
 		GetUserByEmail(ctx context.Context, email string) (model.User, error)
 		GetUserByID(ctx context.Context, userID string, appID int) (model.User, error)
 		GetUserData(ctx context.Context, userID string) (model.User, error)

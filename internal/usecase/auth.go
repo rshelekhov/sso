@@ -122,6 +122,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		ID:           ksuid.New().String(),
 		Email:        data.Email,
 		PasswordHash: hash,
+		AppID:        data.AppID,
 		UpdatedAt:    time.Now(),
 	}
 
