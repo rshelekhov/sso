@@ -303,7 +303,20 @@ func (s *AuthStorage) DeleteSession(ctx context.Context, userID, deviceID string
 }
 
 func (s *AuthStorage) CheckEmailUniqueness(ctx context.Context, user model.User) error {
-	panic("implement me")
+	const method = "user.storage.CheckEmailUniqueness"
+
+	existingUser, err := s.Queries.GetUserByEmail(ctx, sqlc.GetUserByEmailParams{
+		Email: user.Email,
+		AppID: user.AppID,
+	})
+
+	if !errors.Is(err, pgx.ErrNoRows) && existingUser.ID != user.ID {
+		return le.ErrEmailAlreadyTaken
+	} else if err != nil {
+		return fmt.Errorf("%s: failed to check email uniqueness: %w", method, err)
+	}
+
+	return nil
 }
 
 func (s *AuthStorage) UpdateUser(ctx context.Context, user model.User) error {
