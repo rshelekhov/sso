@@ -254,7 +254,25 @@ func (s *AuthStorage) CreateUserSession(ctx context.Context, session model.Sessi
 }
 
 func (s *AuthStorage) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (model.Session, error) {
-	panic("implement me")
+	const method = "user.storage.GetSessionByRefreshToken"
+
+	// TODO: add constraint that user can have only active sessions for 5 devices
+	session, err := s.Queries.GetSessionByRefreshToken(ctx, refreshToken)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.Session{}, le.ErrSessionNotFound
+		}
+		return model.Session{}, fmt.Errorf("%s: failed to get session: %w", method, err)
+	}
+
+	return model.Session{
+		UserID:       session.UserID,
+		AppID:        session.AppID,
+		DeviceID:     session.DeviceID,
+		RefreshToken: refreshToken,
+		LastLoginAt:  session.LastLoginAt,
+		ExpiresAt:    session.ExpiresAt,
+	}, nil
 }
 
 func (s *AuthStorage) DeleteRefreshToken(ctx context.Context, refreshToken string) error {

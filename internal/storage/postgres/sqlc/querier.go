@@ -10,6 +10,7 @@ import (
 
 type Querier interface {
 	CreateUserSession(ctx context.Context, arg CreateUserSessionParams) error
+	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (GetSessionByRefreshTokenRow, error)
 	GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUserByIDRow, error)
 	GetUserData(ctx context.Context, arg GetUserDataParams) (GetUserDataRow, error)

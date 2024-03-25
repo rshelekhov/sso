@@ -36,6 +36,33 @@ func (q *Queries) CreateUserSession(ctx context.Context, arg CreateUserSessionPa
 	return err
 }
 
+const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
+SELECT user_id, app_id, device_id, last_login_at, expires_at
+FROM refresh_sessions
+WHERE refresh_token = $1
+`
+
+type GetSessionByRefreshTokenRow struct {
+	UserID      string    `db:"user_id"`
+	AppID       int32     `db:"app_id"`
+	DeviceID    string    `db:"device_id"`
+	LastLoginAt time.Time `db:"last_login_at"`
+	ExpiresAt   time.Time `db:"expires_at"`
+}
+
+func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (GetSessionByRefreshTokenRow, error) {
+	row := q.db.QueryRow(ctx, getSessionByRefreshToken, refreshToken)
+	var i GetSessionByRefreshTokenRow
+	err := row.Scan(
+		&i.UserID,
+		&i.AppID,
+		&i.DeviceID,
+		&i.LastLoginAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, email, app_id, updated_at
 FROM users

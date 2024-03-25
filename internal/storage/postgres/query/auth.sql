@@ -64,3 +64,8 @@ VALUES ($1, $2, $3, $4, $5, $6, $7);
 -- name: CreateUserSession :exec
 INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, last_login_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6);
+
+-- name: GetSessionByRefreshToken :one
+SELECT user_id, app_id, device_id, last_login_at, expires_at
+FROM refresh_sessions
+WHERE refresh_token = $1;
