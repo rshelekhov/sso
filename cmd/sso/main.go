@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/rshelekhov/jwtauth"
 	"github.com/rshelekhov/sso/config"
 	"github.com/rshelekhov/sso/internal/app"
 	"github.com/rshelekhov/sso/internal/lib/logger"
@@ -19,13 +21,25 @@ func main() {
 	// will be added to each message
 	log = log.With(slog.String("env", cfg.AppEnv))
 
-	log.Info("starting application", slog.Any("config", cfg))
+	log.Info("starting application")
 	log.Debug("logger debug mode enabled")
 
-	// TODO: refactor it to use jwtoken which I used in Reframed
-	application := app.New(log, cfg.GRPCServer.Port, cfg.JWTAuth.AccessTokenTTL)
+	tokenAuth := jwtauth.NewJWTokenService(
+		cfg.JWTAuth.SigningKey,
+		jwt.SigningMethodHS256,
+		cfg.JWTAuth.AccessTokenTTL,
+		cfg.JWTAuth.RefreshTokenTTL,
+		cfg.JWTAuth.RefreshTokenCookieDomain,
+		cfg.JWTAuth.RefreshTokenCookiePath,
+		cfg.JWTAuth.PasswordHash.Cost,
+		cfg.JWTAuth.PasswordHash.Salt,
+	)
 
-	go application.GRPCServer.MustRun()
+	application := app.New(log.Logger, cfg, tokenAuth)
+
+	go func() {
+		application.GRPCServer.MustRun()
+	}()
 
 	// Graceful shutdown
 	stop := make(chan os.Signal, 1)

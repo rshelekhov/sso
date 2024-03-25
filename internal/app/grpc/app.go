@@ -49,6 +49,7 @@ func New(
 		logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
 	))
 
+	// Auth controller
 	authgrpc.RegisterController(gRPCServer, log, authUsecases)
 
 	return &App{
@@ -77,31 +78,31 @@ func (a *App) MustRun() {
 }
 
 func (a *App) Run() error {
-	const op = "grpcapp.App.Run"
+	const method = "grpcapp.App.Run"
 
 	log := a.log.With(
-		slog.String("op", op),
+		slog.String("method", method),
 		slog.String("port", a.port),
 	)
 
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", a.port))
 	if err != nil {
-		return fmt.Errorf("%s: failed to listen gRPC port: %w", op, err)
+		return fmt.Errorf("%s: failed to listen gRPC port: %w", method, err)
 	}
 
 	log.Info("gRPC server is running", slog.String("addr", l.Addr().String()))
 
 	if err = a.gRPCServer.Serve(l); err != nil {
-		return fmt.Errorf("%s: failed to serve gRPC server: %w", op, err)
+		return fmt.Errorf("%s: failed to serve gRPC server: %w", method, err)
 	}
 
 	return nil
 }
 
 func (a *App) Stop() {
-	const op = "grpcapp.App.Stop"
+	const method = "grpcapp.App.Stop"
 
-	a.log.With(slog.String("op", op)).Info("stopping gRPC server")
+	a.log.With(slog.String("method", method)).Info("stopping gRPC server")
 
 	a.gRPCServer.GracefulStop()
 }
