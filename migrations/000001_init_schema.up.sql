@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS refresh_sessions
     app_id        int NOT NULL,
     device_id     character varying NOT NULL,
     refresh_token character varying NOT NULL,
-    last_visit_at timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
+    last_login_at timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     expires_at    timestamp WITH TIME ZONE NOT NULL
 );
 
