@@ -43,3 +43,10 @@ FROM users
 WHERE id = $1
   AND app_id = $2
   AND deleted_at IS NULL;
+
+-- name: GetUserDeviceID :one
+SELECT id
+FROM user_devices
+WHERE user_id = $1
+  AND user_agent = $2
+  AND detached = FALSE;

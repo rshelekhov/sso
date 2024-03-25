@@ -108,6 +108,26 @@ func (q *Queries) GetUserData(ctx context.Context, arg GetUserDataParams) (GetUs
 	return i, err
 }
 
+const getUserDeviceID = `-- name: GetUserDeviceID :one
+SELECT id
+FROM user_devices
+WHERE user_id = $1
+  AND user_agent = $2
+  AND detached = FALSE
+`
+
+type GetUserDeviceIDParams struct {
+	UserID    string `db:"user_id"`
+	UserAgent string `db:"user_agent"`
+}
+
+func (q *Queries) GetUserDeviceID(ctx context.Context, arg GetUserDeviceIDParams) (string, error) {
+	row := q.db.QueryRow(ctx, getUserDeviceID, arg.UserID, arg.UserAgent)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getUserStatus = `-- name: GetUserStatus :one
 SELECT CASE
 WHEN EXISTS(

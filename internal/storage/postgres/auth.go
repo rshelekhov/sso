@@ -188,7 +188,21 @@ func (s *AuthStorage) GetUserData(ctx context.Context, userID string, appID int3
 }
 
 func (s *AuthStorage) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
-	panic("implement me")
+	const method = "user.storage.GetUserDeviceID"
+
+	deviceID, err := s.Queries.GetUserDeviceID(ctx, sqlc.GetUserDeviceIDParams{
+		UserID:    userID,
+		UserAgent: userAgent,
+	})
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", le.ErrUserDeviceNotFound
+		}
+		return "", fmt.Errorf("%s: failed to get id of user device: %w", method, err)
+	}
+
+	return deviceID, nil
 }
 
 func (s *AuthStorage) UpdateLastVisitedAt(ctx context.Context, deviceID string, latestLoginAt time.Time) error {
