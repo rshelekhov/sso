@@ -12,7 +12,7 @@ const (
 )
 
 type Logger struct {
-	Logger *slog.Logger
+	*slog.Logger
 }
 
 func SetupLogger(env string) *Logger {
