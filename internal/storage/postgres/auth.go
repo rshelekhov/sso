@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/rshelekhov/sso/internal/model"
@@ -359,5 +360,22 @@ func (s *AuthStorage) UpdateUser(ctx context.Context, user model.User) error {
 }
 
 func (s *AuthStorage) DeleteUser(ctx context.Context, user model.User) error {
-	panic("implement me")
+	const method = "user.storage.DeleteUser"
+
+	err := s.Queries.DeleteUser(ctx, sqlc.DeleteUserParams{
+		ID:    user.ID,
+		AppID: user.AppID,
+		DeletedAt: pgtype.Timestamptz{
+			Time:  user.DeletedAt,
+			Valid: true,
+		},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return le.ErrUserNotFound
+		}
+		return fmt.Errorf("%s: failed to delete user: %w", method, err)
+	}
+
+	return nil
 }

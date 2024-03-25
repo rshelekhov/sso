@@ -8,6 +8,8 @@ package sqlc
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUserSession = `-- name: CreateUserSession :exec
@@ -61,6 +63,25 @@ type DeleteSessionParams struct {
 
 func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) error {
 	_, err := q.db.Exec(ctx, deleteSession, arg.UserID, arg.AppID, arg.DeviceID)
+	return err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+UPDATE users
+SET deleted_at = $1
+WHERE id = $2
+  AND app_id = $3
+  AND deleted_at IS NULL
+`
+
+type DeleteUserParams struct {
+	DeletedAt pgtype.Timestamptz `db:"deleted_at"`
+	ID        string             `db:"id"`
+	AppID     int32              `db:"app_id"`
+}
+
+func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
+	_, err := q.db.Exec(ctx, deleteUser, arg.DeletedAt, arg.ID, arg.AppID)
 	return err
 }
 
