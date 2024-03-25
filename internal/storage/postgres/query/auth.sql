@@ -69,3 +69,7 @@ VALUES ($1, $2, $3, $4, $5, $6);
 SELECT user_id, app_id, device_id, last_login_at, expires_at
 FROM refresh_sessions
 WHERE refresh_token = $1;
+
+-- name: DeleteRefreshTokenFromSession :exec
+DELETE FROM refresh_sessions
+WHERE refresh_token = $1;

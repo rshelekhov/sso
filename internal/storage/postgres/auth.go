@@ -276,7 +276,13 @@ func (s *AuthStorage) GetSessionByRefreshToken(ctx context.Context, refreshToken
 }
 
 func (s *AuthStorage) DeleteRefreshToken(ctx context.Context, refreshToken string) error {
-	panic("implement me")
+	const method = "user.storage.DeleteRefreshToken"
+
+	if err := s.Queries.DeleteRefreshTokenFromSession(ctx, refreshToken); err != nil {
+		return fmt.Errorf("%s: failed to delete refresh token: %w", method, err)
+	}
+
+	return nil
 }
 
 func (s *AuthStorage) DeleteSession(ctx context.Context, userID, deviceID string) error {
