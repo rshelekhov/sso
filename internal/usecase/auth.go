@@ -66,7 +66,7 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (j
 	}
 
 	// TODO: add transaction here
-	tokenData, err := u.CreateUserSession(ctx, log, user.ID, user.AppID, userDevice)
+	tokenData, err := u.CreateUserSession(ctx, log, user, userDevice)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToCreateUserSession, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
@@ -145,7 +145,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		IP:        data.UserDevice.IP,
 	}
 
-	tokenData, err := u.CreateUserSession(ctx, log, user.ID, user.AppID, userDevice)
+	tokenData, err := u.CreateUserSession(ctx, log, user, userDevice)
 	if err != nil {
 		return jwtauth.TokenData{}, err
 	}
@@ -160,8 +160,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 func (u *AuthUsecase) CreateUserSession(
 	ctx context.Context,
 	log *slog.Logger,
-	userID string,
-	appID int32,
+	user model.User,
 	userDeviceRequest model.UserDeviceRequestData,
 ) (
 	jwtauth.TokenData,
@@ -171,20 +170,26 @@ func (u *AuthUsecase) CreateUserSession(
 
 	log = log.With(
 		slog.String(key.Method, method),
-		slog.String(key.UserID, userID),
+		slog.String(key.UserID, user.ID),
 	)
 
 	additionalClaims := map[string]interface{}{
-		jwtauth.ContextUserID: userID,
+		jwtauth.ContextUserID: user.ID,
 	}
 
-	deviceID, err := u.getDeviceID(ctx, userID, appID, userDeviceRequest)
+	deviceID, err := u.getDeviceID(ctx, user.ID, user.AppID, userDeviceRequest)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetDeviceID, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
 
-	accessToken, err := u.jwt.NewAccessToken(additionalClaims)
+	signKey, err := u.storage.GetAppSignKey(ctx, user.AppID)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetAppSignKey, err)
+		return jwtauth.TokenData{}, le.ErrInternalServerError
+	}
+
+	accessToken, err := u.jwt.NewAccessToken(additionalClaims, signKey)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToCreateAccessToken, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
@@ -200,7 +205,8 @@ func (u *AuthUsecase) CreateUserSession(
 	expiresAt := time.Now().Add(u.jwt.RefreshTokenTTL)
 
 	session := model.Session{
-		UserID:       userID,
+		UserID:       user.ID,
+		AppID:        user.AppID,
 		DeviceID:     deviceID,
 		RefreshToken: refreshToken,
 		LastLoginAt:  lastVisitedAt,
@@ -212,12 +218,12 @@ func (u *AuthUsecase) CreateUserSession(
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
 
-	if err = u.updateLastVisitedAt(ctx, deviceID, appID, lastVisitedAt); err != nil {
+	if err = u.updateLastVisitedAt(ctx, deviceID, user.AppID, lastVisitedAt); err != nil {
 		log.Error("%w: %w", le.ErrFailedToUpdateLastVisitedAt, err)
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
 
-	additionalFields := map[string]string{key.UserID: userID}
+	additionalFields := map[string]string{key.UserID: user.ID}
 	tokenData := jwtauth.TokenData{
 		AccessToken:      accessToken,
 		RefreshToken:     refreshToken,
@@ -294,7 +300,7 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 		return jwtauth.TokenData{}, le.ErrInternalServerError
 	}
 
-	tokenData, err := u.CreateUserSession(ctx, log, session.UserID, data.AppID, data.UserDevice)
+	tokenData, err := u.CreateUserSession(ctx, log, model.User{ID: session.UserID, AppID: session.AppID}, data.UserDevice)
 	if err != nil {
 		return jwtauth.TokenData{}, err
 	}

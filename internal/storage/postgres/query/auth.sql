@@ -61,6 +61,11 @@ WHERE id = $2
 INSERT INTO user_devices (id, user_id, app_id, user_agent, ip, detached, last_login_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7);
 
+-- name: GetAppSignKey :one
+SELECT sign_key
+FROM apps
+WHERE id = $1;
+
 -- name: CreateUserSession :exec
 INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, last_login_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6);

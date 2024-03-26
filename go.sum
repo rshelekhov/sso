@@ -80,6 +80,8 @@ github.com/rogpeppe/go-internal v1.9.0 h1:73kH8U+JUqXU8lRuOHeVHaa/SZPifC7BkcraZV
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rshelekhov/jwtauth v0.0.4 h1:C8vZTR82o0y6MQXIynXRnPplfR2AwAa/kyzZniNXbaM=
 github.com/rshelekhov/jwtauth v0.0.4/go.mod h1:pf0u/Pu8R7VkMdGTL6PvXIMymn5pX1IWc9KTC07gxoc=
+github.com/rshelekhov/jwtauth v0.0.5 h1:AMFkM9CR6QhnTKZ6KthoTnyrDf1DLCCpPzQ0l7zGyNk=
+github.com/rshelekhov/jwtauth v0.0.5/go.mod h1:pf0u/Pu8R7VkMdGTL6PvXIMymn5pX1IWc9KTC07gxoc=
 github.com/rshelekhov/sso-protos v0.0.9 h1:UQ1hO+W8Ip0BZnFGnrlUHUngT6DJ3DzMmwaDTBAY3CA=
 github.com/rshelekhov/sso-protos v0.0.9/go.mod h1:q56u2f9xPzHxqwDwkryIwws43wC4ytQqkUp4kAgfJzM=
 github.com/sagikazarmark/locafero v0.4.0 h1:HApY1R9zGo4DBgr7dqsTH/JJxLTTsOt7u6keLGt6kNQ=

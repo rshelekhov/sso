@@ -34,6 +34,7 @@ const (
 	ErrNoPasswordChangesDetected    LocalError = "no password changes detected"
 	ErrFailedToDeleteUser           LocalError = "failed to delete user"
 
+	ErrFailedToGetAppSignKey         LocalError = "failed to get app sign key"
 	ErrFailedToCreateAccessToken     LocalError = "failed to create access token"
 	ErrFailedToCreateRefreshToken    LocalError = "failed to create refresh token"
 	ErrUserDeviceNotFound            LocalError = "user device not found"
