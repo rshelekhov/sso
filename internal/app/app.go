@@ -1,9 +1,9 @@
 package app
 
 import (
-	"github.com/rshelekhov/jwtauth"
 	"github.com/rshelekhov/sso/config"
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
+	"github.com/rshelekhov/sso/internal/lib/jwt/service"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"github.com/rshelekhov/sso/internal/storage/postgres"
 	"github.com/rshelekhov/sso/internal/usecase"
@@ -15,7 +15,7 @@ type App struct {
 }
 
 // TODO: refactor it to use jwtoken which I used in Reframed
-func New(log *slog.Logger, cfg *config.ServerSettings, tokenAuth *jwtauth.TokenService) *App {
+func New(log *slog.Logger, cfg *config.ServerSettings, tokenAuth *service.TokenService) *App {
 
 	// Auth storage
 	pg, err := postgres.NewStorage(cfg)

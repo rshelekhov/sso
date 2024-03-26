@@ -2,7 +2,6 @@ package port
 
 import (
 	"context"
-	"github.com/rshelekhov/jwtauth"
 	"github.com/rshelekhov/sso/internal/model"
 	"log/slog"
 	"time"
@@ -10,10 +9,10 @@ import (
 
 type (
 	AuthUsecase interface {
-		Login(ctx context.Context, data *model.UserRequestData) (jwtauth.TokenData, error)
-		RegisterNewUser(ctx context.Context, data *model.UserRequestData) (jwtauth.TokenData, error)
-		CreateUserSession(ctx context.Context, log *slog.Logger, user model.User, data model.UserDeviceRequestData) (jwtauth.TokenData, error)
-		RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (jwtauth.TokenData, error)
+		Login(ctx context.Context, data *model.UserRequestData) (model.TokenData, error)
+		RegisterNewUser(ctx context.Context, data *model.UserRequestData) (model.TokenData, error)
+		CreateUserSession(ctx context.Context, log *slog.Logger, user model.User, data model.UserDeviceRequestData) (model.TokenData, error)
+		RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (model.TokenData, error)
 		LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error
 		GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error)
 		UpdateUser(ctx context.Context, data *model.UserRequestData) error

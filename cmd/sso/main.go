@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rshelekhov/jwtauth"
 	"github.com/rshelekhov/sso/config"
 	"github.com/rshelekhov/sso/internal/app"
+	"github.com/rshelekhov/sso/internal/lib/jwt/service"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"log/slog"
 	"os"
@@ -24,8 +24,7 @@ func main() {
 	log.Info("starting application")
 	log.Debug("logger debug mode enabled")
 
-	tokenAuth := jwtauth.NewJWTokenService(
-		cfg.JWTAuth.SigningKey,
+	tokenAuth := service.NewJWTokenService(
 		jwt.SigningMethodHS256,
 		cfg.JWTAuth.AccessTokenTTL,
 		cfg.JWTAuth.RefreshTokenTTL,

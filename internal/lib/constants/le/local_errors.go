@@ -47,4 +47,8 @@ const (
 	ErrFailedToGetUserIDFromToken    LocalError = "failed to get user id from token"
 	ErrFailedToGetDeviceID           LocalError = "failed to get device id"
 	ErrFailedToDeleteSession         LocalError = "failed to delete session"
+
+	ErrNoTokenFoundInCtx        LocalError = "no token found in ctx"
+	ErrFailedToParseTokenClaims LocalError = "failed to parse token claims"
+	ErrUserIDNotFoundInCtx      LocalError = "user id not found in ctx"
 )
