@@ -65,11 +65,18 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (j
 		IP:        data.UserDevice.IP,
 	}
 
-	// TODO: add transaction here
-	tokenData, err := u.CreateUserSession(ctx, log, user, userDevice)
-	if err != nil {
-		log.Error("%w: %w", le.ErrFailedToCreateUserSession, err)
-		return jwtauth.TokenData{}, le.ErrInternalServerError
+	tokenData := jwtauth.TokenData{}
+
+	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
+		tokenData, err = u.CreateUserSession(ctx, log, user, userDevice)
+		if err != nil {
+			log.Error("%w: %w", le.ErrFailedToCreateUserSession, err)
+			return le.ErrInternalServerError
+		}
+
+		return nil
+	}); err != nil {
+		return jwtauth.TokenData{}, err
 	}
 
 	log.Info("user authenticated, tokens created", slog.String(key.UserID, user.ID))
@@ -127,26 +134,32 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		UpdatedAt:    time.Now(),
 	}
 
-	// TODO: add transaction here
-
-	if err = u.storage.CreateUser(ctx, user); err != nil {
-		// TODO: return a custom error
-
-		if errors.Is(err, le.ErrEmailAlreadyTaken) {
-			log.Error("%w: %w", le.ErrEmailAlreadyTaken, err)
-			return jwtauth.TokenData{}, le.ErrEmailAlreadyTaken
-		}
-		log.Error("%w: %w", le.ErrFailedToCreateUser, err)
-		return jwtauth.TokenData{}, le.ErrInternalServerError
-	}
-
 	userDevice := model.UserDeviceRequestData{
 		UserAgent: data.UserDevice.UserAgent,
 		IP:        data.UserDevice.IP,
 	}
 
-	tokenData, err := u.CreateUserSession(ctx, log, user, userDevice)
-	if err != nil {
+	tokenData := jwtauth.TokenData{}
+
+	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
+		if err = u.storage.CreateUser(ctx, user); err != nil {
+			// TODO: return a custom error
+
+			if errors.Is(err, le.ErrEmailAlreadyTaken) {
+				log.Error("%w: %w", le.ErrEmailAlreadyTaken, err)
+				return le.ErrEmailAlreadyTaken
+			}
+			log.Error("%w: %w", le.ErrFailedToCreateUser, err)
+			return le.ErrInternalServerError
+		}
+
+		tokenData, err = u.CreateUserSession(ctx, log, user, userDevice)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		return jwtauth.TokenData{}, err
 	}
 
