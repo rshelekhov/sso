@@ -12,9 +12,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_active_users ON users (email) WHERE delete
 
 CREATE TABLE IF NOT EXISTS apps
 (
-    id     int PRIMARY KEY,
-    name   character varying NOT NULL UNIQUE,
-    secret character varying NOT NULL UNIQUE
+    id       int PRIMARY KEY,
+    name     character varying NOT NULL UNIQUE,
+    sign_key character varying NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS refresh_sessions
