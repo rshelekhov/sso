@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rshelekhov/sso/config"
 	"github.com/rshelekhov/sso/internal/app"
+	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/jwt/service"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"log/slog"

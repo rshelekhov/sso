@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/rshelekhov/sso/config"
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
+	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/jwt/service"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"github.com/rshelekhov/sso/internal/storage/postgres"

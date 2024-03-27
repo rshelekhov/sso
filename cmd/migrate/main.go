@@ -9,11 +9,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/rshelekhov/sso/internal/config"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-
-	"github.com/rshelekhov/sso/config"
 )
 
 func main() {
