@@ -284,6 +284,38 @@ func (u *AuthUsecase) updateLastVisitedAt(ctx context.Context, deviceID string, 
 	return u.storage.UpdateLastLoginAt(ctx, deviceID, appID, lastVisitedAt)
 }
 
+func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error {
+	const method = "usecase.AuthUsecase.LogoutUser"
+
+	log := u.log.With(slog.String(key.Method, method))
+
+	userID, err := service.GetUserID(ctx)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
+		return le.ErrFailedToGetUserIDFromToken
+	}
+
+	log = log.With(slog.String(key.UserID, userID))
+
+	// Check if the device exists
+	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserAgent)
+	if err != nil {
+		if errors.Is(err, le.ErrUserDeviceNotFound) {
+			return le.ErrUserDeviceNotFound
+		}
+		return err
+	}
+
+	log.Info("user logged out", slog.String(key.DeviceID, deviceID))
+
+	if err = u.storage.DeleteSession(ctx, userID, deviceID, appID); err != nil {
+		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
+		return le.ErrFailedToDeleteSession
+	}
+
+	return nil
+}
+
 func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (model.TokenData, error) {
 	const method = "usecase.AuthUsecase.RefreshTokens"
 
@@ -348,38 +380,6 @@ func (u *AuthUsecase) checkSessionAndDevice(ctx context.Context, refreshToken st
 
 func (u *AuthUsecase) deleteRefreshToken(ctx context.Context, refreshToken string) error {
 	return u.storage.DeleteRefreshToken(ctx, refreshToken)
-}
-
-func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error {
-	const method = "usecase.AuthUsecase.LogoutUser"
-
-	log := u.log.With(slog.String(key.Method, method))
-
-	userID, err := service.GetUserID(ctx)
-	if err != nil {
-		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
-		return le.ErrFailedToGetUserIDFromToken
-	}
-
-	log = log.With(slog.String(key.UserID, userID))
-
-	// Check if the device exists
-	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserAgent)
-	if err != nil {
-		if errors.Is(err, le.ErrUserDeviceNotFound) {
-			return le.ErrUserDeviceNotFound
-		}
-		return err
-	}
-
-	log.Info("user logged out", slog.String(key.DeviceID, deviceID))
-
-	if err = u.storage.DeleteSession(ctx, userID, deviceID, appID); err != nil {
-		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
-		return le.ErrFailedToDeleteSession
-	}
-
-	return nil
 }
 
 func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error) {
