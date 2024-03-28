@@ -4,5 +4,8 @@
 # ENV
 config/.env
 
+# Certs folder with private key
+certs
+
 # Other
 .DS_Store
