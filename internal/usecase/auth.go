@@ -2,7 +2,10 @@ package usecase
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
+	"fmt"
 	"github.com/rshelekhov/sso/internal/lib/constants/key"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/rshelekhov/sso/internal/lib/jwt"
@@ -11,6 +14,7 @@ import (
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
 	"log/slog"
+	"os"
 	"time"
 )
 
@@ -201,7 +205,7 @@ func (u *AuthUsecase) CreateUserSession(
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	accessToken, err := u.jwt.NewAccessToken(additionalClaims, signKey)
+	accessToken, err := u.jwt.NewAccessToken(user.AppID, additionalClaims, signKey)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToCreateAccessToken, err)
 		return model.TokenData{}, le.ErrInternalServerError
@@ -380,6 +384,72 @@ func (u *AuthUsecase) checkSessionAndDevice(ctx context.Context, refreshToken st
 
 func (u *AuthUsecase) deleteRefreshToken(ctx context.Context, refreshToken string) error {
 	return u.storage.DeleteRefreshToken(ctx, refreshToken)
+}
+
+func (u *AuthUsecase) GetJWKS(ctx context.Context, request *model.JWKSRequestData) (model.JWKS, error) {
+	const method = "usecase.AuthUsecase.GetJWKS"
+
+	log := u.log.With(slog.String(key.Method, method))
+	// Read the public key from the PEM file
+	publicKey, err := u.GetPublicKeyFromPEM(request.AppID, u.jwt.KeysPath)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetJWKS, err)
+		return model.JWKS{}, err
+	}
+
+	// Type assert the public key to JWK
+	jwk, ok := publicKey.(*model.JWK)
+	if !ok {
+		log.Error("%w: %w", le.ErrFailedToTypeAssertJWK, err)
+		return model.JWKS{}, le.ErrFailedToTypeAssertJWK
+	}
+
+	// Construct a JWKS with the JWK
+	jwks := model.JWKS{
+		Keys: []model.JWK{*jwk},
+	}
+
+	// Convert Keys slice to a map with Kid as key
+	jwksMap := make(map[string]model.JWK)
+	for _, key := range jwks.Keys {
+		jwksMap[key.Kid] = key
+	}
+
+	log.Info("JWKS retrieved")
+
+	return jwks, nil
+}
+
+func (u *AuthUsecase) GetPublicKeyFromPEM(appID int32, keysPath string) (interface{}, error) {
+	const method = "usecase.AuthUsecase.GetPublicKeyFromPEM"
+
+	log := u.log.With(slog.String(key.Method, method))
+
+	// Construct the complete file path based on the AppID and provided keysPath
+	filePath := fmt.Sprintf("%s/app_%d_public.pem", keysPath, appID)
+
+	// Read the public key from the PEM file
+	pemData, err := os.ReadFile(filePath)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToReadFile, err)
+		return model.JWKS{}, err
+	}
+
+	// Decode the PEM data to get the public key
+	block, _ := pem.Decode(pemData)
+	if block == nil {
+		log.Error("%w: %w", le.ErrFailedToDecodePEM, err)
+		return nil, le.ErrFailedToDecodePEM
+	}
+
+	// Parse the public key
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToParsePKIXPublicKey, err)
+		return nil, le.ErrFailedToParsePKIXPublicKey
+	}
+
+	return pub, nil
 }
 
 func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error) {

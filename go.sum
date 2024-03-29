@@ -84,6 +84,12 @@ github.com/rshelekhov/jwtauth v0.0.5 h1:AMFkM9CR6QhnTKZ6KthoTnyrDf1DLCCpPzQ0l7zG
 github.com/rshelekhov/jwtauth v0.0.5/go.mod h1:pf0u/Pu8R7VkMdGTL6PvXIMymn5pX1IWc9KTC07gxoc=
 github.com/rshelekhov/sso-protos v0.0.9 h1:UQ1hO+W8Ip0BZnFGnrlUHUngT6DJ3DzMmwaDTBAY3CA=
 github.com/rshelekhov/sso-protos v0.0.9/go.mod h1:q56u2f9xPzHxqwDwkryIwws43wC4ytQqkUp4kAgfJzM=
+github.com/rshelekhov/sso-protos v0.0.10 h1:ekVDqi18n7GUGWdgw+xuBVa2RnZJ5ltdBcrNzHb4HLQ=
+github.com/rshelekhov/sso-protos v0.0.10/go.mod h1:q56u2f9xPzHxqwDwkryIwws43wC4ytQqkUp4kAgfJzM=
+github.com/rshelekhov/sso-protos v0.0.11 h1:NpnqiPn6eL11TzogADGZxOh5+JX2IRbf4vKBhMACmyM=
+github.com/rshelekhov/sso-protos v0.0.11/go.mod h1:q56u2f9xPzHxqwDwkryIwws43wC4ytQqkUp4kAgfJzM=
+github.com/rshelekhov/sso-protos v0.0.12 h1:xI6K7RmLS3l+tHSN7IzvWJYmZrvc5Ly+RlARnxBW5Vg=
+github.com/rshelekhov/sso-protos v0.0.12/go.mod h1:q56u2f9xPzHxqwDwkryIwws43wC4ytQqkUp4kAgfJzM=
 github.com/sagikazarmark/locafero v0.4.0 h1:HApY1R9zGo4DBgr7dqsTH/JJxLTTsOt7u6keLGt6kNQ=
 github.com/sagikazarmark/locafero v0.4.0/go.mod h1:Pe1W6UlPYUk/+wc/6KFhbORCfqzgYEpgQ3O5fPuL3H4=
 github.com/sagikazarmark/slog-shim v0.1.0 h1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6gto+ugjYE=

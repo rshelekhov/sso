@@ -12,8 +12,10 @@ type (
 		Login(ctx context.Context, data *model.UserRequestData) (model.TokenData, error)
 		RegisterNewUser(ctx context.Context, data *model.UserRequestData) (model.TokenData, error)
 		CreateUserSession(ctx context.Context, log *slog.Logger, user model.User, data model.UserDeviceRequestData) (model.TokenData, error)
-		RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (model.TokenData, error)
 		LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error
+		RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (model.TokenData, error)
+		GetJWKS(ctx context.Context, request *model.JWKSRequestData) (model.JWKS, error)
+		GetPublicKeyFromPEM(appID int32, keysPath string) (interface{}, error)
 		GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error)
 		UpdateUser(ctx context.Context, data *model.UserRequestData) error
 		DeleteUser(ctx context.Context, data *model.UserRequestData) error

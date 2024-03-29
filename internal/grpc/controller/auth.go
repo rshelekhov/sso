@@ -130,8 +130,37 @@ func (c *authController) Refresh(ctx context.Context, req *ssov1.RefreshRequest)
 	return &ssov1.RefreshResponse{TokenData: tokenDataResponse}, nil
 }
 
-func (c *authController) GetJWKS(context.Context, *GetJWKSRequest) (*GetJWKSResponse, error) {
+func (c *authController) GetJWKS(ctx context.Context, req *ssov1.GetJWKSRequest) (*ssov1.GetJWKSResponse, error) {
+	request := &model.JWKSRequestData{}
+	if err := validateGetJWKS(req, request); err != nil {
+		return nil, err
+	}
 
+	jwks, err := c.usecase.GetJWKS(ctx, request)
+	if err != nil {
+		if errors.Is(err, le.ErrFailedToGetJWKS) {
+			return nil, status.Error(codes.Internal, le.ErrFailedToGetJWKS.Error())
+		}
+		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	}
+
+	var jwksResponse []*ssov1.JWK
+
+	for _, jwk := range jwks.Keys {
+		jwkResponse := &ssov1.JWK{
+			Kty: jwk.Kty,
+			Kid: jwk.Kid,
+			Use: jwk.Use,
+			Alg: jwk.Alg,
+			N:   jwk.N,
+			E:   jwk.E,
+		}
+		jwksResponse = append(jwksResponse, jwkResponse)
+	}
+
+	return &ssov1.GetJWKSResponse{
+		Jwks: jwksResponse,
+	}, nil
 }
 
 func (c *authController) GetUser(ctx context.Context, req *ssov1.GetUserRequest) (*ssov1.GetUserResponse, error) {
