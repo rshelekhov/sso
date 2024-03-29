@@ -2,7 +2,10 @@
 /.idea/
 
 # ENV
-.env
+config/.env
+
+# Certs folder with private key
+certs
 
 # Other
 .DS_Store

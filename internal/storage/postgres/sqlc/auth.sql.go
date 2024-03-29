@@ -85,6 +85,19 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
 	return err
 }
 
+const getAppSignKey = `-- name: GetAppSignKey :one
+SELECT sign_key
+FROM apps
+WHERE id = $1
+`
+
+func (q *Queries) GetAppSignKey(ctx context.Context, id int32) (string, error) {
+	row := q.db.QueryRow(ctx, getAppSignKey, id)
+	var sign_key string
+	err := row.Scan(&sign_key)
+	return sign_key, err
+}
+
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
 SELECT user_id, app_id, device_id, last_login_at, expires_at
 FROM refresh_sessions

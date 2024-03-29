@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib" // Import for side effects
-	"github.com/rshelekhov/sso/config"
+	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/storage/postgres/sqlc"
 	"net"
 )

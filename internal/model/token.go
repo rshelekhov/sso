@@ -1,7 +1,21 @@
 package model
 
-type RefreshRequestData struct {
-	RefreshToken string
-	AppID        int32
-	UserDevice   UserDeviceRequestData
-}
+import "time"
+
+type (
+	TokenData struct {
+		AccessToken      string
+		RefreshToken     string
+		Domain           string
+		Path             string
+		ExpiresAt        time.Time
+		HTTPOnly         bool
+		AdditionalFields map[string]string
+	}
+
+	RefreshRequestData struct {
+		RefreshToken string
+		AppID        int32
+		UserDevice   UserDeviceRequestData
+	}
+)

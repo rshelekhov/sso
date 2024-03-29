@@ -34,6 +34,7 @@ const (
 	ErrNoPasswordChangesDetected    LocalError = "no password changes detected"
 	ErrFailedToDeleteUser           LocalError = "failed to delete user"
 
+	ErrFailedToGetAppSignKey         LocalError = "failed to get app sign key"
 	ErrFailedToCreateAccessToken     LocalError = "failed to create access token"
 	ErrFailedToCreateRefreshToken    LocalError = "failed to create refresh token"
 	ErrUserDeviceNotFound            LocalError = "user device not found"
@@ -46,4 +47,14 @@ const (
 	ErrFailedToGetUserIDFromToken    LocalError = "failed to get user id from token"
 	ErrFailedToGetDeviceID           LocalError = "failed to get device id"
 	ErrFailedToDeleteSession         LocalError = "failed to delete session"
+	ErrFailedToReadFile              LocalError = "failed to read file"
+	ErrFailedToDecodePEM             LocalError = "failed to decode pem"
+	ErrFailedToParsePKIXPublicKey    LocalError = "failed to parse pkix public key"
+	ErrFailedToTypeAssertJWK         LocalError = "failed to type assert jwk"
+	ErrFailedToUnmarshalJWK          LocalError = "failed to unmarshal jwk"
+	ErrFailedToGetJWKS               LocalError = "failed to get jwks"
+
+	ErrNoTokenFoundInCtx        LocalError = "no token found in ctx"
+	ErrFailedToParseTokenClaims LocalError = "failed to parse token claims"
+	ErrUserIDNotFoundInCtx      LocalError = "user id not found in ctx"
 )

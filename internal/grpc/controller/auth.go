@@ -78,6 +78,27 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 	return &ssov1.RegisterResponse{TokenData: tokenDataResponse}, nil
 }
 
+func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.LogoutResponse, error) {
+	request := &model.UserRequestData{}
+	if err := validateLogout(req, request); err != nil {
+		return nil, err
+	}
+
+	err := c.usecase.LogoutUser(ctx, request.UserDevice, request.AppID)
+	switch {
+	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
+		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
+	case errors.Is(err, le.ErrUserDeviceNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrUserDeviceNotFound.Error())
+	case errors.Is(err, le.ErrFailedToDeleteSession):
+		return nil, status.Error(codes.Internal, le.ErrFailedToDeleteSession.Error())
+	case err != nil:
+		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	}
+
+	return &ssov1.LogoutResponse{}, nil
+}
+
 func (c *authController) Refresh(ctx context.Context, req *ssov1.RefreshRequest) (*ssov1.RefreshResponse, error) {
 	request := &model.RefreshRequestData{}
 	if err := validateRefresh(req, request); err != nil {
@@ -109,25 +130,37 @@ func (c *authController) Refresh(ctx context.Context, req *ssov1.RefreshRequest)
 	return &ssov1.RefreshResponse{TokenData: tokenDataResponse}, nil
 }
 
-func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.LogoutResponse, error) {
-	request := &model.UserRequestData{}
-	if err := validateLogout(req, request); err != nil {
+func (c *authController) GetJWKS(ctx context.Context, req *ssov1.GetJWKSRequest) (*ssov1.GetJWKSResponse, error) {
+	request := &model.JWKSRequestData{}
+	if err := validateGetJWKS(req, request); err != nil {
 		return nil, err
 	}
 
-	err := c.usecase.LogoutUser(ctx, request.UserDevice, request.AppID)
-	switch {
-	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
-		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
-	case errors.Is(err, le.ErrUserDeviceNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrUserDeviceNotFound.Error())
-	case errors.Is(err, le.ErrFailedToDeleteSession):
-		return nil, status.Error(codes.Internal, le.ErrFailedToDeleteSession.Error())
-	case err != nil:
+	jwks, err := c.usecase.GetJWKS(ctx, request)
+	if err != nil {
+		if errors.Is(err, le.ErrFailedToGetJWKS) {
+			return nil, status.Error(codes.Internal, le.ErrFailedToGetJWKS.Error())
+		}
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.LogoutResponse{}, nil
+	var jwksResponse []*ssov1.JWK
+
+	for _, jwk := range jwks.Keys {
+		jwkResponse := &ssov1.JWK{
+			Kty: jwk.Kty,
+			Kid: jwk.Kid,
+			Use: jwk.Use,
+			Alg: jwk.Alg,
+			N:   jwk.N,
+			E:   jwk.E,
+		}
+		jwksResponse = append(jwksResponse, jwkResponse)
+	}
+
+	return &ssov1.GetJWKSResponse{
+		Jwks: jwksResponse,
+	}, nil
 }
 
 func (c *authController) GetUser(ctx context.Context, req *ssov1.GetUserRequest) (*ssov1.GetUserResponse, error) {

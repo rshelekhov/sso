@@ -82,6 +82,31 @@ func validateRegisterData(req *ssov1.RegisterRequest, userInput *model.UserReque
 	return nil
 }
 
+func validateLogout(req *ssov1.LogoutRequest, request *model.UserRequestData) error {
+	// TODO: add validation with validator
+	if req.GetAppId() == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
+	}
+
+	if req.UserDeviceData.GetUserAgent() == "" {
+		return status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
+	}
+
+	if req.UserDeviceData.GetIp() == "" {
+		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
+	}
+
+	request = &model.UserRequestData{
+		AppID: req.GetAppId(),
+		UserDevice: model.UserDeviceRequestData{
+			UserAgent: req.UserDeviceData.GetUserAgent(),
+			IP:        req.UserDeviceData.GetIp(),
+		},
+	}
+
+	return nil
+}
+
 func validateRefresh(req *ssov1.RefreshRequest, request *model.RefreshRequestData) error {
 	// TODO: add validation with validator
 	if req.GetRefreshToken() == "" {
@@ -112,26 +137,14 @@ func validateRefresh(req *ssov1.RefreshRequest, request *model.RefreshRequestDat
 	return nil
 }
 
-func validateLogout(req *ssov1.LogoutRequest, request *model.UserRequestData) error {
+func validateGetJWKS(req *ssov1.GetJWKSRequest, request *model.JWKSRequestData) error {
 	// TODO: add validation with validator
 	if req.GetAppId() == emptyValue {
 		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
 	}
 
-	if req.UserDeviceData.GetUserAgent() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
-	}
-
-	if req.UserDeviceData.GetIp() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
-	}
-
-	request = &model.UserRequestData{
+	request = &model.JWKSRequestData{
 		AppID: req.GetAppId(),
-		UserDevice: model.UserDeviceRequestData{
-			UserAgent: req.UserDeviceData.GetUserAgent(),
-			IP:        req.UserDeviceData.GetIp(),
-		},
 	}
 
 	return nil

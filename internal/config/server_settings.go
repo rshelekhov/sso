@@ -34,7 +34,8 @@ type (
 	}
 
 	JWTConfig struct {
-		SigningKey               string        `mapstructure:"JWT_SIGNING_KEY"`
+		SigningMethod            string        `mapstructure:"JWT_SIGNING_METHOD"`
+		KeysPath                 string        `mapstructure:"JWT_KEYS_PATH"`
 		AccessTokenTTL           time.Duration `mapstructure:"JWT_ACCESS_TOKEN_TTL"`
 		RefreshTokenTTL          time.Duration `mapstructure:"JWT_REFRESH_TOKEN_TTL"`
 		RefreshTokenCookieDomain string        `mapstructure:"JWT_REFRESH_TOKEN_COOKIE_DOMAIN"`
