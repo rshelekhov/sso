@@ -61,7 +61,7 @@ func (j *TokenService) Algorithm() jwt.SigningMethod {
 	}
 }
 
-func (j *TokenService) NewAccessToken(appID int32, additionalClaims map[string]interface{}, signKey string) (string, error) {
+func (j *TokenService) NewAccessToken(appID int32, additionalClaims map[string]interface{}) (string, error) {
 	claims := jwt.MapClaims{
 		"exp": time.Now().Add(j.AccessTokenTTL).Unix(),
 	}

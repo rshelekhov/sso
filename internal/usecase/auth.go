@@ -199,13 +199,7 @@ func (u *AuthUsecase) CreateUserSession(
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	signKey, err := u.storage.GetAppSignKey(ctx, user.AppID)
-	if err != nil {
-		log.Error("%w: %w", le.ErrFailedToGetAppSignKey, err)
-		return model.TokenData{}, le.ErrInternalServerError
-	}
-
-	accessToken, err := u.jwt.NewAccessToken(user.AppID, additionalClaims, signKey)
+	accessToken, err := u.jwt.NewAccessToken(user.AppID, additionalClaims)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToCreateAccessToken, err)
 		return model.TokenData{}, le.ErrInternalServerError
