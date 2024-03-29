@@ -1,3 +1,3 @@
-INSERT INTO apps (id, name, sign_key)
-VALUES (1, 'test', 'test-sign-key')
+INSERT INTO apps (id, name)
+VALUES (1, 'test')
 ON CONFLICT DO NOTHING;
