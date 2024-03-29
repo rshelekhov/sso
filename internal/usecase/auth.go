@@ -2,7 +2,10 @@ package usecase
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
+	"fmt"
 	"github.com/rshelekhov/sso/internal/lib/constants/key"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/rshelekhov/sso/internal/lib/jwt"
@@ -11,6 +14,7 @@ import (
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
 	"log/slog"
+	"os"
 	"time"
 )
 
@@ -201,7 +205,7 @@ func (u *AuthUsecase) CreateUserSession(
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	accessToken, err := u.jwt.NewAccessToken(additionalClaims, signKey)
+	accessToken, err := u.jwt.NewAccessToken(user.AppID, additionalClaims, signKey)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToCreateAccessToken, err)
 		return model.TokenData{}, le.ErrInternalServerError
@@ -284,6 +288,38 @@ func (u *AuthUsecase) updateLastVisitedAt(ctx context.Context, deviceID string, 
 	return u.storage.UpdateLastLoginAt(ctx, deviceID, appID, lastVisitedAt)
 }
 
+func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error {
+	const method = "usecase.AuthUsecase.LogoutUser"
+
+	log := u.log.With(slog.String(key.Method, method))
+
+	userID, err := service.GetUserID(ctx)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
+		return le.ErrFailedToGetUserIDFromToken
+	}
+
+	log = log.With(slog.String(key.UserID, userID))
+
+	// Check if the device exists
+	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserAgent)
+	if err != nil {
+		if errors.Is(err, le.ErrUserDeviceNotFound) {
+			return le.ErrUserDeviceNotFound
+		}
+		return err
+	}
+
+	log.Info("user logged out", slog.String(key.DeviceID, deviceID))
+
+	if err = u.storage.DeleteSession(ctx, userID, deviceID, appID); err != nil {
+		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
+		return le.ErrFailedToDeleteSession
+	}
+
+	return nil
+}
+
 func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (model.TokenData, error) {
 	const method = "usecase.AuthUsecase.RefreshTokens"
 
@@ -350,36 +386,70 @@ func (u *AuthUsecase) deleteRefreshToken(ctx context.Context, refreshToken strin
 	return u.storage.DeleteRefreshToken(ctx, refreshToken)
 }
 
-func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error {
-	const method = "usecase.AuthUsecase.LogoutUser"
+func (u *AuthUsecase) GetJWKS(ctx context.Context, request *model.JWKSRequestData) (model.JWKS, error) {
+	const method = "usecase.AuthUsecase.GetJWKS"
+
+	log := u.log.With(slog.String(key.Method, method))
+	// Read the public key from the PEM file
+	publicKey, err := u.GetPublicKeyFromPEM(request.AppID, u.jwt.KeysPath)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetJWKS, err)
+		return model.JWKS{}, err
+	}
+
+	// Type assert the public key to JWK
+	jwk, ok := publicKey.(*model.JWK)
+	if !ok {
+		log.Error("%w: %w", le.ErrFailedToTypeAssertJWK, err)
+		return model.JWKS{}, le.ErrFailedToTypeAssertJWK
+	}
+
+	// Construct a JWKS with the JWK
+	jwks := model.JWKS{
+		Keys: []model.JWK{*jwk},
+	}
+
+	// Convert Keys slice to a map with Kid as key
+	jwksMap := make(map[string]model.JWK)
+	for _, key := range jwks.Keys {
+		jwksMap[key.Kid] = key
+	}
+
+	log.Info("JWKS retrieved")
+
+	return jwks, nil
+}
+
+func (u *AuthUsecase) GetPublicKeyFromPEM(appID int32, keysPath string) (interface{}, error) {
+	const method = "usecase.AuthUsecase.GetPublicKeyFromPEM"
 
 	log := u.log.With(slog.String(key.Method, method))
 
-	userID, err := service.GetUserID(ctx)
+	// Construct the complete file path based on the AppID and provided keysPath
+	filePath := fmt.Sprintf("%s/app_%d_public.pem", keysPath, appID)
+
+	// Read the public key from the PEM file
+	pemData, err := os.ReadFile(filePath)
 	if err != nil {
-		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
-		return le.ErrFailedToGetUserIDFromToken
+		log.Error("%w: %w", le.ErrFailedToReadFile, err)
+		return model.JWKS{}, err
 	}
 
-	log = log.With(slog.String(key.UserID, userID))
+	// Decode the PEM data to get the public key
+	block, _ := pem.Decode(pemData)
+	if block == nil {
+		log.Error("%w: %w", le.ErrFailedToDecodePEM, err)
+		return nil, le.ErrFailedToDecodePEM
+	}
 
-	// Check if the device exists
-	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserAgent)
+	// Parse the public key
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
 	if err != nil {
-		if errors.Is(err, le.ErrUserDeviceNotFound) {
-			return le.ErrUserDeviceNotFound
-		}
-		return err
+		log.Error("%w: %w", le.ErrFailedToParsePKIXPublicKey, err)
+		return nil, le.ErrFailedToParsePKIXPublicKey
 	}
 
-	log.Info("user logged out", slog.String(key.DeviceID, deviceID))
-
-	if err = u.storage.DeleteSession(ctx, userID, deviceID, appID); err != nil {
-		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
-		return le.ErrFailedToDeleteSession
-	}
-
-	return nil
+	return pub, nil
 }
 
 func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error) {

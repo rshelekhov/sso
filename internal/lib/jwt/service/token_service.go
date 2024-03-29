@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/internal/lib/constants/key"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/segmentio/ksuid"
+	"os"
 	"time"
 )
 
@@ -16,7 +18,8 @@ type ContextKey struct {
 var TokenCtxKey = ContextKey{"Token"}
 
 type TokenService struct {
-	SigningMethod            jwt.SigningMethod
+	SigningMethod            string
+	KeysPath                 string
 	AccessTokenTTL           time.Duration
 	RefreshTokenTTL          time.Duration
 	RefreshTokenCookieDomain string
@@ -26,7 +29,8 @@ type TokenService struct {
 }
 
 func NewJWTokenService(
-	signingMethod jwt.SigningMethod,
+	signingMethod string,
+	keysPath string,
 	accessTokenTTL time.Duration,
 	refreshTokenTTL time.Duration,
 	refreshTokenCookieDomain string,
@@ -36,6 +40,7 @@ func NewJWTokenService(
 ) *TokenService {
 	return &TokenService{
 		SigningMethod:            signingMethod,
+		KeysPath:                 keysPath,
 		AccessTokenTTL:           accessTokenTTL,
 		RefreshTokenTTL:          refreshTokenTTL,
 		RefreshTokenCookieDomain: refreshTokenCookieDomain,
@@ -45,7 +50,18 @@ func NewJWTokenService(
 	}
 }
 
-func (j *TokenService) NewAccessToken(additionalClaims map[string]interface{}, signKey string) (string, error) {
+func (j *TokenService) Algorithm() jwt.SigningMethod {
+	switch j.SigningMethod {
+	case "RS256":
+		return jwt.SigningMethodRS256
+	case "ES256":
+		return jwt.SigningMethodES256
+	default:
+		return jwt.SigningMethodRS256
+	}
+}
+
+func (j *TokenService) NewAccessToken(appID int32, additionalClaims map[string]interface{}, signKey string) (string, error) {
 	claims := jwt.MapClaims{
 		"exp": time.Now().Add(j.AccessTokenTTL).Unix(),
 	}
@@ -56,9 +72,21 @@ func (j *TokenService) NewAccessToken(additionalClaims map[string]interface{}, s
 		}
 	}
 
-	token := jwt.NewWithClaims(j.SigningMethod, claims)
+	filePath := fmt.Sprintf("%s/app_%d_public.pem", j.KeysPath, appID)
 
-	return token.SignedString([]byte(signKey))
+	privateKeyBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
+	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyBytes)
+	if err != nil {
+		return "", err
+	}
+
+	token := jwt.NewWithClaims(j.Algorithm(), claims)
+
+	return token.SignedString(privateKey)
 }
 
 func (j *TokenService) NewRefreshToken() (string, error) {
