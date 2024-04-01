@@ -56,7 +56,8 @@ const (
 	ErrFailedToGetJWKS               LocalError = "failed to get jwks"
 	ErrFailedToGetKeyID              LocalError = "failed to get key id"
 
-	ErrNoTokenFoundInCtx        LocalError = "no token found in ctx"
+	ErrNoMetaDataFoundInCtx     LocalError = "no metadata found in ctx"
+	ErrNoTokenFoundInMetadata   LocalError = "no token found in metadata"
 	ErrFailedToParseTokenClaims LocalError = "failed to parse token claims"
 	ErrUserIDNotFoundInCtx      LocalError = "user id not found in ctx"
 )

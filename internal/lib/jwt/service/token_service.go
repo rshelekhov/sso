@@ -12,7 +12,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/segmentio/ksuid"
+	"google.golang.org/grpc/metadata"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -21,6 +23,10 @@ type ContextKey struct {
 }
 
 var TokenCtxKey = ContextKey{"Token"}
+
+func (c ContextKey) String() string {
+	return c.name
+}
 
 type TokenService struct {
 	Issuer                   string
@@ -162,17 +168,22 @@ func (ts *TokenService) NewRefreshToken() (string, error) {
 	return token, nil
 }
 
-func GetTokenFromContext(ctx context.Context) (*jwt.Token, error) {
-	token, ok := ctx.Value(TokenCtxKey).(*jwt.Token)
-	if !ok {
-		return nil, le.ErrNoTokenFoundInCtx
+func (ts *TokenService) GetUserID(ctx context.Context, appID int32, key string) (string, error) {
+	claims, err := ts.GetClaimsFromToken(ctx, appID)
+	if err != nil {
+		return "", err
 	}
 
-	return token, nil
+	userID, ok := claims[key]
+	if !ok {
+		return "", le.ErrUserIDNotFoundInCtx
+	}
+
+	return userID.(string), nil
 }
 
-func GetClaimsFromToken(ctx context.Context) (map[string]interface{}, error) {
-	token, err := GetTokenFromContext(ctx)
+func (ts *TokenService) GetClaimsFromToken(ctx context.Context, appID int32) (map[string]interface{}, error) {
+	token, err := ts.GetTokenFromContext(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -185,16 +196,34 @@ func GetClaimsFromToken(ctx context.Context) (map[string]interface{}, error) {
 	return claims, nil
 }
 
-func GetUserID(ctx context.Context, key string) (string, error) {
-	claims, err := GetClaimsFromToken(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	userID, ok := claims[key]
+func (ts *TokenService) GetTokenFromContext(ctx context.Context, appID int32) (*jwt.Token, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return "", le.ErrUserIDNotFoundInCtx
+		return nil, le.ErrNoMetaDataFoundInCtx
 	}
 
-	return userID.(string), nil
+	tokenString := md.Get("Token")
+
+	if len(tokenString) == 0 {
+		return nil, le.ErrNoTokenFoundInMetadata
+	}
+
+	token, err := ts.ParseToken(tokenString[0], appID)
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
+func (ts *TokenService) ParseToken(s string, appID int32) (*jwt.Token, error) {
+	tokenString := strings.TrimSpace(s)
+	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return ts.GetPublicKey(appID)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return token, nil
 }
