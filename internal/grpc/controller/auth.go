@@ -32,8 +32,10 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 
 	tokenData, err := c.usecase.Login(ctx, userData)
 	switch {
-	case errors.Is(err, le.ErrPasswordsDontMatch):
-		return nil, status.Error(codes.Unauthenticated, le.ErrPasswordsDontMatch.Error())
+	case errors.Is(err, le.ErrUserNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
+	case errors.Is(err, le.ErrInvalidCredentials):
+		return nil, status.Error(codes.Unauthenticated, le.ErrInvalidCredentials.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}

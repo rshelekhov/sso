@@ -10,6 +10,8 @@ import (
 
 // TODO: refactor this methods for using general validator
 
+// TODO: return all errors in one place
+
 const emptyValue = 0
 
 func validateLoginData(req *ssov1.LoginRequest, data *model.UserRequestData) error {

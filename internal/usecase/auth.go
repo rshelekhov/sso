@@ -21,19 +21,19 @@ import (
 type AuthUsecase struct {
 	log     *slog.Logger
 	storage port.AuthStorage
-	jwt     *service.TokenService
+	ts      *service.TokenService
 }
 
 // NewAuthUsecase returns a new instance of the AuthUsecase usecase
 func NewAuthUsecase(
 	log *slog.Logger,
 	storage port.AuthStorage,
-	jwt *service.TokenService,
+	ts *service.TokenService,
 ) *AuthUsecase {
 	return &AuthUsecase{
 		log:     log,
 		storage: storage,
-		jwt:     jwt,
+		ts:      ts,
 	}
 }
 
@@ -51,14 +51,18 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 
 	user, err := u.storage.GetUserByEmail(ctx, data.Email, data.AppID)
 	if err != nil {
+		if errors.Is(err, le.ErrUserNotFound) {
+			log.Error("%w: %w", le.ErrUserNotFound, err)
+			return model.TokenData{}, le.ErrUserNotFound
+		}
 		log.Error("%w: %w", le.ErrFailedToGetUserByEmail, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
 	if err = u.verifyPassword(ctx, user, data.Password); err != nil {
-		if errors.Is(err, le.ErrPasswordsDontMatch) {
-			log.Error("%w: %w", le.ErrPasswordsDontMatch, err)
-			return model.TokenData{}, le.ErrPasswordsDontMatch
+		if errors.Is(err, le.ErrInvalidCredentials) {
+			log.Error("%w: %w", le.ErrInvalidCredentials, err)
+			return model.TokenData{}, le.ErrInvalidCredentials
 		}
 		log.Error("%w: %w", le.ErrFailedToCheckIfPasswordMatch, err)
 		return model.TokenData{}, le.ErrInternalServerError
@@ -96,13 +100,13 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, passw
 		return err
 	}
 
-	matched, err := jwt.PasswordMatch(user.PasswordHash, password, []byte(u.jwt.PasswordHashSalt))
+	matched, err := jwt.PasswordMatch(user.PasswordHash, password, []byte(u.ts.PasswordHashSalt))
 	if err != nil {
 		return err
 	}
 
 	if !matched {
-		return le.ErrPasswordsDontMatch
+		return le.ErrInvalidCredentials
 	}
 
 	return nil
@@ -121,8 +125,8 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 
 	hash, err := jwt.PasswordHashBcrypt(
 		data.Password,
-		u.jwt.PasswordHashCost,
-		[]byte(u.jwt.PasswordHashSalt),
+		u.ts.PasswordHashCost,
+		[]byte(u.ts.PasswordHashSalt),
 	)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGeneratePasswordHash, err)
@@ -199,11 +203,11 @@ func (u *AuthUsecase) CreateUserSession(
 	)
 
 	additionalClaims := map[string]interface{}{
-		key.Issuer:       u.jwt.Issuer,
+		key.Issuer:       u.ts.Issuer,
 		key.UserID:       user.ID,
 		key.Email:        user.Email,
 		key.AppID:        user.AppID,
-		key.ExpirationAt: time.Now().Add(u.jwt.AccessTokenTTL).Unix(),
+		key.ExpirationAt: time.Now().Add(u.ts.AccessTokenTTL).Unix(),
 	}
 
 	deviceID, err := u.getDeviceID(ctx, user.ID, user.AppID, userDeviceRequest)
@@ -212,20 +216,20 @@ func (u *AuthUsecase) CreateUserSession(
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	accessToken, err := u.jwt.NewAccessToken(user.AppID, additionalClaims)
+	accessToken, err := u.ts.NewAccessToken(user.AppID, additionalClaims)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToCreateAccessToken, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	refreshToken, err := u.jwt.NewRefreshToken()
+	refreshToken, err := u.ts.NewRefreshToken()
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToCreateRefreshToken, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
 	lastVisitedAt := time.Now()
-	expiresAt := time.Now().Add(u.jwt.RefreshTokenTTL)
+	expiresAt := time.Now().Add(u.ts.RefreshTokenTTL)
 
 	session := model.Session{
 		UserID:       user.ID,
@@ -246,7 +250,7 @@ func (u *AuthUsecase) CreateUserSession(
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	kid, err := u.jwt.GetKeyID(user.AppID)
+	kid, err := u.ts.GetKeyID(user.AppID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetKeyID, err)
 		return model.TokenData{}, err
@@ -258,8 +262,8 @@ func (u *AuthUsecase) CreateUserSession(
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		Kid:          kid,
-		Domain:       u.jwt.RefreshTokenCookieDomain,
-		Path:         u.jwt.RefreshTokenCookiePath,
+		Domain:       u.ts.RefreshTokenCookieDomain,
+		Path:         u.ts.RefreshTokenCookiePath,
 		ExpiresAt:    expiresAt,
 		HTTPOnly:     true,
 		// AdditionalFields: additionalFields,
@@ -308,7 +312,7 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 
 	log := u.log.With(slog.String(key.Method, method))
 
-	userID, err := service.GetUserID(ctx, key.UserID)
+	userID, err := u.ts.GetUserID(ctx, appID, key.UserID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
 		return le.ErrFailedToGetUserIDFromToken
@@ -407,20 +411,20 @@ func (u *AuthUsecase) GetJWKS(ctx context.Context, request *model.JWKSRequestDat
 	log := u.log.With(slog.String(key.Method, method))
 
 	// Read the public key from the PEM file
-	publicKey, err := u.jwt.GetPublicKey(request.AppID)
+	publicKey, err := u.ts.GetPublicKey(request.AppID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetJWKS, err)
 		return model.JWKS{}, err
 	}
 
-	kid, err := u.jwt.GetKeyID(request.AppID)
+	kid, err := u.ts.GetKeyID(request.AppID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetKeyID, err)
 		return model.JWKS{}, err
 	}
 
 	jwk := model.JWK{
-		Alg: u.jwt.SigningMethod,
+		Alg: u.ts.SigningMethod,
 		Use: "alg",
 		Kid: kid,
 	}
@@ -458,7 +462,7 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 
 	log := u.log.With(slog.String(key.Method, method))
 
-	userID, err := service.GetUserID(ctx, key.UserID)
+	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
 		return model.User{}, le.ErrFailedToGetUserIDFromToken
@@ -482,7 +486,7 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 
 	log := u.log.With(slog.String(key.Method, method))
 
-	userID, err := service.GetUserID(ctx, key.UserID)
+	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
 		return le.ErrFailedToGetUserIDFromToken
@@ -498,8 +502,8 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 
 	hash, err := jwt.PasswordHashBcrypt(
 		data.Password,
-		u.jwt.PasswordHashCost,
-		[]byte(u.jwt.PasswordHashSalt),
+		u.ts.PasswordHashCost,
+		[]byte(u.ts.PasswordHashSalt),
 	)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGeneratePasswordHash, err)
@@ -538,8 +542,8 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 func (u *AuthUsecase) checkPassword(currentPasswordHash, passwordFromRequest string) error {
 	updatedPasswordHash, err := jwt.PasswordHashBcrypt(
 		passwordFromRequest,
-		u.jwt.PasswordHashCost,
-		[]byte(u.jwt.PasswordHashSalt),
+		u.ts.PasswordHashCost,
+		[]byte(u.ts.PasswordHashSalt),
 	)
 	if err != nil {
 		return err
@@ -557,7 +561,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 
 	log := u.log.With(slog.String(key.Method, method))
 
-	userID, err := service.GetUserID(ctx, key.UserID)
+	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
 		return le.ErrFailedToGetUserIDFromToken
