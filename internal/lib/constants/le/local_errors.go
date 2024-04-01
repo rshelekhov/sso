@@ -50,9 +50,11 @@ const (
 	ErrFailedToReadFile              LocalError = "failed to read file"
 	ErrFailedToDecodePEM             LocalError = "failed to decode pem"
 	ErrFailedToParsePKIXPublicKey    LocalError = "failed to parse pkix public key"
+	ErrUnknownTypeOfPublicKey        LocalError = "unknown type of public key"
 	ErrFailedToTypeAssertJWK         LocalError = "failed to type assert jwk"
 	ErrFailedToUnmarshalJWK          LocalError = "failed to unmarshal jwk"
 	ErrFailedToGetJWKS               LocalError = "failed to get jwks"
+	ErrFailedToGetKeyID              LocalError = "failed to get key id"
 
 	ErrNoTokenFoundInCtx        LocalError = "no token found in ctx"
 	ErrFailedToParseTokenClaims LocalError = "failed to parse token claims"

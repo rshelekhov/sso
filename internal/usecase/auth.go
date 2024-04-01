@@ -2,10 +2,10 @@ package usecase
 
 import (
 	"context"
-	"crypto/x509"
-	"encoding/pem"
+	"crypto/ecdsa"
+	"crypto/rsa"
+	"encoding/base64"
 	"errors"
-	"fmt"
 	"github.com/rshelekhov/sso/internal/lib/constants/key"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/rshelekhov/sso/internal/lib/jwt"
@@ -14,7 +14,7 @@ import (
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
 	"log/slog"
-	"os"
+	"math/big"
 	"time"
 )
 
@@ -137,6 +137,14 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		UpdatedAt:    time.Now(),
 	}
 
+	log.Info("user data before passing into storage",
+		slog.String(key.UserID, user.ID),
+		slog.String(key.Email, user.Email),
+		slog.String(key.PasswordHash, user.PasswordHash),
+		slog.Int(key.AppID, int(user.AppID)),
+		slog.Time(key.UpdatedAt, user.UpdatedAt),
+	)
+
 	userDevice := model.UserDeviceRequestData{
 		UserAgent: data.UserDevice.UserAgent,
 		IP:        data.UserDevice.IP,
@@ -172,6 +180,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 }
 
 // TODO: Move sessions from Postgres to Redis
+
 // CreateUserSession creates new user session in the system and returns token
 func (u *AuthUsecase) CreateUserSession(
 	ctx context.Context,
@@ -190,7 +199,11 @@ func (u *AuthUsecase) CreateUserSession(
 	)
 
 	additionalClaims := map[string]interface{}{
-		key.ContextUserID: user.ID,
+		key.Issuer:       u.jwt.Issuer,
+		key.UserID:       user.ID,
+		key.Email:        user.Email,
+		key.AppID:        user.AppID,
+		key.ExpirationAt: time.Now().Add(u.jwt.AccessTokenTTL).Unix(),
 	}
 
 	deviceID, err := u.getDeviceID(ctx, user.ID, user.AppID, userDeviceRequest)
@@ -233,15 +246,23 @@ func (u *AuthUsecase) CreateUserSession(
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	additionalFields := map[string]string{key.UserID: user.ID}
+	kid, err := u.jwt.GetKeyID(user.AppID)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetKeyID, err)
+		return model.TokenData{}, err
+	}
+
+	// TODO: check and remove this commented code
+	// additionalFields := map[string]string{key.UserID: user.ID}
 	tokenData := model.TokenData{
-		AccessToken:      accessToken,
-		RefreshToken:     refreshToken,
-		Domain:           u.jwt.RefreshTokenCookieDomain,
-		Path:             u.jwt.RefreshTokenCookiePath,
-		ExpiresAt:        expiresAt,
-		HTTPOnly:         true,
-		AdditionalFields: additionalFields,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		Kid:          kid,
+		Domain:       u.jwt.RefreshTokenCookieDomain,
+		Path:         u.jwt.RefreshTokenCookiePath,
+		ExpiresAt:    expiresAt,
+		HTTPOnly:     true,
+		// AdditionalFields: additionalFields,
 	}
 
 	return tokenData, nil
@@ -287,7 +308,7 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 
 	log := u.log.With(slog.String(key.Method, method))
 
-	userID, err := service.GetUserID(ctx)
+	userID, err := service.GetUserID(ctx, key.UserID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
 		return le.ErrFailedToGetUserIDFromToken
@@ -384,66 +405,52 @@ func (u *AuthUsecase) GetJWKS(ctx context.Context, request *model.JWKSRequestDat
 	const method = "usecase.AuthUsecase.GetJWKS"
 
 	log := u.log.With(slog.String(key.Method, method))
+
 	// Read the public key from the PEM file
-	publicKey, err := u.GetPublicKeyFromPEM(request.AppID, u.jwt.KeysPath)
+	publicKey, err := u.jwt.GetPublicKey(request.AppID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetJWKS, err)
 		return model.JWKS{}, err
 	}
 
-	// Type assert the public key to JWK
-	jwk, ok := publicKey.(*model.JWK)
-	if !ok {
-		log.Error("%w: %w", le.ErrFailedToTypeAssertJWK, err)
-		return model.JWKS{}, le.ErrFailedToTypeAssertJWK
+	kid, err := u.jwt.GetKeyID(request.AppID)
+	if err != nil {
+		log.Error("%w: %w", le.ErrFailedToGetKeyID, err)
+		return model.JWKS{}, err
+	}
+
+	jwk := model.JWK{
+		Alg: u.jwt.SigningMethod,
+		Use: "alg",
+		Kid: kid,
+	}
+
+	switch pub := publicKey.(type) {
+	case *rsa.PublicKey:
+		jwk.Kty = "RSA"
+		jwk.N = base64.RawURLEncoding.EncodeToString(pub.N.Bytes())
+		jwk.E = base64.RawURLEncoding.EncodeToString(big.NewInt(int64(pub.E)).Bytes())
+	case *ecdsa.PublicKey:
+		p := pub.Curve.Params()
+		jwk.Kty = "EC"
+		jwk.Crv = p.Name
+		jwk.X = base64.RawURLEncoding.EncodeToString(pub.X.Bytes())
+		jwk.Y = base64.RawURLEncoding.EncodeToString(pub.Y.Bytes())
+	default:
+		return model.JWKS{}, le.ErrFailedToGetJWKS
 	}
 
 	// Construct a JWKS with the JWK
-	jwks := model.JWKS{
-		Keys: []model.JWK{*jwk},
-	}
-
-	// Convert Keys slice to a map with Kid as key
-	jwksMap := make(map[string]model.JWK)
-	for _, key := range jwks.Keys {
-		jwksMap[key.Kid] = key
-	}
+	jwksSlice := []model.JWK{jwk}
+	jwks := constructJWKS(jwksSlice...)
 
 	log.Info("JWKS retrieved")
 
 	return jwks, nil
 }
 
-func (u *AuthUsecase) GetPublicKeyFromPEM(appID int32, keysPath string) (interface{}, error) {
-	const method = "usecase.AuthUsecase.GetPublicKeyFromPEM"
-
-	log := u.log.With(slog.String(key.Method, method))
-
-	// Construct the complete file path based on the AppID and provided keysPath
-	filePath := fmt.Sprintf("%s/app_%d_public.pem", keysPath, appID)
-
-	// Read the public key from the PEM file
-	pemData, err := os.ReadFile(filePath)
-	if err != nil {
-		log.Error("%w: %w", le.ErrFailedToReadFile, err)
-		return model.JWKS{}, err
-	}
-
-	// Decode the PEM data to get the public key
-	block, _ := pem.Decode(pemData)
-	if block == nil {
-		log.Error("%w: %w", le.ErrFailedToDecodePEM, err)
-		return nil, le.ErrFailedToDecodePEM
-	}
-
-	// Parse the public key
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		log.Error("%w: %w", le.ErrFailedToParsePKIXPublicKey, err)
-		return nil, le.ErrFailedToParsePKIXPublicKey
-	}
-
-	return pub, nil
+func constructJWKS(jwks ...model.JWK) model.JWKS {
+	return model.JWKS{Keys: jwks}
 }
 
 func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error) {
@@ -451,7 +458,7 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 
 	log := u.log.With(slog.String(key.Method, method))
 
-	userID, err := service.GetUserID(ctx)
+	userID, err := service.GetUserID(ctx, key.UserID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
 		return model.User{}, le.ErrFailedToGetUserIDFromToken
@@ -475,7 +482,7 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 
 	log := u.log.With(slog.String(key.Method, method))
 
-	userID, err := service.GetUserID(ctx)
+	userID, err := service.GetUserID(ctx, key.UserID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
 		return le.ErrFailedToGetUserIDFromToken
@@ -550,7 +557,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 
 	log := u.log.With(slog.String(key.Method, method))
 
-	userID, err := service.GetUserID(ctx)
+	userID, err := service.GetUserID(ctx, key.UserID)
 	if err != nil {
 		log.Error("%w: %w", le.ErrFailedToGetUserIDFromToken, err)
 		return le.ErrFailedToGetUserIDFromToken

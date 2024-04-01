@@ -41,6 +41,7 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 	tokenDataResponse := &ssov1.TokenData{
 		AccessToken:      tokenData.AccessToken,
 		RefreshToken:     tokenData.RefreshToken,
+		Kid:              tokenData.Kid,
 		Domain:           tokenData.Domain,
 		Path:             tokenData.Path,
 		ExpiresAt:        timestamppb.New(tokenData.ExpiresAt),
@@ -53,6 +54,7 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 
 func (c *authController) Register(ctx context.Context, req *ssov1.RegisterRequest) (*ssov1.RegisterResponse, error) {
 	userData := &model.UserRequestData{}
+	c.log.Debug("Register", slog.String("email", req.Email))
 	if err := validateRegisterData(req, userData); err != nil {
 		return nil, err
 	}
@@ -68,6 +70,7 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 	tokenDataResponse := &ssov1.TokenData{
 		AccessToken:      tokenData.AccessToken,
 		RefreshToken:     tokenData.RefreshToken,
+		Kid:              tokenData.Kid,
 		Domain:           tokenData.Domain,
 		Path:             tokenData.Path,
 		ExpiresAt:        timestamppb.New(tokenData.ExpiresAt),
@@ -78,7 +81,7 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 	return &ssov1.RegisterResponse{TokenData: tokenDataResponse}, nil
 }
 
-func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.LogoutResponse, error) {
+func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.Empty, error) {
 	request := &model.UserRequestData{}
 	if err := validateLogout(req, request); err != nil {
 		return nil, err
@@ -96,7 +99,7 @@ func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.LogoutResponse{}, nil
+	return &ssov1.Empty{}, nil
 }
 
 func (c *authController) Refresh(ctx context.Context, req *ssov1.RefreshRequest) (*ssov1.RefreshResponse, error) {
@@ -186,7 +189,7 @@ func (c *authController) GetUser(ctx context.Context, req *ssov1.GetUserRequest)
 	}, nil
 }
 
-func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.UpdateUserResponse, error) {
+func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.Empty, error) {
 	request := &model.UserRequestData{}
 	if err := validateUpdateUser(req, request); err != nil {
 		return nil, err
@@ -212,10 +215,10 @@ func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRe
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.UpdateUserResponse{}, nil
+	return &ssov1.Empty{}, nil
 }
 
-func (c *authController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRequest) (*ssov1.DeleteUserResponse, error) {
+func (c *authController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRequest) (*ssov1.Empty, error) {
 	request := &model.UserRequestData{}
 	if err := validateDeleteUser(req, request); err != nil {
 		return nil, err
@@ -235,5 +238,5 @@ func (c *authController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRe
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.DeleteUserResponse{}, nil
+	return &ssov1.Empty{}, nil
 }

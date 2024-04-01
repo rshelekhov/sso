@@ -238,16 +238,6 @@ func (s *AuthStorage) RegisterDevice(ctx context.Context, device model.UserDevic
 	return nil
 }
 
-func (s *AuthStorage) GetAppSignKey(ctx context.Context, appID int32) (string, error) {
-	const method = "user.storage.GetAppSignKey"
-
-	key, err := s.Queries.GetAppSignKey(ctx, appID)
-	if err != nil {
-		return "", fmt.Errorf("%s: failed to get app sign key: %w", method, err)
-	}
-	return key, nil
-}
-
 func (s *AuthStorage) CreateUserSession(ctx context.Context, session model.Session) error {
 	const method = "user.storage.CreateUserSession"
 
