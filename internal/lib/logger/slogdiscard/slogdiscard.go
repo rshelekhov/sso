@@ -7,7 +7,7 @@ import (
 )
 
 // In this form, the logger will ignore all messages we send to it -
-// we will need this in tests.
+// we will need this in api_tests.
 
 func NewDiscardLogger() *logger.Logger {
 	return &logger.Logger{Logger: slog.New(NewDiscardHandler())}

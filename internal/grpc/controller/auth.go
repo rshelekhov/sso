@@ -54,15 +54,14 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 
 func (c *authController) Register(ctx context.Context, req *ssov1.RegisterRequest) (*ssov1.RegisterResponse, error) {
 	userData := &model.UserRequestData{}
-	c.log.Debug("Register", slog.String("email", req.Email))
 	if err := validateRegisterData(req, userData); err != nil {
 		return nil, err
 	}
 
 	tokenData, err := c.usecase.RegisterNewUser(ctx, userData)
 	if err != nil {
-		if errors.Is(err, le.ErrEmailAlreadyTaken) {
-			return nil, status.Error(codes.AlreadyExists, le.ErrEmailAlreadyTaken.Error())
+		if errors.Is(err, le.ErrUserAlreadyExists) {
+			return nil, status.Error(codes.AlreadyExists, le.ErrUserAlreadyExists.Error())
 		}
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}

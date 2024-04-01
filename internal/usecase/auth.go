@@ -156,9 +156,9 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		if err = u.storage.CreateUser(ctx, user); err != nil {
 			// TODO: return a custom error
 
-			if errors.Is(err, le.ErrEmailAlreadyTaken) {
-				log.Error("%w: %w", le.ErrEmailAlreadyTaken, err)
-				return le.ErrEmailAlreadyTaken
+			if errors.Is(err, le.ErrUserAlreadyExists) {
+				log.Error("%w: %w", le.ErrUserAlreadyExists, err)
+				return le.ErrUserAlreadyExists
 			}
 			log.Error("%w: %w", le.ErrFailedToCreateUser, err)
 			return le.ErrInternalServerError

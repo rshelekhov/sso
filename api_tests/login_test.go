@@ -1,4 +1,4 @@
-package tests
+package api_tests
 
 import (
 	"crypto/rsa"
@@ -7,8 +7,8 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/lib/constants/key"
-	"github.com/rshelekhov/sso/tests/suite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"math/big"
@@ -17,13 +17,12 @@ import (
 )
 
 const (
-	issuer            = "sso.rshelekhov.com"
-	emptyAppID        = 0
-	appID             = 1
-	passDefaultLength = 10
+	issuer     = "sso.rshelekhov.com"
+	emptyAppID = 0
+	appID      = 1
 )
 
-func Test_Login_HappyPath(t *testing.T) {
+func TestLoginHappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	email := gofakeit.Email()
@@ -102,10 +101,6 @@ func Test_Login_HappyPath(t *testing.T) {
 
 	// check if exp of token is in correct range, ttl get from st.Cfg.TokenTTL
 	assert.InDelta(t, float64(loginTime.Add(st.Cfg.JWTAuth.AccessTokenTTL).Unix()), claims[key.ExpirationAt].(float64), deltaSeconds)
-}
-
-func randomFakePassword() string {
-	return gofakeit.Password(true, true, true, true, true, passDefaultLength)
 }
 
 func getJWKByKid(jwks []*ssov1.JWK, kid string) (*ssov1.JWK, error) {
