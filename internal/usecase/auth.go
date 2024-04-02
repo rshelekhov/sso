@@ -78,7 +78,9 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
 		tokenData, err = u.CreateUserSession(ctx, log, user, userDevice)
 		if err != nil {
-			log.Error("%w: %w", le.ErrFailedToCreateUserSession, err)
+			log.Error("%w: %w", le.ErrFailedToCreateUserSession, err,
+				slog.String(key.UserID, user.ID),
+			)
 			return le.ErrInternalServerError
 		}
 
@@ -87,7 +89,9 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 		return model.TokenData{}, err
 	}
 
-	log.Info("user authenticated, tokens created", slog.String(key.UserID, user.ID))
+	log.Info("user authenticated, tokens created",
+		slog.String(key.UserID, user.ID),
+	)
 
 	return tokenData, nil
 }
@@ -170,7 +174,10 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 
 		tokenData, err = u.CreateUserSession(ctx, log, user, userDevice)
 		if err != nil {
-			return err
+			log.Error("%w: %w", le.ErrFailedToCreateUserSession, err,
+				slog.String(key.UserID, user.ID),
+			)
+			return le.ErrInternalServerError
 		}
 
 		return nil
@@ -178,7 +185,9 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		return model.TokenData{}, err
 	}
 
-	log.Info("user and tokens created", slog.String(key.UserID, user.ID))
+	log.Info("user and tokens created",
+		slog.String(key.UserID, user.ID),
+	)
 
 	return tokenData, nil
 }
@@ -269,6 +278,8 @@ func (u *AuthUsecase) CreateUserSession(
 		// AdditionalFields: additionalFields,
 	}
 
+	log.Info("user session created")
+
 	return tokenData, nil
 }
 
@@ -318,8 +329,6 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 		return le.ErrFailedToGetUserIDFromToken
 	}
 
-	log = log.With(slog.String(key.UserID, userID))
-
 	// Check if the device exists
 	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserAgent)
 	if err != nil {
@@ -329,7 +338,10 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 		return err
 	}
 
-	log.Info("user logged out", slog.String(key.DeviceID, deviceID))
+	log.Info("user logged out",
+		slog.String(key.UserID, userID),
+		slog.String(key.DeviceID, deviceID),
+	)
 
 	if err = u.storage.DeleteSession(ctx, userID, deviceID, appID); err != nil {
 		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
@@ -369,7 +381,10 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 
 	tokenData, err := u.CreateUserSession(ctx, log, model.User{ID: session.UserID, AppID: session.AppID}, data.UserDevice)
 	if err != nil {
-		return model.TokenData{}, err
+		log.Error("%w: %w", le.ErrFailedToCreateUserSession, err,
+			slog.String(key.UserID, session.UserID),
+		)
+		return model.TokenData{}, le.ErrInternalServerError
 	}
 
 	log.Info("tokens created", slog.Any(key.UserID, session.UserID))
@@ -468,15 +483,15 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 		return model.User{}, le.ErrFailedToGetUserIDFromToken
 	}
 
-	log = log.With(slog.String(key.UserID, userID))
-
 	user, err := u.storage.GetUserByID(ctx, userID, data.AppID)
 	if err != nil {
-		log.Error("%w: %w", le.ErrFailedToGetUser, err)
+		log.Error("%w: %w", le.ErrFailedToGetUser, err,
+			slog.String(key.UserID, userID),
+		)
 		return model.User{}, le.ErrFailedToGetUser
 	}
 
-	log.Info("user found by ID")
+	log.Info("user found by ID", slog.String(key.UserID, userID))
 
 	return user, nil
 }
@@ -492,11 +507,11 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 		return le.ErrFailedToGetUserIDFromToken
 	}
 
-	log = log.With(slog.String(key.UserID, userID))
-
 	currentUser, err := u.storage.GetUserData(ctx, userID, data.AppID)
 	if err != nil {
-		log.Error("%w: %w", le.ErrFailedToGetUser, err)
+		log.Error("%w: %w", le.ErrFailedToGetUser, err,
+			slog.String(key.UserID, userID),
+		)
 		return le.ErrFailedToGetUser
 	}
 
@@ -506,7 +521,9 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 		[]byte(u.ts.PasswordHashSalt),
 	)
 	if err != nil {
-		log.Error("%w: %w", le.ErrFailedToGeneratePasswordHash, err)
+		log.Error("%w: %w", le.ErrFailedToGeneratePasswordHash, err,
+			slog.String(key.UserID, userID),
+		)
 		return le.ErrInternalServerError
 	}
 
@@ -531,10 +548,14 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 
 	if data.Password != "" {
 		if err = u.checkPassword(currentUser.PasswordHash, data.Password); err != nil {
-			log.Error("%w: %w", le.ErrFailedToGeneratePasswordHash, err)
+			log.Error("%w: %w", le.ErrFailedToGeneratePasswordHash, err,
+				slog.String(key.UserID, userID),
+			)
 			return le.ErrInternalServerError
 		}
 	}
+
+	log.Info("user updated", slog.String(key.UserID, userID))
 
 	return u.storage.UpdateUser(ctx, updatedUser)
 }
@@ -567,8 +588,6 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 		return le.ErrFailedToGetUserIDFromToken
 	}
 
-	log = log.With(slog.String(key.UserID, userID))
-
 	// TODO: add transaction here
 
 	user := model.User{
@@ -577,20 +596,27 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 	}
 
 	if err = u.storage.DeleteUser(ctx, user); err != nil {
-		log.Error("%w: %w", le.ErrFailedToDeleteUser, err)
+		log.Error("%w: %w", le.ErrFailedToDeleteUser, err, slog.String(key.UserID, userID))
 		return le.ErrFailedToDeleteUser
 	}
 
 	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserDevice.UserAgent)
 	if err != nil {
-		log.Error("%w: %w", le.ErrUserDeviceNotFound, err)
+		log.Error("%w: %w", le.ErrUserDeviceNotFound, err,
+			slog.String(key.UserID, userID),
+		)
 		return le.ErrUserDeviceNotFound
 	}
 
 	if err = u.storage.DeleteSession(ctx, userID, deviceID, data.AppID); err != nil {
-		log.Error("%w: %w", le.ErrFailedToDeleteSession, err)
+		log.Error("%w: %w", le.ErrFailedToDeleteSession, err,
+			slog.String(key.UserID, userID),
+			slog.String(key.DeviceID, deviceID),
+		)
 		return le.ErrFailedToDeleteSession
 	}
+
+	log.Info("user deleted", slog.String(key.UserID, userID))
 
 	return nil
 }
