@@ -11,4 +11,5 @@ const (
 	PasswordHash = "password_hash"
 	UpdatedAt    = "updated_at"
 	Issuer       = "iss"
+	Error        = "error"
 )
