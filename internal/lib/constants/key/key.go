@@ -12,4 +12,5 @@ const (
 	UpdatedAt    = "updated_at"
 	Issuer       = "iss"
 	Error        = "error"
+	Token        = "token"
 )

@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/rshelekhov/sso/internal/lib/constants/key"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/segmentio/ksuid"
 	"google.golang.org/grpc/metadata"
@@ -202,7 +203,8 @@ func (ts *TokenService) GetTokenFromContext(ctx context.Context, appID int32) (*
 		return nil, le.ErrNoMetaDataFoundInCtx
 	}
 
-	tokenString := md.Get("Token")
+	// TODO: add key.Token instead of "Token"
+	tokenString := md.Get(key.Token)
 
 	if len(tokenString) == 0 {
 		return nil, le.ErrNoTokenFoundInMetadata
