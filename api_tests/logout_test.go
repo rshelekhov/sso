@@ -80,6 +80,8 @@ func TestLogoutHappyPath(t *testing.T) {
 					Ip:        ip,
 				},
 			})
+
+			require.NoError(t, err)
 		})
 	}
 }
