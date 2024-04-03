@@ -8,6 +8,7 @@ import (
 	"errors"
 	"github.com/rshelekhov/sso/internal/lib/constants/key"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
+	"github.com/rshelekhov/sso/internal/lib/grpc/interceptors/requestid"
 	"github.com/rshelekhov/sso/internal/lib/jwt"
 	"github.com/rshelekhov/sso/internal/lib/jwt/service"
 	"github.com/rshelekhov/sso/internal/model"
@@ -44,7 +45,14 @@ func NewAuthUsecase(
 func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (model.TokenData, error) {
 	const method = "usecase.AuthUsecase.Login"
 
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		u.log.Error("%s: %w", method, err)
+		return model.TokenData{}, err
+	}
+
 	log := u.log.With(
+		slog.String(key.RequestID, reqID),
 		slog.String(key.Method, method),
 		slog.String(key.Email, data.Email),
 	)
@@ -122,7 +130,14 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, passw
 func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserRequestData) (model.TokenData, error) {
 	const method = "usecase.AuthUsecase.CreateUser"
 
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		u.log.Error("%s: %w", method, err)
+		return model.TokenData{}, err
+	}
+
 	log := u.log.With(
+		slog.String(key.RequestID, reqID),
 		slog.String(key.Method, method),
 		slog.String(key.Email, data.Email),
 	)
@@ -206,7 +221,14 @@ func (u *AuthUsecase) CreateUserSession(
 ) {
 	const method = "usecase.AuthUsecase.CreateUserSession"
 
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		u.log.Error("%s: %w", method, err)
+		return model.TokenData{}, err
+	}
+
 	log = log.With(
+		slog.String(key.RequestID, reqID),
 		slog.String(key.Method, method),
 		slog.String(key.UserID, user.ID),
 	)
@@ -321,7 +343,16 @@ func (u *AuthUsecase) updateLastVisitedAt(ctx context.Context, deviceID string, 
 func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error {
 	const method = "usecase.AuthUsecase.LogoutUser"
 
-	log := u.log.With(slog.String(key.Method, method))
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		u.log.Error("%s: %w", method, err)
+		return err
+	}
+
+	log := u.log.With(
+		slog.String(key.RequestID, reqID),
+		slog.String(key.Method, method),
+	)
 
 	userID, err := u.ts.GetUserID(ctx, appID, key.UserID)
 	if err != nil {
@@ -354,7 +385,14 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (model.TokenData, error) {
 	const method = "usecase.AuthUsecase.RefreshTokens"
 
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		u.log.Error("%s: %w", method, err)
+		return model.TokenData{}, err
+	}
+
 	log := u.log.With(
+		slog.String(key.RequestID, reqID),
 		slog.String(key.Method, method),
 	)
 
@@ -423,7 +461,16 @@ func (u *AuthUsecase) deleteRefreshToken(ctx context.Context, refreshToken strin
 func (u *AuthUsecase) GetJWKS(ctx context.Context, request *model.JWKSRequestData) (model.JWKS, error) {
 	const method = "usecase.AuthUsecase.GetJWKS"
 
-	log := u.log.With(slog.String(key.Method, method))
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		u.log.Error("%s: %w", method, err)
+		return model.JWKS{}, err
+	}
+
+	log := u.log.With(
+		slog.String(key.RequestID, reqID),
+		slog.String(key.Method, method),
+	)
 
 	// Read the public key from the PEM file
 	publicKey, err := u.ts.GetPublicKey(request.AppID)
@@ -475,7 +522,16 @@ func constructJWKS(jwks ...model.JWK) model.JWKS {
 func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error) {
 	const method = "usecase.AuthUsecase.GetUser"
 
-	log := u.log.With(slog.String(key.Method, method))
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		u.log.Error("%s: %w", method, err)
+		return model.User{}, err
+	}
+
+	log := u.log.With(
+		slog.String(key.RequestID, reqID),
+		slog.String(key.Method, method),
+	)
 
 	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {
@@ -499,7 +555,16 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestData) error {
 	const method = "usecase.AuthUsecase.UpdateUser"
 
-	log := u.log.With(slog.String(key.Method, method))
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		u.log.Error("%s: %w", method, err)
+		return err
+	}
+
+	log := u.log.With(
+		slog.String(key.RequestID, reqID),
+		slog.String(key.Method, method),
+	)
 
 	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {
@@ -580,7 +645,16 @@ func (u *AuthUsecase) checkPassword(currentPasswordHash, passwordFromRequest str
 func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestData) error {
 	const method = "usecase.AuthUsecase.DeleteUser"
 
-	log := u.log.With(slog.String(key.Method, method))
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		u.log.Error("%s: %w", method, err)
+		return err
+	}
+
+	log := u.log.With(
+		slog.String(key.RequestID, reqID),
+		slog.String(key.Method, method),
+	)
 
 	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {
