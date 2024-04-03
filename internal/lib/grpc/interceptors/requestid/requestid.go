@@ -2,34 +2,23 @@ package requestid
 
 import (
 	"github.com/google/uuid"
+	"github.com/rshelekhov/sso/internal/lib/constants/key"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/metadata"
 )
 
-// DefaultXRequestIDKey is metadata key name for request ID
-const DefaultXRequestIDKey = "x-request-id"
-
-func HandleRequestID(ctx context.Context, validator requestIDValidator) string {
+func handleRequestID(ctx context.Context) string {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return newRequestID()
 	}
 
-	header, ok := md[DefaultXRequestIDKey]
-	if !ok || len(header) == 0 {
+	requestID := md.Get(key.RequestID)
+	if requestID == nil {
 		return newRequestID()
 	}
 
-	requestID := header[0]
-	if requestID == "" {
-		return newRequestID()
-	}
-
-	if !validator(requestID) {
-		return newRequestID()
-	}
-
-	return requestID
+	return requestID[0]
 }
 
 func newRequestID() string {

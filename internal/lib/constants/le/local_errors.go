@@ -60,4 +60,5 @@ const (
 	ErrNoTokenFoundInMetadata   LocalError = "no token found in metadata"
 	ErrFailedToParseTokenClaims LocalError = "failed to parse token claims"
 	ErrUserIDNotFoundInCtx      LocalError = "user id not found in ctx"
+	ErrRequestIDNotFoundInCtx   LocalError = "request id not found in ctx"
 )
