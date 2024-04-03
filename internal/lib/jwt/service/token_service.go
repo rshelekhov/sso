@@ -23,8 +23,6 @@ type ContextKey struct {
 	name string
 }
 
-var TokenCtxKey = ContextKey{"Token"}
-
 func (c ContextKey) String() string {
 	return c.name
 }
