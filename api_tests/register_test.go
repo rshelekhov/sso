@@ -13,11 +13,13 @@ import (
 func TestRegisterHappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
+	// Generate data for request
 	email := gofakeit.Email()
 	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Register user
 	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 		Email:    email,
 		Password: pass,
@@ -34,11 +36,13 @@ func TestRegisterHappyPath(t *testing.T) {
 func TestRegisterDuplicatedRegistration(t *testing.T) {
 	ctx, st := suite.New(t)
 
+	// Generate data for request
 	email := gofakeit.Email()
 	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Register user
 	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 		Email:    email,
 		Password: pass,
@@ -51,6 +55,7 @@ func TestRegisterDuplicatedRegistration(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respReg.GetTokenData())
 
+	// Try to register again
 	respReg, err = st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 		Email:    email,
 		Password: pass,
@@ -126,6 +131,7 @@ func TestRegisterFailCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Register user
 			_, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 				Email:    tt.email,
 				Password: tt.password,

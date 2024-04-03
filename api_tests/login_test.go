@@ -20,11 +20,13 @@ import (
 func TestLoginHappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
+	// Generate data for requests
 	email := gofakeit.Email()
 	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Register user
 	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 		Email:    email,
 		Password: pass,
@@ -37,6 +39,7 @@ func TestLoginHappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respReg.GetTokenData())
 
+	// Login user
 	respLogin, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
 		Email:    email,
 		Password: pass,
@@ -49,9 +52,11 @@ func TestLoginHappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respLogin.GetTokenData())
 
+	// Get token
 	token := respLogin.GetTokenData()
 	require.NotEmpty(t, token)
 
+	// Get JWKS
 	jwks, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{
 		AppId: appID,
 	})
@@ -85,6 +90,7 @@ func TestLoginHappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, tokenParsed)
 
+	// Check claims
 	claims, ok := tokenParsed.Claims.(jwt.MapClaims)
 	require.True(t, ok)
 
@@ -94,7 +100,7 @@ func TestLoginHappyPath(t *testing.T) {
 
 	const deltaSeconds = 1
 
-	// check if exp of token is in correct range, ttl get from st.Cfg.TokenTTL
+	// Check if exp of token is in correct range, ttl get from st.Cfg.TokenTTL
 	assert.InDelta(t, float64(loginTime.Add(st.Cfg.JWTAuth.AccessTokenTTL).Unix()), claims[key.ExpirationAt].(float64), deltaSeconds)
 }
 
@@ -204,6 +210,7 @@ func TestLoginFailCases(t *testing.T) {
 				emailReg = gofakeit.Email()
 			}
 
+			// Register user
 			_, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
 				Email:    emailReg,
 				Password: randomFakePassword(),
@@ -215,6 +222,7 @@ func TestLoginFailCases(t *testing.T) {
 			})
 			require.NoError(t, err)
 
+			// Login user
 			_, err = st.AuthClient.Login(ctx, &ssov1.LoginRequest{
 				Email:    tt.email,
 				Password: tt.password,
