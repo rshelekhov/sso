@@ -92,7 +92,7 @@ func TestRegisterFailCases(t *testing.T) {
 			expectedErr: le.ErrEmailIsRequired,
 		},
 		{
-			name:        "Register with empty password",
+			name:        "Register with empty currentPassword",
 			email:       gofakeit.Email(),
 			password:    "",
 			appID:       appID,

@@ -137,7 +137,7 @@ func TestLoginFailCases(t *testing.T) {
 			expectedErr: le.ErrEmailIsRequired,
 		},
 		{
-			name:        "Login with empty password",
+			name:        "Login with empty currentPassword",
 			email:       gofakeit.Email(),
 			password:    "",
 			appID:       appID,
@@ -173,7 +173,7 @@ func TestLoginFailCases(t *testing.T) {
 			expectedErr: le.ErrIPIsRequired,
 		},
 		{
-			name:        "Login with both empty email and password",
+			name:        "Login with both empty email and currentPassword",
 			email:       "",
 			password:    "",
 			appID:       appID,
@@ -191,7 +191,7 @@ func TestLoginFailCases(t *testing.T) {
 			expectedErr: le.ErrUserNotFound,
 		},
 		{
-			name:        "Login with non-matching password",
+			name:        "Login with non-matching currentPassword",
 			email:       email,
 			password:    randomFakePassword(),
 			appID:       appID,
@@ -204,7 +204,7 @@ func TestLoginFailCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var emailReg string
-			if tt.name == "Login with non-matching password" {
+			if tt.name == "Login with non-matching currentPassword" {
 				emailReg = email
 			} else {
 				emailReg = gofakeit.Email()
