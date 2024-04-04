@@ -110,7 +110,7 @@ func TestRegisterFailCases(t *testing.T) {
 			expectedErr: le.ErrAppIDIsRequired,
 		},
 		{
-			name:        "Register with empty userAgent",
+			name:        "Register with empty userAgentForRegister",
 			email:       gofakeit.Email(),
 			password:    randomFakePassword(),
 			appID:       appID,
