@@ -205,10 +205,10 @@ func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRe
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrEmailAlreadyTaken):
 		return nil, status.Error(codes.AlreadyExists, le.ErrEmailAlreadyTaken.Error())
-	case errors.Is(err, le.ErrPasswordsDontMatch):
-		return nil, status.Error(codes.InvalidArgument, le.ErrPasswordsDontMatch.Error())
-	case errors.Is(err, le.ErrNoChangesDetected):
-		return nil, status.Error(codes.InvalidArgument, le.ErrNoChangesDetected.Error())
+	case errors.Is(err, le.ErrCurrentPasswordDoesNotMatch):
+		return nil, status.Error(codes.InvalidArgument, le.ErrCurrentPasswordDoesNotMatch.Error())
+	case errors.Is(err, le.ErrNoEmailChangesDetected):
+		return nil, status.Error(codes.InvalidArgument, le.ErrNoEmailChangesDetected.Error())
 	case errors.Is(err, le.ErrNoPasswordChangesDetected):
 		return nil, status.Error(codes.InvalidArgument, le.ErrNoPasswordChangesDetected.Error())
 	case err != nil:

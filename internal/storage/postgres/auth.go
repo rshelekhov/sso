@@ -310,11 +310,15 @@ func (s *AuthStorage) CheckEmailUniqueness(ctx context.Context, user model.User)
 		Email: user.Email,
 		AppID: user.AppID,
 	})
-
-	if !errors.Is(err, pgx.ErrNoRows) && existingUser.ID != user.ID {
-		return le.ErrEmailAlreadyTaken
-	} else if err != nil {
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil // Email is unique as user with this email doesn't exist
+		}
 		return fmt.Errorf("%s: failed to check email uniqueness: %w", method, err)
+	}
+
+	if existingUser.ID != user.ID {
+		return le.ErrEmailAlreadyTaken
 	}
 
 	return nil

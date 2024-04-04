@@ -147,21 +147,20 @@ func validateGetUser(req *ssov1.GetUserRequest, data *model.UserRequestData) err
 
 func validateUpdateUser(req *ssov1.UpdateUserRequest, data *model.UserRequestData) error {
 	// TODO: add validation with validator
-	if req.Email == "" {
-		return status.Error(codes.InvalidArgument, le.ErrEmailIsRequired.Error())
-	}
-
-	if req.Password == "" {
-		return status.Error(codes.InvalidArgument, le.ErrPasswordIsRequired.Error())
-	}
 
 	if req.GetAppId() == emptyValue {
 		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
 	}
 
 	data.Email = req.GetEmail()
-	data.Password = req.GetPassword()
+	data.Password = req.GetCurrentPassword()
+	data.UpdatedPassword = req.GetUpdatedPassword()
 	data.AppID = req.GetAppId()
+
+	// If UpdatedPassword is not empty, ensure Password is not empty
+	if data.UpdatedPassword != "" && data.Password == "" {
+		return status.Error(codes.InvalidArgument, le.ErrPasswordIsRequired.Error())
+	}
 
 	return nil
 }
