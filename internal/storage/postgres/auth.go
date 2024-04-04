@@ -159,7 +159,6 @@ func (s *AuthStorage) GetUserByID(ctx context.Context, userID string, appID int3
 	}
 
 	return model.User{
-		ID:        user.ID,
 		Email:     user.Email,
 		AppID:     user.AppID,
 		UpdatedAt: user.UpdatedAt,

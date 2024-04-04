@@ -184,7 +184,6 @@ func (c *authController) GetUser(ctx context.Context, req *ssov1.GetUserRequest)
 	}
 
 	return &ssov1.GetUserResponse{
-		UserId:    user.ID,
 		Email:     user.Email,
 		UpdatedAt: timestamppb.New(user.UpdatedAt),
 	}, nil
