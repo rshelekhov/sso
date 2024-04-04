@@ -155,7 +155,7 @@ func TestLoginFailCases(t *testing.T) {
 			expectedErr: le.ErrAppIDIsRequired,
 		},
 		{
-			name:        "Login with empty userAgent",
+			name:        "Login with empty userAgentForRegister",
 			email:       gofakeit.Email(),
 			password:    randomFakePassword(),
 			appID:       appID,
