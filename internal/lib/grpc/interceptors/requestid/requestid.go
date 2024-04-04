@@ -1,8 +1,8 @@
 package requestid
 
 import (
-	"github.com/google/uuid"
 	"github.com/rshelekhov/sso/internal/lib/constants/key"
+	"github.com/segmentio/ksuid"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/metadata"
 )
@@ -22,5 +22,5 @@ func handleRequestID(ctx context.Context) string {
 }
 
 func newRequestID() string {
-	return uuid.New().String()
+	return ksuid.New().String()
 }
