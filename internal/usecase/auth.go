@@ -80,7 +80,9 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 			)
 			return model.TokenData{}, le.ErrInvalidCredentials
 		}
-		log.Error("%w: %w", le.ErrFailedToCheckIfPasswordMatch, err)
+		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCheckIfPasswordMatch.Error(),
+			slog.Any(key.Error, err),
+		)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
@@ -103,6 +105,10 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 
 		return nil
 	}); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCommitTransaction.Error(),
+			slog.Any(key.Error, err),
+			slog.String(key.UserID, user.ID),
+		)
 		return model.TokenData{}, err
 	}
 
@@ -215,6 +221,10 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 
 		return nil
 	}); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCommitTransaction.Error(),
+			slog.Any(key.Error, err),
+			slog.String(key.UserID, user.ID),
+		)
 		return model.TokenData{}, err
 	}
 
