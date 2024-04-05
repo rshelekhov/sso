@@ -90,10 +90,6 @@ func (s *AuthStorage) getUserStatus(ctx context.Context, email string) (string, 
 func (s *AuthStorage) replaceSoftDeletedUser(ctx context.Context, user model.User) error {
 	const method = "user.storage.replaceSoftDeletedUser"
 
-	if err := s.Queries.SetDeletedUserAtNull(ctx, user.Email); err != nil {
-		return fmt.Errorf("%s: failed to set deleted_at to NULL: %w", method, err)
-	}
-
 	if err := s.Queries.InsertUser(ctx, sqlc.InsertUserParams{
 		ID:           user.ID,
 		Email:        user.Email,

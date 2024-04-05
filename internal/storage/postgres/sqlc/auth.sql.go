@@ -306,17 +306,6 @@ func (q *Queries) RegisterDevice(ctx context.Context, arg RegisterDeviceParams) 
 	return err
 }
 
-const setDeletedUserAtNull = `-- name: SetDeletedUserAtNull :exec
-UPDATE users
-SET deleted_at = NULL
-WHERE email = $1
-`
-
-func (q *Queries) SetDeletedUserAtNull(ctx context.Context, email string) error {
-	_, err := q.db.Exec(ctx, setDeletedUserAtNull, email)
-	return err
-}
-
 const updateLatestLoginAt = `-- name: UpdateLatestLoginAt :exec
 UPDATE user_devices
 SET last_login_at = $1
