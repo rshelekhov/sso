@@ -150,7 +150,7 @@ func TestRegisterFailCases(t *testing.T) {
 			expectedErr: le.ErrEmailIsRequired,
 		},
 		{
-			name:        "Register with empty currentPassword",
+			name:        "Register with empty password",
 			email:       gofakeit.Email(),
 			password:    "",
 			appID:       appID,
@@ -168,7 +168,7 @@ func TestRegisterFailCases(t *testing.T) {
 			expectedErr: le.ErrAppIDIsRequired,
 		},
 		{
-			name:        "Register with empty userAgentForRegister",
+			name:        "Register with empty userAgent",
 			email:       gofakeit.Email(),
 			password:    randomFakePassword(),
 			appID:       appID,
@@ -177,7 +177,7 @@ func TestRegisterFailCases(t *testing.T) {
 			expectedErr: le.ErrUserAgentIsRequired,
 		},
 		{
-			name:        "Register with empty ipReg",
+			name:        "Register with empty ip",
 			email:       gofakeit.Email(),
 			password:    randomFakePassword(),
 			appID:       appID,
@@ -203,4 +203,37 @@ func TestRegisterFailCases(t *testing.T) {
 			require.Contains(t, err.Error(), tt.expectedErr.Error())
 		})
 	}
+}
+
+func TestRegisterUserAlreadyExists(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	email := gofakeit.Email()
+
+	// Register first user
+	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+		Email:    email,
+		Password: randomFakePassword(),
+		AppId:    appID,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: gofakeit.UserAgent(),
+			Ip:        gofakeit.IPv4Address(),
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, respReg.GetTokenData())
+
+	// Register second user
+	respReg, err = st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+		Email:    email,
+		Password: randomFakePassword(),
+		AppId:    appID,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: gofakeit.UserAgent(),
+			Ip:        gofakeit.IPv4Address(),
+		},
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), le.ErrUserAlreadyExists.Error())
+	require.Empty(t, respReg.GetTokenData())
 }
