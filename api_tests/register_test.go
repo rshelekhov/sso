@@ -12,6 +12,7 @@ import (
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/metadata"
 	"math/big"
 	"testing"
 	"time"
@@ -236,4 +237,59 @@ func TestRegisterUserAlreadyExists(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), le.ErrUserAlreadyExists.Error())
 	require.Empty(t, respReg.GetTokenData())
+}
+
+// Test register new user using email with soft deleted user
+func TestRegisterUserSoftDeleted(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	email := gofakeit.Email()
+	userAgent := gofakeit.UserAgent()
+	ip := gofakeit.IPv4Address()
+
+	// Register first user
+	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+		Email:    email,
+		Password: randomFakePassword(),
+		AppId:    appID,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: userAgent,
+			Ip:        ip,
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, respReg.GetTokenData())
+
+	// Get token and place it in metadata
+	token := respReg.GetTokenData()
+	require.NotEmpty(t, token)
+	require.NotEmpty(t, token.AccessToken)
+
+	md := metadata.Pairs(key.Token, token.AccessToken)
+
+	// Create context for Logout request
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	// Delete first user
+	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{
+		AppId: appID,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: userAgent,
+			Ip:        ip,
+		},
+	})
+	require.NoError(t, err)
+
+	// Register second user
+	respReg, err = st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+		Email:    email,
+		Password: randomFakePassword(),
+		AppId:    appID,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: userAgent,
+			Ip:        ip,
+		},
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, respReg.GetTokenData())
 }
