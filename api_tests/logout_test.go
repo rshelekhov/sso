@@ -11,7 +11,6 @@ import (
 )
 
 func TestLogoutHappyPath(t *testing.T) {
-
 	ctx, st := suite.New(t)
 
 	// Generate data for request
