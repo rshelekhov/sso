@@ -748,6 +748,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 
 	user := model.User{
 		ID:        userID,
+		AppID:     data.AppID,
 		DeletedAt: time.Now(),
 	}
 
