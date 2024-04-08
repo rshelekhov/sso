@@ -111,6 +111,7 @@ func (ts *TokenService) GetKeyID(appID int32) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	// Create key ID
 	var keyID string
 	if der, err := x509.MarshalPKIXPublicKey(pub); err == nil {
@@ -201,7 +202,6 @@ func (ts *TokenService) GetTokenFromContext(ctx context.Context, appID int32) (*
 		return nil, le.ErrNoMetaDataFoundInCtx
 	}
 
-	// TODO: add key.Token instead of "Token"
 	tokenString := md.Get(key.Token)
 
 	if len(tokenString) == 0 {
