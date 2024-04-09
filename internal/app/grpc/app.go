@@ -6,8 +6,7 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	authgrpc "github.com/rshelekhov/sso/internal/grpc/controller"
-	"github.com/rshelekhov/sso/internal/lib/constants/key"
-	"github.com/rshelekhov/sso/internal/lib/grpc/interceptor/requestid"
+	"github.com/rshelekhov/sso/internal/lib/grpc/interceptors/requestid"
 	"github.com/rshelekhov/sso/internal/port"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -43,11 +42,13 @@ func New(
 		}),
 	}
 
-	gRPCServer := grpc.NewServer(grpc.ChainUnaryInterceptor(
-		recovery.UnaryServerInterceptor(recoveryOpts...),
-		requestid.UnaryServerInterceptor(),
-		logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
-	))
+	gRPCServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			recovery.UnaryServerInterceptor(recoveryOpts...),
+			logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
+			requestid.UnaryServerInterceptor(),
+		),
+	)
 
 	// Auth controller
 	authgrpc.RegisterController(gRPCServer, log, authUsecases)
@@ -59,15 +60,11 @@ func New(
 	}
 }
 
-// InterceptorLogger adapts slog logger to interceptor logger.
+// InterceptorLogger adapts slog logger to interceptors logger.
 // This code is simple enough to be copied and not imported.
 func InterceptorLogger(l *slog.Logger) logging.Logger {
 	return logging.LoggerFunc(func(ctx context.Context, lvl logging.Level, msg string, fields ...any) {
-		requestID := requestid.FromContext(ctx)
-
-		logFields := append(fields, slog.String(key.RequestID, requestID))
-
-		l.Log(ctx, slog.Level(lvl), msg, logFields...)
+		l.Log(ctx, slog.Level(lvl), msg, fields...)
 	})
 }
 

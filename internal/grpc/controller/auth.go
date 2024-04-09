@@ -32,8 +32,10 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 
 	tokenData, err := c.usecase.Login(ctx, userData)
 	switch {
-	case errors.Is(err, le.ErrPasswordsDontMatch):
-		return nil, status.Error(codes.Unauthenticated, le.ErrPasswordsDontMatch.Error())
+	case errors.Is(err, le.ErrUserNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
+	case errors.Is(err, le.ErrInvalidCredentials):
+		return nil, status.Error(codes.Unauthenticated, le.ErrInvalidCredentials.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
@@ -41,6 +43,7 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 	tokenDataResponse := &ssov1.TokenData{
 		AccessToken:      tokenData.AccessToken,
 		RefreshToken:     tokenData.RefreshToken,
+		Kid:              tokenData.Kid,
 		Domain:           tokenData.Domain,
 		Path:             tokenData.Path,
 		ExpiresAt:        timestamppb.New(tokenData.ExpiresAt),
@@ -59,8 +62,8 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 
 	tokenData, err := c.usecase.RegisterNewUser(ctx, userData)
 	if err != nil {
-		if errors.Is(err, le.ErrEmailAlreadyTaken) {
-			return nil, status.Error(codes.AlreadyExists, le.ErrEmailAlreadyTaken.Error())
+		if errors.Is(err, le.ErrUserAlreadyExists) {
+			return nil, status.Error(codes.AlreadyExists, le.ErrUserAlreadyExists.Error())
 		}
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
@@ -68,6 +71,7 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 	tokenDataResponse := &ssov1.TokenData{
 		AccessToken:      tokenData.AccessToken,
 		RefreshToken:     tokenData.RefreshToken,
+		Kid:              tokenData.Kid,
 		Domain:           tokenData.Domain,
 		Path:             tokenData.Path,
 		ExpiresAt:        timestamppb.New(tokenData.ExpiresAt),
@@ -78,7 +82,7 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 	return &ssov1.RegisterResponse{TokenData: tokenDataResponse}, nil
 }
 
-func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.LogoutResponse, error) {
+func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.Empty, error) {
 	request := &model.UserRequestData{}
 	if err := validateLogout(req, request); err != nil {
 		return nil, err
@@ -96,7 +100,7 @@ func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.LogoutResponse{}, nil
+	return &ssov1.Empty{}, nil
 }
 
 func (c *authController) Refresh(ctx context.Context, req *ssov1.RefreshRequest) (*ssov1.RefreshResponse, error) {
@@ -180,13 +184,12 @@ func (c *authController) GetUser(ctx context.Context, req *ssov1.GetUserRequest)
 	}
 
 	return &ssov1.GetUserResponse{
-		UserId:    user.ID,
 		Email:     user.Email,
 		UpdatedAt: timestamppb.New(user.UpdatedAt),
 	}, nil
 }
 
-func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.UpdateUserResponse, error) {
+func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.Empty, error) {
 	request := &model.UserRequestData{}
 	if err := validateUpdateUser(req, request); err != nil {
 		return nil, err
@@ -202,20 +205,20 @@ func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRe
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrEmailAlreadyTaken):
 		return nil, status.Error(codes.AlreadyExists, le.ErrEmailAlreadyTaken.Error())
-	case errors.Is(err, le.ErrPasswordsDontMatch):
-		return nil, status.Error(codes.InvalidArgument, le.ErrPasswordsDontMatch.Error())
-	case errors.Is(err, le.ErrNoChangesDetected):
-		return nil, status.Error(codes.InvalidArgument, le.ErrNoChangesDetected.Error())
+	case errors.Is(err, le.ErrCurrentPasswordDoesNotMatch):
+		return nil, status.Error(codes.InvalidArgument, le.ErrCurrentPasswordDoesNotMatch.Error())
+	case errors.Is(err, le.ErrNoEmailChangesDetected):
+		return nil, status.Error(codes.InvalidArgument, le.ErrNoEmailChangesDetected.Error())
 	case errors.Is(err, le.ErrNoPasswordChangesDetected):
 		return nil, status.Error(codes.InvalidArgument, le.ErrNoPasswordChangesDetected.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.UpdateUserResponse{}, nil
+	return &ssov1.Empty{}, nil
 }
 
-func (c *authController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRequest) (*ssov1.DeleteUserResponse, error) {
+func (c *authController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRequest) (*ssov1.Empty, error) {
 	request := &model.UserRequestData{}
 	if err := validateDeleteUser(req, request); err != nil {
 		return nil, err
@@ -235,5 +238,5 @@ func (c *authController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRe
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.DeleteUserResponse{}, nil
+	return &ssov1.Empty{}, nil
 }

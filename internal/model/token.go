@@ -6,6 +6,7 @@ type (
 	TokenData struct {
 		AccessToken      string
 		RefreshToken     string
+		Kid              string
 		Domain           string
 		Path             string
 		ExpiresAt        time.Time

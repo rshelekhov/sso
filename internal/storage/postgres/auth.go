@@ -90,10 +90,6 @@ func (s *AuthStorage) getUserStatus(ctx context.Context, email string) (string, 
 func (s *AuthStorage) replaceSoftDeletedUser(ctx context.Context, user model.User) error {
 	const method = "user.storage.replaceSoftDeletedUser"
 
-	if err := s.Queries.SetDeletedUserAtNull(ctx, user.Email); err != nil {
-		return fmt.Errorf("%s: failed to set deleted_at to NULL: %w", method, err)
-	}
-
 	if err := s.Queries.InsertUser(ctx, sqlc.InsertUserParams{
 		ID:           user.ID,
 		Email:        user.Email,
@@ -159,7 +155,6 @@ func (s *AuthStorage) GetUserByID(ctx context.Context, userID string, appID int3
 	}
 
 	return model.User{
-		ID:        user.ID,
 		Email:     user.Email,
 		AppID:     user.AppID,
 		UpdatedAt: user.UpdatedAt,
@@ -238,16 +233,6 @@ func (s *AuthStorage) RegisterDevice(ctx context.Context, device model.UserDevic
 	return nil
 }
 
-func (s *AuthStorage) GetAppSignKey(ctx context.Context, appID int32) (string, error) {
-	const method = "user.storage.GetAppSignKey"
-
-	key, err := s.Queries.GetAppSignKey(ctx, appID)
-	if err != nil {
-		return "", fmt.Errorf("%s: failed to get app sign key: %w", method, err)
-	}
-	return key, nil
-}
-
 func (s *AuthStorage) CreateUserSession(ctx context.Context, session model.Session) error {
 	const method = "user.storage.CreateUserSession"
 
@@ -321,11 +306,15 @@ func (s *AuthStorage) CheckEmailUniqueness(ctx context.Context, user model.User)
 		Email: user.Email,
 		AppID: user.AppID,
 	})
-
-	if !errors.Is(err, pgx.ErrNoRows) && existingUser.ID != user.ID {
-		return le.ErrEmailAlreadyTaken
-	} else if err != nil {
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil // Email is unique as user with this email doesn't exist
+		}
 		return fmt.Errorf("%s: failed to check email uniqueness: %w", method, err)
+	}
+
+	if existingUser.ID != user.ID {
+		return le.ErrEmailAlreadyTaken
 	}
 
 	return nil

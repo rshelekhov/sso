@@ -24,6 +24,7 @@ func main() {
 	log.Debug("logger debug mode enabled")
 
 	tokenAuth := service.NewJWTokenService(
+		cfg.JWTAuth.Issuer,
 		cfg.JWTAuth.SigningMethod,
 		cfg.JWTAuth.KeysPath,
 		cfg.JWTAuth.AccessTokenTTL,
