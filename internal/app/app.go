@@ -14,7 +14,6 @@ type App struct {
 	GRPCServer *grpcapp.App
 }
 
-// TODO: refactor it to use jwtoken which I used in Reframed
 func New(log *slog.Logger, cfg *config.ServerSettings, tokenAuth *service.TokenService) *App {
 
 	// Auth storage

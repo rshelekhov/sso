@@ -13,10 +13,11 @@ type (
 	}
 
 	UserRequestData struct {
-		Email      string
-		Password   string
-		AppID      int32
-		UserDevice UserDeviceRequestData
+		Email           string
+		Password        string
+		UpdatedPassword string
+		AppID           int32
+		UserDevice      UserDeviceRequestData
 	}
 
 	LogoutRequestData struct {

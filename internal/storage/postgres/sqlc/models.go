@@ -11,9 +11,8 @@ import (
 )
 
 type App struct {
-	ID      int32  `db:"id"`
-	Name    string `db:"name"`
-	SignKey string `db:"sign_key"`
+	ID   int32  `db:"id"`
+	Name string `db:"name"`
 }
 
 type RefreshSession struct {

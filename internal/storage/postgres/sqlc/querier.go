@@ -13,7 +13,6 @@ type Querier interface {
 	DeleteRefreshTokenFromSession(ctx context.Context, refreshToken string) error
 	DeleteSession(ctx context.Context, arg DeleteSessionParams) error
 	DeleteUser(ctx context.Context, arg DeleteUserParams) error
-	GetAppSignKey(ctx context.Context, id int32) (string, error)
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (GetSessionByRefreshTokenRow, error)
 	GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUserByIDRow, error)
@@ -22,7 +21,6 @@ type Querier interface {
 	GetUserStatus(ctx context.Context, email string) (string, error)
 	InsertUser(ctx context.Context, arg InsertUserParams) error
 	RegisterDevice(ctx context.Context, arg RegisterDeviceParams) error
-	SetDeletedUserAtNull(ctx context.Context, email string) error
 	UpdateLatestLoginAt(ctx context.Context, arg UpdateLatestLoginAtParams) error
 }
 
