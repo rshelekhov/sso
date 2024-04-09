@@ -34,14 +34,14 @@ type (
 	}
 
 	JWTConfig struct {
-		Issuer                   string        `mapstructure:"JWT_ISSUER"`
-		SigningMethod            string        `mapstructure:"JWT_SIGNING_METHOD"`
-		KeysPath                 string        `mapstructure:"JWT_KEYS_PATH"`
-		AccessTokenTTL           time.Duration `mapstructure:"JWT_ACCESS_TOKEN_TTL"`
-		RefreshTokenTTL          time.Duration `mapstructure:"JWT_REFRESH_TOKEN_TTL"`
-		RefreshTokenCookieDomain string        `mapstructure:"JWT_REFRESH_TOKEN_COOKIE_DOMAIN"`
-		RefreshTokenCookiePath   string        `mapstructure:"JWT_REFRESH_TOKEN_COOKIE_PATH"`
-		PasswordHash             PasswordHashBcrypt
+		Issuer                   string             `mapstructure:"JWT_ISSUER"`
+		SigningMethod            string             `mapstructure:"JWT_SIGNING_METHOD"`
+		KeysPath                 string             `mapstructure:"JWT_KEYS_PATH"`
+		AccessTokenTTL           time.Duration      `mapstructure:"JWT_ACCESS_TOKEN_TTL"`
+		RefreshTokenTTL          time.Duration      `mapstructure:"JWT_REFRESH_TOKEN_TTL"`
+		RefreshTokenCookieDomain string             `mapstructure:"JWT_REFRESH_TOKEN_COOKIE_DOMAIN"`
+		RefreshTokenCookiePath   string             `mapstructure:"JWT_REFRESH_TOKEN_COOKIE_PATH"`
+		PasswordHash             PasswordHashBcrypt `mapstructure:",squash"`
 	}
 
 	PasswordHashBcrypt struct {
