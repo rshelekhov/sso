@@ -81,7 +81,7 @@ func TestLoginHappyPath(t *testing.T) {
 	loginTime := time.Now()
 
 	// Parse the token using the public key
-	tokenParsed, err := jwt.Parse(token.AccessToken, func(token *jwt.Token) (interface{}, error) {
+	tokenParsed, err := jwt.Parse(token.GetAccessToken(), func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
