@@ -31,6 +31,7 @@ type TokenService struct {
 	Issuer                   string
 	SigningMethod            string
 	KeysPath                 string
+	JWKSetTTL                time.Duration
 	AccessTokenTTL           time.Duration
 	RefreshTokenTTL          time.Duration
 	RefreshTokenCookieDomain string
@@ -43,6 +44,7 @@ func NewJWTokenService(
 	issuer string,
 	signingMethod string,
 	keysPath string,
+	JWKSetTTL time.Duration,
 	accessTokenTTL time.Duration,
 	refreshTokenTTL time.Duration,
 	refreshTokenCookieDomain string,
@@ -54,6 +56,7 @@ func NewJWTokenService(
 		Issuer:                   issuer,
 		SigningMethod:            signingMethod,
 		KeysPath:                 keysPath,
+		JWKSetTTL:                JWKSetTTL,
 		AccessTokenTTL:           accessTokenTTL,
 		RefreshTokenTTL:          refreshTokenTTL,
 		RefreshTokenCookieDomain: refreshTokenCookieDomain,

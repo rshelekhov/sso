@@ -27,6 +27,7 @@ func main() {
 		cfg.JWTAuth.Issuer,
 		cfg.JWTAuth.SigningMethod,
 		cfg.JWTAuth.KeysPath,
+		cfg.JWTAuth.JWKSetTTL,
 		cfg.JWTAuth.AccessTokenTTL,
 		cfg.JWTAuth.RefreshTokenTTL,
 		cfg.JWTAuth.RefreshTokenCookieDomain,

@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"log/slog"
 )
@@ -164,6 +165,7 @@ func (c *authController) GetJWKS(ctx context.Context, req *ssov1.GetJWKSRequest)
 
 	return &ssov1.GetJWKSResponse{
 		Jwks: jwksResponse,
+		Ttl:  durationpb.New(jwks.TTL),
 	}, nil
 }
 
