@@ -552,15 +552,18 @@ func (u *AuthUsecase) GetJWKS(ctx context.Context, request *model.JWKSRequestDat
 
 	// Construct a JWKS with the JWK
 	jwksSlice := []model.JWK{jwk}
-	jwks := constructJWKS(jwksSlice...)
+	jwks := u.constructJWKS(jwksSlice...)
 
 	log.Info("JWKS retrieved")
 
 	return jwks, nil
 }
 
-func constructJWKS(jwks ...model.JWK) model.JWKS {
-	return model.JWKS{Keys: jwks}
+func (u *AuthUsecase) constructJWKS(jwks ...model.JWK) model.JWKS {
+	return model.JWKS{
+		Keys: jwks,
+		TTL:  u.ts.JWKSetTTL,
+	}
 }
 
 func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error) {

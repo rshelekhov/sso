@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type (
 	JWKSRequestData struct {
 		AppID int32
@@ -22,6 +24,7 @@ type (
 	}
 
 	JWKS struct {
-		Keys []JWK `json:"keys"`
+		Keys []JWK         `json:"keys"`
+		TTL  time.Duration `json:"ttl"`
 	}
 )
