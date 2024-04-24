@@ -3,29 +3,33 @@ package slogpretty
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/fatih/color"
 	"io"
-	stdLog "log"
 	"log/slog"
 )
 
-type PrettyHandlerOptions struct {
-	SlogOpts *slog.HandlerOptions
+type Options struct {
+	AddSource   bool
+	Level       slog.Leveler
+	ReplaceAttr func(groups []string, attr slog.Attr) slog.Attr
 }
 
 type PrettyHandler struct {
-	opts PrettyHandlerOptions
+	opts Options
 	slog.Handler
-	l     *stdLog.Logger
 	attrs []slog.Attr
 }
 
-func (opts PrettyHandlerOptions) NewPrettyHandler(
+func NewPrettyHandler(
 	out io.Writer,
+	opt *Options,
 ) *PrettyHandler {
 	h := &PrettyHandler{
-		Handler: slog.NewJSONHandler(out, opts.SlogOpts),
-		l:       stdLog.New(out, "", 0),
+		Handler: slog.NewJSONHandler(out, &slog.HandlerOptions{
+			Level:     opt.Level,
+			AddSource: opt.AddSource,
+		}),
 	}
 
 	return h
@@ -70,7 +74,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	timeStr := r.Time.Format("[15:05:05.000]")
 	msg := color.CyanString(r.Message)
 
-	h.l.Println(
+	fmt.Println(
 		timeStr,
 		level,
 		msg,
@@ -83,8 +87,8 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 func (h *PrettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &PrettyHandler{
 		Handler: h.Handler,
-		l:       h.l,
-		attrs:   attrs,
+		// l:       h.l,
+		attrs: attrs,
 	}
 }
 
@@ -92,6 +96,6 @@ func (h *PrettyHandler) WithGroup(name string) slog.Handler {
 	// TODO: implement
 	return &PrettyHandler{
 		Handler: h.Handler.WithGroup(name),
-		l:       h.l,
+		// l:       h.l,
 	}
 }
