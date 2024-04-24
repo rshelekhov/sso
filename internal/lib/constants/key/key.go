@@ -1,6 +1,7 @@
 package key
 
 const (
+	Env          = "env"
 	Method       = "method"
 	RequestID    = "request_id"
 	UserID       = "user_id"
