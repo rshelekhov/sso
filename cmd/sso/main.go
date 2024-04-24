@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/rshelekhov/sso/internal/app"
 	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/sso/internal/lib/constants/key"
 	"github.com/rshelekhov/sso/internal/lib/jwt/service"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"log/slog"
@@ -18,7 +19,7 @@ func main() {
 
 	// A field with information about the current environment
 	// will be added to each message
-	log = log.With(slog.String("env", cfg.AppEnv))
+	log = log.With(slog.String(key.Env, cfg.AppEnv))
 
 	log.Info("starting application")
 	log.Debug("logger debug mode enabled")
@@ -36,7 +37,7 @@ func main() {
 		cfg.JWTAuth.PasswordHash.Salt,
 	)
 
-	application := app.New(log.Logger, cfg, tokenAuth)
+	application := app.New(log, cfg, tokenAuth)
 
 	go func() {
 		application.GRPCServer.MustRun()

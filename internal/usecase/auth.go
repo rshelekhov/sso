@@ -311,8 +311,6 @@ func (u *AuthUsecase) CreateUserSession(
 		return model.TokenData{}, err
 	}
 
-	// TODO: check and remove this commented code
-	// additionalFields := map[string]string{key.UserID: user.ID}
 	tokenData := model.TokenData{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -321,7 +319,6 @@ func (u *AuthUsecase) CreateUserSession(
 		Path:         u.ts.RefreshTokenCookiePath,
 		ExpiresAt:    expiresAt,
 		HTTPOnly:     true,
-		// AdditionalFields: additionalFields,
 	}
 
 	log.Info("user session created")
@@ -433,6 +430,8 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 	case errors.Is(err, le.ErrSessionNotFound):
 		log.LogAttrs(ctx, slog.LevelError, le.ErrSessionNotFound.Error(),
 			slog.String(key.Error, err.Error()),
+			slog.String(key.RequestID, reqID),
+			slog.String(key.Method, method),
 		)
 		return model.TokenData{}, le.ErrSessionNotFound
 	case errors.Is(err, le.ErrSessionExpired):
@@ -459,7 +458,7 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	tokenData, err := u.CreateUserSession(ctx, log, model.User{ID: session.UserID, AppID: session.AppID}, data.UserDevice)
+	tokenData, err := u.CreateUserSession(ctx, u.log, model.User{ID: session.UserID, AppID: session.AppID}, data.UserDevice)
 	if err != nil {
 		logFailedToCreateUserSession(ctx, u.log, err, session.UserID)
 		return model.TokenData{}, le.ErrInternalServerError
