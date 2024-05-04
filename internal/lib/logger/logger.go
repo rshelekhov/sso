@@ -14,67 +14,75 @@ const (
 	envProd  = "prod"
 )
 
-type HandlerMiddleware struct {
-	next slog.Handler
+type Logger struct {
+	*slog.Logger
 }
 
-func NewHandlerMiddleware(next slog.Handler) *HandlerMiddleware {
-	return &HandlerMiddleware{
-		next: next,
-	}
-}
-
-func (h *HandlerMiddleware) Enabled(ctx context.Context, level slog.Level) bool {
-	return h.next.Enabled(ctx, level)
-}
-
-func (h *HandlerMiddleware) Handle(ctx context.Context, r slog.Record) error {
-	return h.next.Handle(ctx, r)
-}
-
-func (h *HandlerMiddleware) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &HandlerMiddleware{
-		next: h.next.WithAttrs(attrs),
-	}
-}
-
-func (h *HandlerMiddleware) WithGroup(name string) slog.Handler {
-	return &HandlerMiddleware{
-		next: h.next.WithGroup(name),
-	}
-}
-
-func SetupLogger(env string) *slog.Logger {
-	var handler slog.Handler
+func SetupLogger(env string) *Logger {
+	var log *slog.Logger
 
 	switch env {
 	case envLocal:
-		handler = slogpretty.NewPrettyHandler(os.Stdout, &slogpretty.Options{
-			Level:     slog.LevelDebug,
-			AddSource: true,
-		})
+		log = setupPrettySlog()
 	case envDev:
-		handler = slog.Handler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 			Level:     slog.LevelDebug,
 			AddSource: true,
 		}))
 	case envProd:
-		handler = slog.Handler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 			Level:     slog.LevelInfo,
 			AddSource: true,
 		}))
 	}
 
-	handler = NewHandlerMiddleware(handler)
-	log := slog.New(handler)
-
-	return log
+	return &Logger{Logger: log}
 }
 
-// TODO: use this method for errors!
+func setupPrettySlog() *slog.Logger {
+	opts := slogpretty.PrettyHandlerOptions{
+		SlogOpts: &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		},
+	}
+
+	handler := opts.NewPrettyHandler(os.Stdout)
+
+	return slog.New(handler)
+}
+
 func Err(err error) slog.Attr {
 	return slog.Attr{
 		Key:   key.Error,
 		Value: slog.StringValue(err.Error()),
 	}
+}
+
+func LogWithRequest(log *slog.Logger, reqID string) *slog.Logger {
+	log.With(
+		slog.String("request_id", reqID),
+	)
+
+	return log
+}
+
+func (l *Logger) With(args ...any) *Logger {
+	l.Logger.With(args...)
+	return l
+}
+
+func (l *Logger) Debug(msg string, attrs ...interface{}) {
+	l.Logger.Debug(msg, attrs...)
+}
+
+func (l *Logger) Info(msg string, attrs ...interface{}) {
+	l.Logger.Info(msg, attrs...)
+}
+
+func (l *Logger) Warn(msg string, attrs ...interface{}) {
+	l.Logger.Warn(msg, attrs...)
+}
+
+func (l *Logger) Error(msg string, attrs ...interface{}) {
+	l.Logger.Error(msg, attrs...)
 }
