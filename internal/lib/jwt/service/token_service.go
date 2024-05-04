@@ -77,7 +77,7 @@ func (ts *TokenService) Algorithm() jwt.SigningMethod {
 	}
 }
 
-func (ts *TokenService) NewAccessToken(appID int32, additionalClaims map[string]interface{}) (string, error) {
+func (ts *TokenService) NewAccessToken(appID int32, kid string, additionalClaims map[string]interface{}) (string, error) {
 	claims := jwt.MapClaims{}
 
 	if additionalClaims != nil { // nolint:gosimple
@@ -104,6 +104,8 @@ func (ts *TokenService) NewAccessToken(appID int32, additionalClaims map[string]
 	}
 
 	token := jwt.NewWithClaims(ts.Algorithm(), claims)
+
+	token.Header[key.KID] = kid
 
 	return token.SignedString(privateKey)
 }
