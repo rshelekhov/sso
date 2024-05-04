@@ -314,12 +314,10 @@ func (u *AuthUsecase) CreateUserSession(
 	tokenData := model.TokenData{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		Kid:          kid,
 		Domain:       u.ts.RefreshTokenCookieDomain,
 		Path:         u.ts.RefreshTokenCookiePath,
 		ExpiresAt:    expiresAt,
 		HTTPOnly:     true,
-		// AdditionalFields: additionalFields,
 	}
 
 	log.Info("user session created")
