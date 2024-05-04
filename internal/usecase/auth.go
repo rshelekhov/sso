@@ -261,7 +261,15 @@ func (u *AuthUsecase) CreateUserSession(
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	accessToken, err := u.ts.NewAccessToken(user.AppID, additionalClaims)
+	kid, err := u.ts.GetKeyID(user.AppID)
+	if err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetKeyID.Error(),
+			slog.String(key.Error, err.Error()),
+		)
+		return model.TokenData{}, err
+	}
+
+	accessToken, err := u.ts.NewAccessToken(user.AppID, kid, additionalClaims)
 	if err != nil {
 		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCreateAccessToken.Error(),
 			slog.String(key.Error, err.Error()),
@@ -303,18 +311,9 @@ func (u *AuthUsecase) CreateUserSession(
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	kid, err := u.ts.GetKeyID(user.AppID)
-	if err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetKeyID.Error(),
-			slog.String(key.Error, err.Error()),
-		)
-		return model.TokenData{}, err
-	}
-
 	tokenData := model.TokenData{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		Kid:          kid,
 		Domain:       u.ts.RefreshTokenCookieDomain,
 		Path:         u.ts.RefreshTokenCookiePath,
 		ExpiresAt:    expiresAt,
@@ -430,8 +429,6 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 	case errors.Is(err, le.ErrSessionNotFound):
 		log.LogAttrs(ctx, slog.LevelError, le.ErrSessionNotFound.Error(),
 			slog.String(key.Error, err.Error()),
-			slog.String(key.RequestID, reqID),
-			slog.String(key.Method, method),
 		)
 		return model.TokenData{}, le.ErrSessionNotFound
 	case errors.Is(err, le.ErrSessionExpired):
@@ -458,7 +455,7 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	tokenData, err := u.CreateUserSession(ctx, u.log, model.User{ID: session.UserID, AppID: session.AppID}, data.UserDevice)
+	tokenData, err := u.CreateUserSession(ctx, log, model.User{ID: session.UserID, AppID: session.AppID}, data.UserDevice)
 	if err != nil {
 		logFailedToCreateUserSession(ctx, u.log, err, session.UserID)
 		return model.TokenData{}, le.ErrInternalServerError

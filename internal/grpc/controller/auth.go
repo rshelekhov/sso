@@ -44,7 +44,6 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 	tokenDataResponse := &ssov1.TokenData{
 		AccessToken:      tokenData.AccessToken,
 		RefreshToken:     tokenData.RefreshToken,
-		Kid:              tokenData.Kid,
 		Domain:           tokenData.Domain,
 		Path:             tokenData.Path,
 		ExpiresAt:        timestamppb.New(tokenData.ExpiresAt),
@@ -72,7 +71,6 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 	tokenDataResponse := &ssov1.TokenData{
 		AccessToken:      tokenData.AccessToken,
 		RefreshToken:     tokenData.RefreshToken,
-		Kid:              tokenData.Kid,
 		Domain:           tokenData.Domain,
 		Path:             tokenData.Path,
 		ExpiresAt:        timestamppb.New(tokenData.ExpiresAt),
