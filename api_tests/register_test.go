@@ -3,7 +3,6 @@ package api_tests
 import (
 	"crypto/rsa"
 	"encoding/base64"
-	"fmt"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
@@ -51,30 +50,37 @@ func TestRegisterHappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, jwks.GetJwks())
 
-	jwk, err := getJWKByKid(jwks.GetJwks(), token.GetKid())
-	require.NoError(t, err)
-	require.NotEmpty(t, jwk)
-
-	n, err := base64.RawURLEncoding.DecodeString(jwk.GetN())
-	require.NoError(t, err)
-
-	e, err := base64.RawURLEncoding.DecodeString(jwk.GetE())
-	require.NoError(t, err)
-
-	pubKey := &rsa.PublicKey{
-		N: new(big.Int).SetBytes(n),
-		E: int(new(big.Int).SetBytes(e).Int64()),
-	}
-
-	loginTime := time.Now()
-
-	// Parse the token using the public key
+	// Parse token
 	tokenParsed, err := jwt.Parse(token.GetAccessToken(), func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		kidRaw, ok := token.Header[key.Kid]
+		require.True(t, ok)
+
+		kid, ok := kidRaw.(string)
+		require.True(t, ok)
+
+		jwk, err := getJWKByKid(jwks.GetJwks(), kid)
+		require.NoError(t, err)
+		require.NotEmpty(t, jwk)
+
+		n, err := base64.RawURLEncoding.DecodeString(jwk.GetN())
+		require.NoError(t, err)
+
+		e, err := base64.RawURLEncoding.DecodeString(jwk.GetE())
+		require.NoError(t, err)
+
+		pubKey := &rsa.PublicKey{
+			N: new(big.Int).SetBytes(n),
+			E: int(new(big.Int).SetBytes(e).Int64()),
 		}
+
+		// Parse the token using the public key
+		_, ok = token.Method.(*jwt.SigningMethodRSA)
+		require.True(t, ok)
+
 		return pubKey, nil
 	})
+	loginTime := time.Now()
+
 	require.NoError(t, err)
 	require.NotEmpty(t, tokenParsed)
 
