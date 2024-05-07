@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	CheckAppIDExists(ctx context.Context, appID int32) (bool, error)
 	CreateUserSession(ctx context.Context, arg CreateUserSessionParams) error
 	DeleteRefreshTokenFromSession(ctx context.Context, refreshToken string) error
 	DeleteSession(ctx context.Context, arg DeleteSessionParams) error

@@ -1,3 +1,6 @@
+-- name: CheckAppIDExists :one
+SELECT EXISTS(SELECT 1 FROM users WHERE app_id = $1);
+
 -- name: GetUserStatus :one
 SELECT CASE
 WHEN EXISTS(

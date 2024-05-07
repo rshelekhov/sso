@@ -12,6 +12,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const checkAppIDExists = `-- name: CheckAppIDExists :one
+SELECT EXISTS(SELECT 1 FROM users WHERE app_id = $1)
+`
+
+func (q *Queries) CheckAppIDExists(ctx context.Context, appID int32) (bool, error) {
+	row := q.db.QueryRow(ctx, checkAppIDExists, appID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createUserSession = `-- name: CreateUserSession :exec
 INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, last_login_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6)

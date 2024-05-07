@@ -14,7 +14,7 @@ type (
 		CreateUserSession(ctx context.Context, log *slog.Logger, user model.User, data model.UserDeviceRequestData) (model.TokenData, error)
 		LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error
 		RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (model.TokenData, error)
-		GetJWKS(ctx context.Context, request *model.JWKSRequestData) (model.JWKS, error)
+		GetJWKS(ctx context.Context, data *model.JWKSRequestData) (model.JWKS, error)
 		GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error)
 		UpdateUser(ctx context.Context, data *model.UserRequestData) error
 		DeleteUser(ctx context.Context, data *model.UserRequestData) error
@@ -22,6 +22,7 @@ type (
 
 	AuthStorage interface {
 		Transaction(ctx context.Context, fn func(storage AuthStorage) error) error
+		ValidateAppID(ctx context.Context, appID int32) error
 		CreateUser(ctx context.Context, user model.User) error
 		GetUserByEmail(ctx context.Context, email string, appID int32) (model.User, error)
 		GetUserByID(ctx context.Context, userID string, appID int32) (model.User, error)

@@ -18,6 +18,7 @@ const (
 	ErrEmailIsRequired        LocalError = "email is required"
 	ErrPasswordIsRequired     LocalError = "password is required"
 	ErrAppIDIsRequired        LocalError = "app_id is required"
+	ErrAppIDDoesNotExist      LocalError = "app_id does not exist"
 	ErrRefreshTokenIsRequired LocalError = "refresh_token is required"
 
 	ErrUserAlreadyExists              LocalError = "user already exists"

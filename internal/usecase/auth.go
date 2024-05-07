@@ -149,6 +149,13 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		slog.String(key.Email, data.Email),
 	)
 
+	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+			slog.Any(key.AppID, data.AppID),
+		)
+		return model.TokenData{}, err
+	}
+
 	hash, err := jwt.PasswordHashBcrypt(
 		data.Password,
 		u.ts.PasswordHashCost,
@@ -186,11 +193,9 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
 		if err = u.storage.CreateUser(ctx, user); err != nil {
-			// TODO: return a custom error
-
 			if errors.Is(err, le.ErrUserAlreadyExists) {
 				log.LogAttrs(ctx, slog.LevelError, le.ErrUserAlreadyExists.Error(),
-					slog.String(key.Error, err.Error()),
+					slog.String(key.Email, data.Email),
 				)
 				return le.ErrUserAlreadyExists
 			}
@@ -374,6 +379,13 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 		slog.String(key.Method, method),
 	)
 
+	if err = u.storage.ValidateAppID(ctx, appID); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+			slog.Any(key.AppID, appID),
+		)
+		return err
+	}
+
 	userID, err := u.ts.GetUserID(ctx, appID, key.UserID)
 	if err != nil {
 		logFailedToGetUserID(ctx, u.log, err)
@@ -423,6 +435,13 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 		slog.String(key.RequestID, reqID),
 		slog.String(key.Method, method),
 	)
+
+	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+			slog.Any(key.AppID, data.AppID),
+		)
+		return model.TokenData{}, err
+	}
 
 	session, err := u.checkSessionAndDevice(ctx, data.RefreshToken, data.UserDevice)
 	switch {
@@ -494,7 +513,7 @@ func (u *AuthUsecase) deleteRefreshToken(ctx context.Context, refreshToken strin
 	return u.storage.DeleteRefreshToken(ctx, refreshToken)
 }
 
-func (u *AuthUsecase) GetJWKS(ctx context.Context, request *model.JWKSRequestData) (model.JWKS, error) {
+func (u *AuthUsecase) GetJWKS(ctx context.Context, data *model.JWKSRequestData) (model.JWKS, error) {
 	const method = "usecase.AuthUsecase.GetJWKS"
 
 	reqID, err := requestid.FromContext(ctx)
@@ -508,8 +527,15 @@ func (u *AuthUsecase) GetJWKS(ctx context.Context, request *model.JWKSRequestDat
 		slog.String(key.Method, method),
 	)
 
+	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+			slog.Any(key.AppID, data.AppID),
+		)
+		return model.JWKS{}, err
+	}
+
 	// Read the public key from the PEM file
-	publicKey, err := u.ts.GetPublicKey(request.AppID)
+	publicKey, err := u.ts.GetPublicKey(data.AppID)
 	if err != nil {
 		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetJWKS.Error(),
 			slog.String(key.Error, err.Error()),
@@ -517,7 +543,7 @@ func (u *AuthUsecase) GetJWKS(ctx context.Context, request *model.JWKSRequestDat
 		return model.JWKS{}, err
 	}
 
-	kid, err := u.ts.GetKeyID(request.AppID)
+	kid, err := u.ts.GetKeyID(data.AppID)
 	if err != nil {
 		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetKeyID.Error(),
 			slog.String(key.Error, err.Error()),
@@ -576,6 +602,13 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 		slog.String(key.Method, method),
 	)
 
+	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+			slog.Any(key.AppID, data.AppID),
+		)
+		return model.User{}, err
+	}
+
 	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {
 		logFailedToGetUserID(ctx, u.log, err)
@@ -609,6 +642,13 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 		slog.String(key.RequestID, reqID),
 		slog.String(key.Method, method),
 	)
+
+	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+			slog.Any(key.AppID, data.AppID),
+		)
+		return err
+	}
 
 	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {
@@ -736,6 +776,13 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 		slog.String(key.RequestID, reqID),
 		slog.String(key.Method, method),
 	)
+
+	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+			slog.Any(key.AppID, data.AppID),
+		)
+		return err
+	}
 
 	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {

@@ -65,6 +65,9 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 		if errors.Is(err, le.ErrUserAlreadyExists) {
 			return nil, status.Error(codes.AlreadyExists, le.ErrUserAlreadyExists.Error())
 		}
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			return nil, le.ErrAppIDDoesNotExist
+		}
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
