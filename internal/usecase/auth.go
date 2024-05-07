@@ -790,38 +790,43 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 		return le.ErrFailedToGetUserIDFromToken
 	}
 
-	// TODO: add transaction here
-
 	user := model.User{
 		ID:        userID,
 		AppID:     data.AppID,
 		DeletedAt: time.Now(),
 	}
 
-	if err = u.storage.DeleteUser(ctx, user); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteUser.Error(),
-			slog.String(key.Error, err.Error()),
-			slog.String(key.UserID, userID),
-		)
-		return le.ErrFailedToDeleteUser
-	}
+	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
+		if err = u.storage.DeleteUser(ctx, user); err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteUser.Error(),
+				slog.String(key.Error, err.Error()),
+				slog.String(key.UserID, userID),
+			)
+			return le.ErrFailedToDeleteUser
+		}
 
-	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserDevice.UserAgent)
-	if err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrUserDeviceNotFound.Error(),
-			slog.String(key.Error, err.Error()),
-			slog.String(key.UserID, userID),
-		)
-		return le.ErrUserDeviceNotFound
-	}
+		deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserDevice.UserAgent)
+		if err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrUserDeviceNotFound.Error(),
+				slog.String(key.Error, err.Error()),
+				slog.String(key.UserID, userID),
+			)
+			return le.ErrUserDeviceNotFound
+		}
 
-	if err = u.storage.DeleteSession(ctx, userID, deviceID, data.AppID); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteSession.Error(),
-			slog.String(key.Error, err.Error()),
-			slog.String(key.UserID, userID),
-			slog.String(key.DeviceID, deviceID),
-		)
-		return le.ErrFailedToDeleteSession
+		if err = u.storage.DeleteSession(ctx, userID, deviceID, data.AppID); err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteSession.Error(),
+				slog.String(key.Error, err.Error()),
+				slog.String(key.UserID, userID),
+				slog.String(key.DeviceID, deviceID),
+			)
+			return le.ErrFailedToDeleteSession
+		}
+
+		return nil
+	}); err != nil {
+		logFailedToCommitTransaction(ctx, u.log, err, user.ID)
+		return err
 	}
 
 	log.Info("user deleted", slog.String(key.UserID, userID))
