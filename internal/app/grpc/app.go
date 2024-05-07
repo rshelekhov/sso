@@ -6,6 +6,7 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	authgrpc "github.com/rshelekhov/sso/internal/grpc/controller"
+	"github.com/rshelekhov/sso/internal/lib/grpc/interceptors/localerrors"
 	"github.com/rshelekhov/sso/internal/lib/grpc/interceptors/requestid"
 	"github.com/rshelekhov/sso/internal/port"
 	"google.golang.org/grpc"
@@ -47,6 +48,7 @@ func New(
 			recovery.UnaryServerInterceptor(recoveryOpts...),
 			logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
 			requestid.UnaryServerInterceptor(),
+			localerrors.UnaryServerInterceptor(),
 		),
 	)
 

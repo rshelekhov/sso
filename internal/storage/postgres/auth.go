@@ -48,6 +48,27 @@ func (s *AuthStorage) Transaction(ctx context.Context, fn func(storage port.Auth
 	return err
 }
 
+func (s *AuthStorage) checkAppIDExists(ctx context.Context, appID int32) (bool, error) {
+	const method = "user.storage.CheckAppIDExists"
+
+	exists, err := s.Queries.CheckAppIDExists(ctx, appID)
+	if err != nil {
+		return false, fmt.Errorf("%s: failed to check if app ID exists: %w", method, err)
+	}
+	return exists, nil
+}
+
+func (s *AuthStorage) ValidateAppID(ctx context.Context, appID int32) error {
+	appIDExists, err := s.checkAppIDExists(ctx, appID)
+	if err != nil {
+		return err
+	}
+	if !appIDExists {
+		return le.ErrAppIDDoesNotExist
+	}
+	return nil
+}
+
 func (s *AuthStorage) CreateUser(ctx context.Context, user model.User) error {
 	const method = "storage.storage.CreateUser"
 

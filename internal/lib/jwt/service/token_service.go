@@ -105,7 +105,7 @@ func (ts *TokenService) NewAccessToken(appID int32, kid string, additionalClaims
 
 	token := jwt.NewWithClaims(ts.Algorithm(), claims)
 
-	token.Header[key.KID] = kid
+	token.Header[key.Kid] = kid
 
 	return token.SignedString(privateKey)
 }
