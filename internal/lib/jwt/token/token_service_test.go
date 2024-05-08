@@ -1,4 +1,4 @@
-package service
+package token
 
 import (
 	"context"
@@ -22,7 +22,7 @@ const (
 // ===========================================================================
 
 func TestNewAccessTokenHappyPath(t *testing.T) {
-	ts := &TokenService{
+	ts := &Service{
 		KeysPath: keysPath,
 	}
 	token, err := ts.NewAccessToken(appID, nil)
@@ -57,7 +57,7 @@ func TestNewAccessTokenFailCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ts := &TokenService{
+			ts := &Service{
 				KeysPath: tt.keysPath,
 			}
 			token, err := ts.NewAccessToken(tt.appID, nil)
@@ -75,7 +75,7 @@ func TestNewAccessTokenFailCases(t *testing.T) {
 // ===========================================================================
 
 func TestGetKeyID(t *testing.T) {
-	ts := &TokenService{
+	ts := &Service{
 		KeysPath: keysPath,
 	}
 
@@ -117,7 +117,7 @@ func TestGetKeyIDFailCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ts := &TokenService{
+			ts := &Service{
 				KeysPath: tt.keysPath,
 			}
 			keyID, err := ts.GetKeyID(tt.appID)
@@ -132,7 +132,7 @@ func TestGetKeyIDFailCases(t *testing.T) {
 // ===========================================================================
 
 func TestGetUserIDHappyPath(t *testing.T) {
-	ts := &TokenService{
+	ts := &Service{
 		KeysPath: keysPath,
 	}
 
@@ -207,7 +207,7 @@ func TestGetUserIDFailCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ts := &TokenService{
+			ts := &Service{
 				KeysPath: keysPath,
 			}
 

@@ -10,7 +10,7 @@ import (
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/rshelekhov/sso/internal/lib/grpc/interceptors/requestid"
 	"github.com/rshelekhov/sso/internal/lib/jwt"
-	"github.com/rshelekhov/sso/internal/lib/jwt/service"
+	"github.com/rshelekhov/sso/internal/lib/jwt/token"
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
@@ -22,14 +22,14 @@ import (
 type AuthUsecase struct {
 	log     *slog.Logger
 	storage port.AuthStorage
-	ts      *service.TokenService
+	ts      *token.Service
 }
 
 // NewAuthUsecase returns a new instance of the AuthUsecase usecase
 func NewAuthUsecase(
 	log *slog.Logger,
 	storage port.AuthStorage,
-	ts *service.TokenService,
+	ts *token.Service,
 ) *AuthUsecase {
 	return &AuthUsecase{
 		log:     log,

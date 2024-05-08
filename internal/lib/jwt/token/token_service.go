@@ -1,4 +1,4 @@
-package service
+package token
 
 import (
 	"context"
@@ -27,7 +27,7 @@ func (c ContextKey) String() string {
 	return c.name
 }
 
-type TokenService struct {
+type Service struct {
 	Issuer                   string
 	SigningMethod            string
 	KeysPath                 string
@@ -40,7 +40,7 @@ type TokenService struct {
 	PasswordHashSalt         string
 }
 
-func NewJWTokenService(
+func NewService(
 	issuer string,
 	signingMethod string,
 	keysPath string,
@@ -51,8 +51,8 @@ func NewJWTokenService(
 	refreshTokenCookiePath string,
 	passwordHashCost int,
 	passwordHashSalt string,
-) *TokenService {
-	return &TokenService{
+) *Service {
+	return &Service{
 		Issuer:                   issuer,
 		SigningMethod:            signingMethod,
 		KeysPath:                 keysPath,
@@ -66,7 +66,7 @@ func NewJWTokenService(
 	}
 }
 
-func (ts *TokenService) Algorithm() jwt.SigningMethod {
+func (ts *Service) Algorithm() jwt.SigningMethod {
 	switch ts.SigningMethod {
 	case "RS256":
 		return jwt.SigningMethodRS256
@@ -77,7 +77,7 @@ func (ts *TokenService) Algorithm() jwt.SigningMethod {
 	}
 }
 
-func (ts *TokenService) NewAccessToken(appID int32, kid string, additionalClaims map[string]interface{}) (string, error) {
+func (ts *Service) NewAccessToken(appID int32, kid string, additionalClaims map[string]interface{}) (string, error) {
 	claims := jwt.MapClaims{}
 
 	if additionalClaims != nil { // nolint:gosimple
@@ -110,7 +110,7 @@ func (ts *TokenService) NewAccessToken(appID int32, kid string, additionalClaims
 	return token.SignedString(privateKey)
 }
 
-func (ts *TokenService) GetKeyID(appID int32) (string, error) {
+func (ts *Service) GetKeyID(appID int32) (string, error) {
 	// Get public key
 	pub, err := ts.GetPublicKey(appID)
 	if err != nil {
@@ -127,7 +127,7 @@ func (ts *TokenService) GetKeyID(appID int32) (string, error) {
 	return keyID, err
 }
 
-func (ts *TokenService) GetPublicKey(appID int32) (interface{}, error) {
+func (ts *Service) GetPublicKey(appID int32) (interface{}, error) {
 	pub, err := ts.getPublicKeyFromPEM(appID, ts.KeysPath)
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func (ts *TokenService) GetPublicKey(appID int32) (interface{}, error) {
 	}
 }
 
-func (ts *TokenService) getPublicKeyFromPEM(appID int32, keysPath string) (interface{}, error) {
+func (ts *Service) getPublicKeyFromPEM(appID int32, keysPath string) (interface{}, error) {
 	// Construct the complete file path based on the AppID and provided keysPath
 	filePath := fmt.Sprintf("%s/app_%d_public.pem", keysPath, appID)
 
@@ -168,12 +168,12 @@ func (ts *TokenService) getPublicKeyFromPEM(appID int32, keysPath string) (inter
 	return pub, nil
 }
 
-func (ts *TokenService) NewRefreshToken() (string, error) {
+func (ts *Service) NewRefreshToken() (string, error) {
 	token := ksuid.New().String()
 	return token, nil
 }
 
-func (ts *TokenService) GetUserID(ctx context.Context, appID int32, key string) (string, error) {
+func (ts *Service) GetUserID(ctx context.Context, appID int32, key string) (string, error) {
 	claims, err := ts.GetClaimsFromToken(ctx, appID)
 	if err != nil {
 		return "", err
@@ -187,7 +187,7 @@ func (ts *TokenService) GetUserID(ctx context.Context, appID int32, key string) 
 	return userID.(string), nil
 }
 
-func (ts *TokenService) GetClaimsFromToken(ctx context.Context, appID int32) (map[string]interface{}, error) {
+func (ts *Service) GetClaimsFromToken(ctx context.Context, appID int32) (map[string]interface{}, error) {
 	token, err := ts.GetTokenFromContext(ctx, appID)
 	if err != nil {
 		return nil, err
@@ -201,7 +201,7 @@ func (ts *TokenService) GetClaimsFromToken(ctx context.Context, appID int32) (ma
 	return claims, nil
 }
 
-func (ts *TokenService) GetTokenFromContext(ctx context.Context, appID int32) (*jwt.Token, error) {
+func (ts *Service) GetTokenFromContext(ctx context.Context, appID int32) (*jwt.Token, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, le.ErrNoMetaDataFoundInCtx
@@ -221,7 +221,7 @@ func (ts *TokenService) GetTokenFromContext(ctx context.Context, appID int32) (*
 	return token, nil
 }
 
-func (ts *TokenService) ParseToken(s string, appID int32) (*jwt.Token, error) {
+func (ts *Service) ParseToken(s string, appID int32) (*jwt.Token, error) {
 	tokenString := strings.TrimSpace(s)
 	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return ts.GetPublicKey(appID)
