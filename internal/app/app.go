@@ -3,7 +3,7 @@ package app
 import (
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	"github.com/rshelekhov/sso/internal/config"
-	"github.com/rshelekhov/sso/internal/lib/jwt/service"
+	"github.com/rshelekhov/sso/internal/lib/jwt/token"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"github.com/rshelekhov/sso/internal/storage/postgres"
 	"github.com/rshelekhov/sso/internal/usecase"
@@ -14,7 +14,7 @@ type App struct {
 	GRPCServer *grpcapp.App
 }
 
-func New(log *slog.Logger, cfg *config.ServerSettings, tokenAuth *service.TokenService) *App {
+func New(log *slog.Logger, cfg *config.ServerSettings, tokenAuth *token.Service) *App {
 
 	// Auth storage
 	pg, err := postgres.NewStorage(cfg)
