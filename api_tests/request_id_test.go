@@ -5,6 +5,7 @@ import (
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/lib/constants/key"
+	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 	"testing"
@@ -59,12 +60,12 @@ func TestRequestIDHappyPath(t *testing.T) {
 			require.NoError(t, err)
 			require.NotEmpty(t, respReg.GetTokenData())
 
-			// Get token and place it in metadata
+			// Get jwtoken and place it in metadata
 			token := respReg.GetTokenData()
 			require.NotEmpty(t, token)
 			require.NotEmpty(t, token.AccessToken)
 
-			md = metadata.Pairs(token.AccessTokenKey, token.AccessToken)
+			md = metadata.Pairs(jwtoken.AccessTokenKey, token.AccessToken)
 
 			if tc.secondRequestID != "" {
 				md.Append(key.RequestID, tc.secondRequestID)

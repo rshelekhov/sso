@@ -32,7 +32,7 @@ func TestRefreshHappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respReg.GetTokenData())
 
-	// Get refresh token
+	// Get refresh jwtoken
 	refreshToken := respReg.GetTokenData().GetRefreshToken()
 	require.NotEmpty(t, refreshToken)
 
@@ -81,7 +81,7 @@ func TestRefresh_FailCases(t *testing.T) {
 		expectedErr  error
 	}{
 		{
-			name:         "Refresh with empty refresh token",
+			name:         "Refresh with empty refresh jwtoken",
 			appID:        appID,
 			userAgent:    userAgent,
 			ip:           ip,

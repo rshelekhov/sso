@@ -297,7 +297,7 @@ func (s *AuthStorage) DeleteRefreshToken(ctx context.Context, refreshToken strin
 	const method = "user.storage.DeleteRefreshToken"
 
 	if err := s.Queries.DeleteRefreshTokenFromSession(ctx, refreshToken); err != nil {
-		return fmt.Errorf("%s: failed to delete refresh token: %w", method, err)
+		return fmt.Errorf("%s: failed to delete refresh jwtoken: %w", method, err)
 	}
 
 	return nil

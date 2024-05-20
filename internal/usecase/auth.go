@@ -10,7 +10,7 @@ import (
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/rshelekhov/sso/internal/lib/grpc/interceptors/requestid"
 	"github.com/rshelekhov/sso/internal/lib/jwt"
-	"github.com/rshelekhov/sso/internal/lib/jwt/token"
+	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
@@ -22,14 +22,14 @@ import (
 type AuthUsecase struct {
 	log     *slog.Logger
 	storage port.AuthStorage
-	ts      *token.Service
+	ts      *jwtoken.Service
 }
 
 // NewAuthUsecase returns a new instance of the AuthUsecase usecase
 func NewAuthUsecase(
 	log *slog.Logger,
 	storage port.AuthStorage,
-	ts *token.Service,
+	ts *jwtoken.Service,
 ) *AuthUsecase {
 	return &AuthUsecase{
 		log:     log,
@@ -131,7 +131,7 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, passw
 	return nil
 }
 
-// RegisterNewUser creates new user in the system and returns token
+// RegisterNewUser creates new user in the system and returns jwtoken
 //
 // If user with given email already exists, it will return an error
 func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserRequestData) (model.TokenData, error) {
@@ -226,7 +226,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 
 // TODO: Move sessions from Postgres to Redis
 
-// CreateUserSession creates new user session in the system and returns token
+// CreateUserSession creates new user session in the system and returns jwtoken
 func (u *AuthUsecase) CreateUserSession(
 	ctx context.Context,
 	log *slog.Logger,

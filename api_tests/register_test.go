@@ -9,6 +9,7 @@ import (
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/lib/constants/key"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
+	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
@@ -39,7 +40,7 @@ func TestRegisterHappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respReg.GetTokenData())
 
-	// Get token
+	// Get jwtoken
 	token := respReg.GetTokenData()
 	require.NotEmpty(t, token)
 
@@ -50,9 +51,9 @@ func TestRegisterHappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, jwks.GetJwks())
 
-	// Parse token
+	// Parse jwtoken
 	tokenParsed, err := jwt.Parse(token.GetAccessToken(), func(token *jwt.Token) (interface{}, error) {
-		kidRaw, ok := token.Header[token.Kid]
+		kidRaw, ok := token.Header[jwtoken.Kid]
 		require.True(t, ok)
 
 		kid, ok := kidRaw.(string)
@@ -73,7 +74,7 @@ func TestRegisterHappyPath(t *testing.T) {
 			E: int(new(big.Int).SetBytes(e).Int64()),
 		}
 
-		// Parse the token using the public key
+		// Parse the jwtoken using the public key
 		_, ok = token.Method.(*jwt.SigningMethodRSA)
 		require.True(t, ok)
 
@@ -94,7 +95,7 @@ func TestRegisterHappyPath(t *testing.T) {
 
 	const deltaSeconds = 1
 
-	// Check if exp of token is in correct range, ttl get from st.Cfg.TokenTTL
+	// Check if exp of jwtoken is in correct range, ttl get from st.Cfg.TokenTTL
 	assert.InDelta(t, float64(loginTime.Add(st.Cfg.JWTAuth.AccessTokenTTL).Unix()), claims[key.ExpirationAt].(float64), deltaSeconds)
 }
 
@@ -266,12 +267,12 @@ func TestRegisterUserSoftDeleted(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respReg.GetTokenData())
 
-	// Get token and place it in metadata
+	// Get jwtoken and place it in metadata
 	token := respReg.GetTokenData()
 	require.NotEmpty(t, token)
 	require.NotEmpty(t, token.AccessToken)
 
-	md := metadata.Pairs(token.AccessTokenKey, token.AccessToken)
+	md := metadata.Pairs(jwtoken.AccessTokenKey, token.AccessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)
