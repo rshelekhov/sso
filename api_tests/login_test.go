@@ -65,7 +65,7 @@ func TestLoginHappyPath(t *testing.T) {
 
 	// Parse token
 	tokenParsed, err := jwt.Parse(token.GetAccessToken(), func(token *jwt.Token) (interface{}, error) {
-		kidRaw, ok := token.Header[key.Kid]
+		kidRaw, ok := token.Header[token.Kid]
 		require.True(t, ok)
 
 		kid, ok := kidRaw.(string)

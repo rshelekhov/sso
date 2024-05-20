@@ -64,7 +64,7 @@ func TestRequestIDHappyPath(t *testing.T) {
 			require.NotEmpty(t, token)
 			require.NotEmpty(t, token.AccessToken)
 
-			md = metadata.Pairs(key.Token, token.AccessToken)
+			md = metadata.Pairs(token.AccessTokenKey, token.AccessToken)
 
 			if tc.secondRequestID != "" {
 				md.Append(key.RequestID, tc.secondRequestID)

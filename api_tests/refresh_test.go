@@ -49,7 +49,7 @@ func TestRefreshHappyPath(t *testing.T) {
 	require.NotEmpty(t, respRefresh.GetTokenData())
 }
 
-func TestRefreshFailCases(t *testing.T) {
+func TestRefresh_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for request
@@ -70,74 +70,70 @@ func TestRefreshFailCases(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, respReg.GetTokenData())
+	require.NotEmpty(t, respReg.GetTokenData().GetRefreshToken())
 
 	tests := []struct {
-		name        string
-		appID       int32
-		userAgent   string
-		ip          string
-		expectedErr error
+		name         string
+		appID        int32
+		userAgent    string
+		ip           string
+		refreshToken string
+		expectedErr  error
 	}{
 		{
-			name:        "Refresh with empty refresh token",
-			appID:       appID,
-			userAgent:   userAgent,
-			ip:          ip,
-			expectedErr: le.ErrRefreshTokenIsRequired,
+			name:         "Refresh with empty refresh token",
+			appID:        appID,
+			userAgent:    userAgent,
+			ip:           ip,
+			refreshToken: "",
+			expectedErr:  le.ErrRefreshTokenIsRequired,
 		},
 		{
-			name:        "Refresh with empty appID",
-			appID:       emptyAppID,
-			userAgent:   userAgent,
-			ip:          ip,
-			expectedErr: le.ErrAppIDIsRequired,
+			name:         "Refresh with empty appID",
+			appID:        emptyAppID,
+			userAgent:    userAgent,
+			ip:           ip,
+			refreshToken: respReg.GetTokenData().GetRefreshToken(),
+			expectedErr:  le.ErrAppIDIsRequired,
 		},
 		{
-			name:        "Refresh with empty user agent",
-			appID:       appID,
-			userAgent:   "",
-			ip:          ip,
-			expectedErr: le.ErrUserAgentIsRequired,
+			name:         "Refresh with empty user agent",
+			appID:        appID,
+			userAgent:    "",
+			ip:           ip,
+			refreshToken: respReg.GetTokenData().GetRefreshToken(),
+			expectedErr:  le.ErrUserAgentIsRequired,
 		},
 		{
-			name:        "Refresh with empty IP",
-			appID:       appID,
-			userAgent:   userAgent,
-			ip:          "",
-			expectedErr: le.ErrIPIsRequired,
+			name:         "Refresh with empty IP",
+			appID:        appID,
+			userAgent:    userAgent,
+			ip:           "",
+			refreshToken: respReg.GetTokenData().GetRefreshToken(),
+			expectedErr:  le.ErrIPIsRequired,
 		},
 		{
-			name:        "Refresh when session not found",
-			appID:       appID,
-			userAgent:   userAgent,
-			ip:          ip,
-			expectedErr: le.ErrSessionNotFound,
+			name:         "Refresh when session not found",
+			appID:        appID,
+			userAgent:    userAgent,
+			ip:           ip,
+			refreshToken: ksuid.New().String(),
+			expectedErr:  le.ErrSessionNotFound,
 		},
 		{
-			name:        "Refresh when device not found",
-			appID:       appID,
-			userAgent:   gofakeit.UserAgent(),
-			ip:          ip,
-			expectedErr: le.ErrUserDeviceNotFound,
+			name:         "Refresh when device not found",
+			appID:        appID,
+			userAgent:    gofakeit.UserAgent(),
+			ip:           ip,
+			refreshToken: respReg.GetTokenData().GetRefreshToken(),
+			expectedErr:  le.ErrUserDeviceNotFound,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var refreshToken string
-
-			// Get refresh token
-			if tt.name == "Refresh with empty refresh token" {
-				refreshToken = ""
-			} else if tt.name == "Refresh when session not found" {
-				refreshToken = ksuid.New().String()
-			} else {
-				refreshToken = respReg.GetTokenData().GetRefreshToken()
-				require.NotEmpty(t, refreshToken)
-			}
-
 			// Refresh tokens
 			_, err = st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
-				RefreshToken: refreshToken,
+				RefreshToken: tt.refreshToken,
 				AppId:        tt.appID,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: tt.userAgent,

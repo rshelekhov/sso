@@ -25,7 +25,15 @@ func TestNewAccessTokenHappyPath(t *testing.T) {
 	ts := &Service{
 		KeysPath: keysPath,
 	}
-	token, err := ts.NewAccessToken(appID, nil)
+
+	keyID, err := ts.GetKeyID(appID)
+	if err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
+	require.NotEmpty(t, keyID)
+	require.NoError(t, err)
+
+	token, err := ts.NewAccessToken(appID, keyID, nil)
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}
@@ -60,7 +68,10 @@ func TestNewAccessTokenFailCases(t *testing.T) {
 			ts := &Service{
 				KeysPath: tt.keysPath,
 			}
-			token, err := ts.NewAccessToken(tt.appID, nil)
+
+			keyID, _ := ts.GetKeyID(appID)
+
+			token, err := ts.NewAccessToken(tt.appID, keyID, nil)
 			if err == nil {
 				t.Error("Expected an error, but got nil")
 			}
@@ -142,13 +153,20 @@ func TestGetUserIDHappyPath(t *testing.T) {
 		key.UserID: userID,
 	}
 
-	token, err := ts.NewAccessToken(appID, claims)
+	keyID, err := ts.GetKeyID(appID)
+	if err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
+	require.NotEmpty(t, keyID)
+	require.NoError(t, err)
+
+	token, err := ts.NewAccessToken(appID, keyID, claims)
 	if err != nil {
 		t.Errorf("Expected no error, but got %v", err)
 	}
 	require.NotEmpty(t, token)
 
-	md := metadata.Pairs(key.Token, token)
+	md := metadata.Pairs(AccessTokenKey, token)
 
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 
@@ -219,7 +237,14 @@ func TestGetUserIDFailCases(t *testing.T) {
 					tt.key: userID,
 				}
 
-				token, err := ts.NewAccessToken(appID, claims)
+				keyID, err := ts.GetKeyID(appID)
+				if err != nil {
+					t.Errorf("Expected no error, but got %v", err)
+				}
+				require.NotEmpty(t, keyID)
+				require.NoError(t, err)
+
+				token, err := ts.NewAccessToken(appID, keyID, claims)
 				if err != nil {
 					t.Errorf("Expected no error, but got %v", err)
 				}
@@ -228,7 +253,7 @@ func TestGetUserIDFailCases(t *testing.T) {
 
 			var md metadata.MD
 			if tt.md {
-				md = metadata.Pairs(key.Token, token)
+				md = metadata.Pairs(AccessTokenKey, token)
 			}
 
 			ctx := metadata.NewIncomingContext(context.Background(), md)
