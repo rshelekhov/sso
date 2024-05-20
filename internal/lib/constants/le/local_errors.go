@@ -62,7 +62,7 @@ const (
 	ErrFailedToGetKeyID              LocalError = "failed to get key id"
 
 	ErrNoMetaDataFoundInCtx        LocalError = "no metadata found in ctx"
-	ErrNoTokenFoundInMetadata      LocalError = "no jwtoken found in metadata"
+	ErrNoTokenFoundInMetadata      LocalError = "no token found in metadata"
 	ErrFailedToParseTokenClaims    LocalError = "failed to parse jwtoken claims"
 	ErrUserIDNotFoundInCtx         LocalError = "user id not found in ctx"
 	ErrFailedToGetRequestIDFromCtx LocalError = "failed to get request id from ctx"
