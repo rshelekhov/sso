@@ -52,7 +52,7 @@ func TestRegisterHappyPath(t *testing.T) {
 
 	// Parse token
 	tokenParsed, err := jwt.Parse(token.GetAccessToken(), func(token *jwt.Token) (interface{}, error) {
-		kidRaw, ok := token.Header[key.Kid]
+		kidRaw, ok := token.Header[token.Kid]
 		require.True(t, ok)
 
 		kid, ok := kidRaw.(string)
@@ -271,7 +271,7 @@ func TestRegisterUserSoftDeleted(t *testing.T) {
 	require.NotEmpty(t, token)
 	require.NotEmpty(t, token.AccessToken)
 
-	md := metadata.Pairs(key.Token, token.AccessToken)
+	md := metadata.Pairs(token.AccessTokenKey, token.AccessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)

@@ -8,11 +8,9 @@ const (
 	Email        = "email"
 	AppID        = "app_id"
 	DeviceID     = "device_id"
-	Kid          = "kid"
 	ExpirationAt = "exp"
 	PasswordHash = "password_hash"
 	UpdatedAt    = "updated_at"
 	Issuer       = "iss"
 	Error        = "error"
-	Token        = "token"
 )

@@ -1,4 +1,4 @@
-package jwtoken
+package token
 
 import (
 	"context"

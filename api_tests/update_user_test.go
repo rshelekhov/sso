@@ -4,7 +4,6 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/constants/key"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
@@ -38,7 +37,7 @@ func TestUpdateUserHappyPath(t *testing.T) {
 	require.NotEmpty(t, token)
 	require.NotEmpty(t, token.AccessToken)
 
-	md := metadata.Pairs(key.Token, token.AccessToken)
+	md := metadata.Pairs(token.AccessTokenKey, token.AccessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -151,7 +150,7 @@ func TestUpdateUserFailCases(t *testing.T) {
 			require.NotEmpty(t, token)
 			require.NotEmpty(t, token.AccessToken)
 
-			md := metadata.Pairs(key.Token, token.AccessToken)
+			md := metadata.Pairs(token.AccessTokenKey, token.AccessToken)
 
 			// Create context for Logout request
 			ctx = metadata.NewOutgoingContext(ctx, md)
