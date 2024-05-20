@@ -1,4 +1,4 @@
-package token
+package jwtoken
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rshelekhov/sso/internal/lib/constants/key"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/segmentio/ksuid"
 	"google.golang.org/grpc/metadata"
@@ -22,6 +21,11 @@ import (
 type ContextKey struct {
 	name string
 }
+
+const (
+	AccessTokenKey = "access_token"
+	Kid            = "kid"
+)
 
 func (c ContextKey) String() string {
 	return c.name
@@ -105,7 +109,7 @@ func (ts *Service) NewAccessToken(appID int32, kid string, additionalClaims map[
 
 	token := jwt.NewWithClaims(ts.Algorithm(), claims)
 
-	token.Header[key.Kid] = kid
+	token.Header[Kid] = kid
 
 	return token.SignedString(privateKey)
 }
@@ -207,7 +211,7 @@ func (ts *Service) GetTokenFromContext(ctx context.Context, appID int32) (*jwt.T
 		return nil, le.ErrNoMetaDataFoundInCtx
 	}
 
-	tokenString := md.Get(key.Token)
+	tokenString := md.Get(AccessTokenKey)
 
 	if len(tokenString) == 0 {
 		return nil, le.ErrNoTokenFoundInMetadata
