@@ -63,13 +63,12 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 	}
 
 	tokenData, err := c.usecase.RegisterNewUser(ctx, userData)
-	if err != nil {
-		if errors.Is(err, le.ErrUserAlreadyExists) {
-			return nil, status.Error(codes.AlreadyExists, le.ErrUserAlreadyExists.Error())
-		}
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
-		}
+	switch {
+	case errors.Is(err, le.ErrUserAlreadyExists):
+		return nil, status.Error(codes.AlreadyExists, le.ErrUserAlreadyExists.Error())
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
+	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
