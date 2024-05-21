@@ -96,7 +96,7 @@ func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (
 	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrUserDeviceNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrUserDeviceNotFound.Error())
+		return nil, status.Error(codes.Internal, le.ErrUserDeviceNotFound.Error())
 	case errors.Is(err, le.ErrFailedToDeleteSession):
 		return nil, status.Error(codes.Internal, le.ErrFailedToDeleteSession.Error())
 	case err != nil:
