@@ -57,6 +57,13 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 		slog.String(key.Email, data.Email),
 	)
 
+	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+			slog.Any(key.AppID, data.AppID),
+		)
+		return model.TokenData{}, err
+	}
+
 	user, err := u.storage.GetUserByEmail(ctx, data.Email, data.AppID)
 	if err != nil {
 		if errors.Is(err, le.ErrUserNotFound) {

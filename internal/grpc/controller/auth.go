@@ -37,6 +37,8 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
 	case errors.Is(err, le.ErrInvalidCredentials):
 		return nil, status.Error(codes.Unauthenticated, le.ErrInvalidCredentials.Error())
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
