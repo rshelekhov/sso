@@ -698,10 +698,10 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 	if data.UpdatedPassword != "" {
 		if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.Password); err != nil {
 			if errors.Is(err, le.ErrPasswordsDoNotMatch) {
-				log.LogAttrs(ctx, slog.LevelError, le.ErrCurrentPasswordDoesNotMatch.Error(),
+				log.LogAttrs(ctx, slog.LevelError, le.ErrCurrentPasswordIsIncorrect.Error(),
 					slog.String(key.UserID, userDataFromDB.ID),
 				)
-				return le.ErrCurrentPasswordDoesNotMatch
+				return le.ErrCurrentPasswordIsIncorrect
 			}
 
 			log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),

@@ -89,12 +89,12 @@ func TestUpdateUserFailCases(t *testing.T) {
 			expectedErr: le.ErrEmailAlreadyTaken,
 		},
 		{
-			name:        "Current password doesn't match",
+			name:        "Current password is incorrect",
 			regEmail:    email,
 			curPassword: randomFakePassword(),
 			updPassword: randomFakePassword(),
 			appID:       appID,
-			expectedErr: le.ErrCurrentPasswordDoesNotMatch,
+			expectedErr: le.ErrCurrentPasswordIsIncorrect,
 		},
 		{
 			name:        "No password changes detected",

@@ -23,7 +23,7 @@ const (
 
 	ErrUserAlreadyExists              LocalError = "user already exists"
 	ErrPasswordsDoNotMatch            LocalError = "invalid credentials: passwords don't match"
-	ErrCurrentPasswordDoesNotMatch    LocalError = "invalid credentials: current password does not match"
+	ErrCurrentPasswordIsIncorrect     LocalError = "invalid credentials: current password is incorrect"
 	ErrNewPasswordSameAsCurrent       LocalError = "invalid credentials: new password same as current"
 	ErrInvalidCredentials             LocalError = "invalid credentials"
 	ErrEmailAlreadyTaken              LocalError = "email already taken"
