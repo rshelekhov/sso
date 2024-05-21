@@ -617,6 +617,12 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 
 	user, err := u.storage.GetUserByID(ctx, userID, data.AppID)
 	if err != nil {
+		if errors.Is(err, le.ErrUserNotFound) {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrUserNotFound.Error(),
+				slog.String(key.UserID, userID),
+			)
+			return model.User{}, le.ErrUserNotFound
+		}
 		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetUser.Error(),
 			slog.String(key.Error, err.Error()),
 			slog.String(key.UserID, userID),
