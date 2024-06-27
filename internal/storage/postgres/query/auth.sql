@@ -1,5 +1,5 @@
 -- name: CheckAppIDExists :one
-SELECT EXISTS(SELECT 1 FROM users WHERE app_id = $1);
+SELECT EXISTS(SELECT 1 FROM apps WHERE id = $1);
 
 -- name: GetUserStatus :one
 SELECT CASE
@@ -18,8 +18,8 @@ WHEN EXISTS(
 ELSE 'not_found' END AS status;
 
 -- name: InsertUser :exec
-INSERT INTO users (id, email, password_hash, app_id, updated_at)
-VALUES ($1, $2, $3, $4, $5);
+INSERT INTO users (id, email, password_hash, app_id, created_at,updated_at)
+VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: GetUserByEmail :one
 SELECT id, email, app_id, updated_at

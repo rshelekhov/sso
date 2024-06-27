@@ -116,6 +116,7 @@ func (s *AuthStorage) replaceSoftDeletedUser(ctx context.Context, user model.Use
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
 		AppID:        user.AppID,
+		CreatedAt:    user.CreatedAt,
 		UpdatedAt:    user.UpdatedAt,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to replace soft deleted user: %w", method, err)
@@ -132,6 +133,7 @@ func (s *AuthStorage) insertUser(ctx context.Context, user model.User) error {
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
 		AppID:        user.AppID,
+		CreatedAt:    user.CreatedAt,
 		UpdatedAt:    user.UpdatedAt,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to insert new user: %w", method, err)

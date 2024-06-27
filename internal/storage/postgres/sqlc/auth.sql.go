@@ -13,11 +13,11 @@ import (
 )
 
 const checkAppIDExists = `-- name: CheckAppIDExists :one
-SELECT EXISTS(SELECT 1 FROM users WHERE app_id = $1)
+SELECT EXISTS(SELECT 1 FROM apps WHERE id = $1)
 `
 
-func (q *Queries) CheckAppIDExists(ctx context.Context, appID int32) (bool, error) {
-	row := q.db.QueryRow(ctx, checkAppIDExists, appID)
+func (q *Queries) CheckAppIDExists(ctx context.Context, id int32) (bool, error) {
+	row := q.db.QueryRow(ctx, checkAppIDExists, id)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -266,8 +266,8 @@ func (q *Queries) GetUserStatus(ctx context.Context, email string) (string, erro
 }
 
 const insertUser = `-- name: InsertUser :exec
-INSERT INTO users (id, email, password_hash, app_id, updated_at)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO users (id, email, password_hash, app_id, created_at,updated_at)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type InsertUserParams struct {
@@ -275,6 +275,7 @@ type InsertUserParams struct {
 	Email        string    `db:"email"`
 	PasswordHash string    `db:"password_hash"`
 	AppID        int32     `db:"app_id"`
+	CreatedAt    time.Time `db:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at"`
 }
 
@@ -284,6 +285,7 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 		arg.Email,
 		arg.PasswordHash,
 		arg.AppID,
+		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
 	return err

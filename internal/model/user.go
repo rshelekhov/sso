@@ -8,6 +8,7 @@ type (
 		Email        string
 		PasswordHash string
 		AppID        int32
+		CreatedAt    time.Time
 		UpdatedAt    time.Time
 		DeletedAt    time.Time
 	}

@@ -175,12 +175,15 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
+	currentTime := time.Now()
+
 	user := model.User{
 		ID:           ksuid.New().String(),
 		Email:        data.Email,
 		PasswordHash: hash,
 		AppID:        data.AppID,
-		UpdatedAt:    time.Now(),
+		CreatedAt:    currentTime,
+		UpdatedAt:    currentTime,
 	}
 
 	log.Info("user data before passing into storage",
