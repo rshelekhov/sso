@@ -4,7 +4,7 @@ import (
 	"github.com/rshelekhov/sso/internal/app"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/constants/key"
-	"github.com/rshelekhov/sso/internal/lib/jwt/token"
+	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"log/slog"
 	"os"
@@ -24,7 +24,7 @@ func main() {
 	log.Info("starting application")
 	log.Debug("logger debug mode enabled")
 
-	tokenAuth := token.NewService(
+	tokenAuth := jwtoken.NewService(
 		cfg.JWTAuth.Issuer,
 		cfg.JWTAuth.SigningMethod,
 		cfg.JWTAuth.KeysPath,

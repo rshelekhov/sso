@@ -1,4 +1,4 @@
-package token
+package jwtoken
 
 import (
 	"context"
@@ -208,7 +208,7 @@ func TestGetUserIDFailCases(t *testing.T) {
 			md:    true,
 		},
 		{
-			name:  "Empty token",
+			name:  "Empty jwtoken",
 			appID: appID,
 			key:   key.UserID,
 			token: false,

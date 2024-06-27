@@ -5,6 +5,7 @@ import (
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
+	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 	"testing"
@@ -32,12 +33,12 @@ func TestDeleteUserHappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respReg.GetTokenData())
 
-	// Get token and place it in metadata
+	// Get jwtoken and place it in metadata
 	token := respReg.GetTokenData()
 	require.NotEmpty(t, token)
 	require.NotEmpty(t, token.AccessToken)
 
-	md := metadata.Pairs(token.AccessTokenKey, token.AccessToken)
+	md := metadata.Pairs(jwtoken.AccessTokenKey, token.AccessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -112,12 +113,12 @@ func TestDeleteUserFailCases(t *testing.T) {
 			require.NoError(t, err)
 			require.NotEmpty(t, resp.GetTokenData())
 
-			// Get token and place it in metadata
+			// Get jwtoken and place it in metadata
 			token := resp.GetTokenData()
 			require.NotEmpty(t, token)
 			require.NotEmpty(t, token.AccessToken)
 
-			md := metadata.Pairs(token.AccessTokenKey, token.AccessToken)
+			md := metadata.Pairs(jwtoken.AccessTokenKey, token.AccessToken)
 
 			// Create context for Logout request
 			ctx = metadata.NewOutgoingContext(ctx, md)

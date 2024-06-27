@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users
     email         character varying NOT NULL,
     password_hash character varying NOT NULL,
     app_id        int NOT NULL,
+    created_at    timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at    timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     deleted_at    timestamp WITH TIME ZONE DEFAULT NULL
 );

@@ -37,6 +37,8 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
 	case errors.Is(err, le.ErrInvalidCredentials):
 		return nil, status.Error(codes.Unauthenticated, le.ErrInvalidCredentials.Error())
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
@@ -61,13 +63,12 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 	}
 
 	tokenData, err := c.usecase.RegisterNewUser(ctx, userData)
-	if err != nil {
-		if errors.Is(err, le.ErrUserAlreadyExists) {
-			return nil, status.Error(codes.AlreadyExists, le.ErrUserAlreadyExists.Error())
-		}
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			return nil, le.ErrAppIDDoesNotExist
-		}
+	switch {
+	case errors.Is(err, le.ErrUserAlreadyExists):
+		return nil, status.Error(codes.AlreadyExists, le.ErrUserAlreadyExists.Error())
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
+	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
@@ -95,7 +96,7 @@ func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (
 	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrUserDeviceNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrUserDeviceNotFound.Error())
+		return nil, status.Error(codes.Internal, le.ErrUserDeviceNotFound.Error())
 	case errors.Is(err, le.ErrFailedToDeleteSession):
 		return nil, status.Error(codes.Internal, le.ErrFailedToDeleteSession.Error())
 	case err != nil:
@@ -208,8 +209,8 @@ func (c *authController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRe
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrEmailAlreadyTaken):
 		return nil, status.Error(codes.AlreadyExists, le.ErrEmailAlreadyTaken.Error())
-	case errors.Is(err, le.ErrCurrentPasswordDoesNotMatch):
-		return nil, status.Error(codes.InvalidArgument, le.ErrCurrentPasswordDoesNotMatch.Error())
+	case errors.Is(err, le.ErrCurrentPasswordIsIncorrect):
+		return nil, status.Error(codes.InvalidArgument, le.ErrCurrentPasswordIsIncorrect.Error())
 	case errors.Is(err, le.ErrNoEmailChangesDetected):
 		return nil, status.Error(codes.InvalidArgument, le.ErrNoEmailChangesDetected.Error())
 	case errors.Is(err, le.ErrNoPasswordChangesDetected):
@@ -234,7 +235,7 @@ func (c *authController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRe
 	case errors.Is(err, le.ErrUserNotFound):
 		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
 	case errors.Is(err, le.ErrUserDeviceNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrUserDeviceNotFound.Error())
+		return nil, status.Error(codes.Internal, le.ErrUserDeviceNotFound.Error())
 	case errors.Is(err, le.ErrFailedToDeleteSession):
 		return nil, status.Error(codes.Internal, le.ErrFailedToDeleteSession.Error())
 	case err != nil:

@@ -10,7 +10,7 @@ import (
 	"github.com/rshelekhov/sso/internal/lib/constants/le"
 	"github.com/rshelekhov/sso/internal/lib/grpc/interceptors/requestid"
 	"github.com/rshelekhov/sso/internal/lib/jwt"
-	"github.com/rshelekhov/sso/internal/lib/jwt/token"
+	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
@@ -22,14 +22,14 @@ import (
 type AuthUsecase struct {
 	log     *slog.Logger
 	storage port.AuthStorage
-	ts      *token.Service
+	ts      *jwtoken.Service
 }
 
 // NewAuthUsecase returns a new instance of the AuthUsecase usecase
 func NewAuthUsecase(
 	log *slog.Logger,
 	storage port.AuthStorage,
-	ts *token.Service,
+	ts *jwtoken.Service,
 ) *AuthUsecase {
 	return &AuthUsecase{
 		log:     log,
@@ -56,6 +56,13 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 		slog.String(key.Method, method),
 		slog.String(key.Email, data.Email),
 	)
+
+	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+			slog.Any(key.AppID, data.AppID),
+		)
+		return model.TokenData{}, err
+	}
 
 	user, err := u.storage.GetUserByEmail(ctx, data.Email, data.AppID)
 	if err != nil {
@@ -131,7 +138,7 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, passw
 	return nil
 }
 
-// RegisterNewUser creates new user in the system and returns token
+// RegisterNewUser creates new user in the system and returns jwtoken
 //
 // If user with given email already exists, it will return an error
 func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserRequestData) (model.TokenData, error) {
@@ -168,12 +175,15 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
+	currentTime := time.Now()
+
 	user := model.User{
 		ID:           ksuid.New().String(),
 		Email:        data.Email,
 		PasswordHash: hash,
 		AppID:        data.AppID,
-		UpdatedAt:    time.Now(),
+		CreatedAt:    currentTime,
+		UpdatedAt:    currentTime,
 	}
 
 	log.Info("user data before passing into storage",
@@ -226,7 +236,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 
 // TODO: Move sessions from Postgres to Redis
 
-// CreateUserSession creates new user session in the system and returns token
+// CreateUserSession creates new user session in the system and returns jwtoken
 func (u *AuthUsecase) CreateUserSession(
 	ctx context.Context,
 	log *slog.Logger,
@@ -617,6 +627,12 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 
 	user, err := u.storage.GetUserByID(ctx, userID, data.AppID)
 	if err != nil {
+		if errors.Is(err, le.ErrUserNotFound) {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrUserNotFound.Error(),
+				slog.String(key.UserID, userID),
+			)
+			return model.User{}, le.ErrUserNotFound
+		}
 		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetUser.Error(),
 			slog.String(key.Error, err.Error()),
 			slog.String(key.UserID, userID),
@@ -685,10 +701,10 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 	if data.UpdatedPassword != "" {
 		if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.Password); err != nil {
 			if errors.Is(err, le.ErrPasswordsDoNotMatch) {
-				log.LogAttrs(ctx, slog.LevelError, le.ErrCurrentPasswordDoesNotMatch.Error(),
+				log.LogAttrs(ctx, slog.LevelError, le.ErrCurrentPasswordIsIncorrect.Error(),
 					slog.String(key.UserID, userDataFromDB.ID),
 				)
-				return le.ErrCurrentPasswordDoesNotMatch
+				return le.ErrCurrentPasswordIsIncorrect
 			}
 
 			log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
