@@ -4,7 +4,7 @@ import "time"
 
 type Session struct {
 	UserID       string
-	AppID        int32
+	AppID        string
 	DeviceID     string
 	RefreshToken string
 	LastLoginAt  time.Time

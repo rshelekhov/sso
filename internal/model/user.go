@@ -7,7 +7,7 @@ type (
 		ID           string
 		Email        string
 		PasswordHash string
-		AppID        int32
+		AppID        string
 		CreatedAt    time.Time
 		UpdatedAt    time.Time
 		DeletedAt    time.Time
@@ -17,12 +17,12 @@ type (
 		Email           string
 		Password        string
 		UpdatedPassword string
-		AppID           int32
+		AppID           string
 		UserDevice      UserDeviceRequestData
 	}
 
 	LogoutRequestData struct {
-		AppID      int
+		AppID      string
 		UserDevice UserDeviceRequestData
 	}
 )

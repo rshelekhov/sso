@@ -6,7 +6,7 @@ type (
 	UserDevice struct {
 		ID            string    `db:"id"`
 		UserID        string    `db:"user_id"`
-		AppID         int32     `db:"app_id"`
+		AppID         string    `db:"app_id"`
 		UserAgent     string    `db:"user_agent"`
 		IP            string    `db:"ip"`
 		Detached      bool      `db:"detached"`
