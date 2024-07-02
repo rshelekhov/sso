@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS refresh_sessions
     app_id        character varying NOT NULL,
     device_id     character varying NOT NULL,
     refresh_token character varying NOT NULL,
-    last_login_at timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
+    last_visited_at timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     expires_at    timestamp WITH TIME ZONE NOT NULL
 );
 
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS user_devices
     user_agent      character varying NOT NULL,
     ip              character varying NOT NULL,
     detached        boolean NOT NULL,
-    last_login_at   timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
+    last_visited_at   timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     detached_at     timestamp WITH TIME ZONE DEFAULT NULL
 );
 
