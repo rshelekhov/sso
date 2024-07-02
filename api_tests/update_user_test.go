@@ -4,7 +4,7 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/constants/le"
+	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"

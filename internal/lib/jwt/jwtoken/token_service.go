@@ -10,7 +10,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rshelekhov/sso/internal/lib/constants/le"
+	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/segmentio/ksuid"
 	"google.golang.org/grpc/metadata"
 	"os"

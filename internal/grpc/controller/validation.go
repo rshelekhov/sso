@@ -2,7 +2,7 @@ package controller
 
 import (
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/internal/lib/constants/le"
+	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/model"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

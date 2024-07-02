@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/rshelekhov/sso/internal/app"
 	"github.com/rshelekhov/sso/internal/config"
-	"github.com/rshelekhov/sso/internal/lib/constants/key"
+	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"log/slog"

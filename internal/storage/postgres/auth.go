@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rshelekhov/sso/internal/lib/constants/le"
+	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/rshelekhov/sso/internal/storage/postgres/sqlc"
