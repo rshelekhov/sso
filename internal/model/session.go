@@ -3,12 +3,12 @@ package model
 import "time"
 
 type Session struct {
-	UserID       string
-	AppID        string
-	DeviceID     string
-	RefreshToken string
-	LastLoginAt  time.Time
-	ExpiresAt    time.Time
+	UserID          string
+	AppID           string
+	DeviceID        string
+	RefreshToken    string
+	LatestVisitedAt time.Time
+	ExpiresAt       time.Time
 }
 
 func (s Session) IsExpired() bool {
