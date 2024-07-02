@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users
     id            character varying PRIMARY KEY,
     email         character varying NOT NULL,
     password_hash character varying NOT NULL,
-    app_id        int NOT NULL,
+    app_id        character varying NOT NULL,
     created_at    timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at    timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     deleted_at    timestamp WITH TIME ZONE DEFAULT NULL
@@ -13,7 +13,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_active_users ON users (email) WHERE delete
 
 CREATE TABLE IF NOT EXISTS apps
 (
-    id       int PRIMARY KEY,
+    id       character varying PRIMARY KEY,
     name     character varying NOT NULL UNIQUE
 );
 
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS refresh_sessions
 (
     id            SERIAL PRIMARY KEY,
     user_id       character varying NOT NULL,
-    app_id        int NOT NULL,
+    app_id        character varying NOT NULL,
     device_id     character varying NOT NULL,
     refresh_token character varying NOT NULL,
     last_login_at timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS user_devices
 (
     id              character varying PRIMARY KEY,
     user_id         character varying NOT NULL,
-    app_id          int NOT NULL,
+    app_id          character varying NOT NULL,
     user_agent      character varying NOT NULL,
     ip              character varying NOT NULL,
     detached        boolean NOT NULL,
