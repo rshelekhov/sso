@@ -16,7 +16,7 @@ const checkAppIDExists = `-- name: CheckAppIDExists :one
 SELECT EXISTS(SELECT 1 FROM apps WHERE id = $1)
 `
 
-func (q *Queries) CheckAppIDExists(ctx context.Context, id int32) (bool, error) {
+func (q *Queries) CheckAppIDExists(ctx context.Context, id string) (bool, error) {
 	row := q.db.QueryRow(ctx, checkAppIDExists, id)
 	var exists bool
 	err := row.Scan(&exists)
@@ -24,17 +24,17 @@ func (q *Queries) CheckAppIDExists(ctx context.Context, id int32) (bool, error) 
 }
 
 const createUserSession = `-- name: CreateUserSession :exec
-INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, last_login_at, expires_at)
+INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, last_visited_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type CreateUserSessionParams struct {
-	UserID       string    `db:"user_id"`
-	AppID        int32     `db:"app_id"`
-	DeviceID     string    `db:"device_id"`
-	RefreshToken string    `db:"refresh_token"`
-	LastLoginAt  time.Time `db:"last_login_at"`
-	ExpiresAt    time.Time `db:"expires_at"`
+	UserID        string    `db:"user_id"`
+	AppID         string    `db:"app_id"`
+	DeviceID      string    `db:"device_id"`
+	RefreshToken  string    `db:"refresh_token"`
+	LastVisitedAt time.Time `db:"last_visited_at"`
+	ExpiresAt     time.Time `db:"expires_at"`
 }
 
 func (q *Queries) CreateUserSession(ctx context.Context, arg CreateUserSessionParams) error {
@@ -43,7 +43,7 @@ func (q *Queries) CreateUserSession(ctx context.Context, arg CreateUserSessionPa
 		arg.AppID,
 		arg.DeviceID,
 		arg.RefreshToken,
-		arg.LastLoginAt,
+		arg.LastVisitedAt,
 		arg.ExpiresAt,
 	)
 	return err
@@ -68,7 +68,7 @@ WHERE user_id = $1
 
 type DeleteSessionParams struct {
 	UserID   string `db:"user_id"`
-	AppID    int32  `db:"app_id"`
+	AppID    string `db:"app_id"`
 	DeviceID string `db:"device_id"`
 }
 
@@ -88,7 +88,7 @@ WHERE id = $2
 type DeleteUserParams struct {
 	DeletedAt pgtype.Timestamptz `db:"deleted_at"`
 	ID        string             `db:"id"`
-	AppID     int32              `db:"app_id"`
+	AppID     string             `db:"app_id"`
 }
 
 func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
@@ -97,17 +97,17 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
 }
 
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
-SELECT user_id, app_id, device_id, last_login_at, expires_at
+SELECT user_id, app_id, device_id, last_visited_at, expires_at
 FROM refresh_sessions
 WHERE refresh_token = $1
 `
 
 type GetSessionByRefreshTokenRow struct {
-	UserID      string    `db:"user_id"`
-	AppID       int32     `db:"app_id"`
-	DeviceID    string    `db:"device_id"`
-	LastLoginAt time.Time `db:"last_login_at"`
-	ExpiresAt   time.Time `db:"expires_at"`
+	UserID        string    `db:"user_id"`
+	AppID         string    `db:"app_id"`
+	DeviceID      string    `db:"device_id"`
+	LastVisitedAt time.Time `db:"last_visited_at"`
+	ExpiresAt     time.Time `db:"expires_at"`
 }
 
 func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (GetSessionByRefreshTokenRow, error) {
@@ -117,7 +117,7 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 		&i.UserID,
 		&i.AppID,
 		&i.DeviceID,
-		&i.LastLoginAt,
+		&i.LastVisitedAt,
 		&i.ExpiresAt,
 	)
 	return i, err
@@ -133,13 +133,13 @@ WHERE email = $1
 
 type GetUserByEmailParams struct {
 	Email string `db:"email"`
-	AppID int32  `db:"app_id"`
+	AppID string `db:"app_id"`
 }
 
 type GetUserByEmailRow struct {
 	ID        string    `db:"id"`
 	Email     string    `db:"email"`
-	AppID     int32     `db:"app_id"`
+	AppID     string    `db:"app_id"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
@@ -165,13 +165,13 @@ WHERE id = $1
 
 type GetUserByIDParams struct {
 	ID    string `db:"id"`
-	AppID int32  `db:"app_id"`
+	AppID string `db:"app_id"`
 }
 
 type GetUserByIDRow struct {
 	ID        string    `db:"id"`
 	Email     string    `db:"email"`
-	AppID     int32     `db:"app_id"`
+	AppID     string    `db:"app_id"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
@@ -197,14 +197,14 @@ WHERE id = $1
 
 type GetUserDataParams struct {
 	ID    string `db:"id"`
-	AppID int32  `db:"app_id"`
+	AppID string `db:"app_id"`
 }
 
 type GetUserDataRow struct {
 	ID           string    `db:"id"`
 	Email        string    `db:"email"`
 	PasswordHash string    `db:"password_hash"`
-	AppID        int32     `db:"app_id"`
+	AppID        string    `db:"app_id"`
 	UpdatedAt    time.Time `db:"updated_at"`
 }
 
@@ -274,7 +274,7 @@ type InsertUserParams struct {
 	ID           string    `db:"id"`
 	Email        string    `db:"email"`
 	PasswordHash string    `db:"password_hash"`
-	AppID        int32     `db:"app_id"`
+	AppID        string    `db:"app_id"`
 	CreatedAt    time.Time `db:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at"`
 }
@@ -292,18 +292,18 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 }
 
 const registerDevice = `-- name: RegisterDevice :exec
-INSERT INTO user_devices (id, user_id, app_id, user_agent, ip, detached, last_login_at)
+INSERT INTO user_devices (id, user_id, app_id, user_agent, ip, detached, last_visited_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type RegisterDeviceParams struct {
-	ID          string    `db:"id"`
-	UserID      string    `db:"user_id"`
-	AppID       int32     `db:"app_id"`
-	UserAgent   string    `db:"user_agent"`
-	Ip          string    `db:"ip"`
-	Detached    bool      `db:"detached"`
-	LastLoginAt time.Time `db:"last_login_at"`
+	ID            string    `db:"id"`
+	UserID        string    `db:"user_id"`
+	AppID         string    `db:"app_id"`
+	UserAgent     string    `db:"user_agent"`
+	Ip            string    `db:"ip"`
+	Detached      bool      `db:"detached"`
+	LastVisitedAt time.Time `db:"last_visited_at"`
 }
 
 func (q *Queries) RegisterDevice(ctx context.Context, arg RegisterDeviceParams) error {
@@ -314,25 +314,25 @@ func (q *Queries) RegisterDevice(ctx context.Context, arg RegisterDeviceParams) 
 		arg.UserAgent,
 		arg.Ip,
 		arg.Detached,
-		arg.LastLoginAt,
+		arg.LastVisitedAt,
 	)
 	return err
 }
 
 const updateLatestLoginAt = `-- name: UpdateLatestLoginAt :exec
 UPDATE user_devices
-SET last_login_at = $1
+SET last_visited_at = $1
 WHERE id = $2
   AND app_id = $3
 `
 
 type UpdateLatestLoginAtParams struct {
-	LastLoginAt time.Time `db:"last_login_at"`
-	ID          string    `db:"id"`
-	AppID       int32     `db:"app_id"`
+	LastVisitedAt time.Time `db:"last_visited_at"`
+	ID            string    `db:"id"`
+	AppID         string    `db:"app_id"`
 }
 
 func (q *Queries) UpdateLatestLoginAt(ctx context.Context, arg UpdateLatestLoginAtParams) error {
-	_, err := q.db.Exec(ctx, updateLatestLoginAt, arg.LastLoginAt, arg.ID, arg.AppID)
+	_, err := q.db.Exec(ctx, updateLatestLoginAt, arg.LastVisitedAt, arg.ID, arg.AppID)
 	return err
 }
