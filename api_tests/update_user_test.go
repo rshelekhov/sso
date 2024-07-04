@@ -69,7 +69,7 @@ func TestUpdateUserFailCases(t *testing.T) {
 		updEmail    string
 		curPassword string
 		updPassword string
-		appID       int32
+		appID       string
 		expectedErr error
 	}{
 		{

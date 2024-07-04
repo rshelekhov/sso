@@ -48,7 +48,7 @@ func (s *AuthStorage) Transaction(ctx context.Context, fn func(storage port.Auth
 	return err
 }
 
-func (s *AuthStorage) checkAppIDExists(ctx context.Context, appID int32) (bool, error) {
+func (s *AuthStorage) checkAppIDExists(ctx context.Context, appID string) (bool, error) {
 	const method = "user.storage.CheckAppIDExists"
 
 	exists, err := s.Queries.CheckAppIDExists(ctx, appID)
@@ -58,7 +58,7 @@ func (s *AuthStorage) checkAppIDExists(ctx context.Context, appID int32) (bool, 
 	return exists, nil
 }
 
-func (s *AuthStorage) ValidateAppID(ctx context.Context, appID int32) error {
+func (s *AuthStorage) ValidateAppID(ctx context.Context, appID string) error {
 	appIDExists, err := s.checkAppIDExists(ctx, appID)
 	if err != nil {
 		return err
@@ -141,7 +141,7 @@ func (s *AuthStorage) insertUser(ctx context.Context, user model.User) error {
 	return nil
 }
 
-func (s *AuthStorage) GetUserByEmail(ctx context.Context, email string, appID int32) (model.User, error) {
+func (s *AuthStorage) GetUserByEmail(ctx context.Context, email, appID string) (model.User, error) {
 	const method = "user.storage.GetUserByEmail"
 
 	user, err := s.Queries.GetUserByEmail(ctx, sqlc.GetUserByEmailParams{
@@ -163,7 +163,7 @@ func (s *AuthStorage) GetUserByEmail(ctx context.Context, email string, appID in
 	}, nil
 }
 
-func (s *AuthStorage) GetUserByID(ctx context.Context, userID string, appID int32) (model.User, error) {
+func (s *AuthStorage) GetUserByID(ctx context.Context, userID, appID string) (model.User, error) {
 	const method = "user.storage.GetUserByID"
 
 	user, err := s.Queries.GetUserByID(ctx, sqlc.GetUserByIDParams{
@@ -184,7 +184,7 @@ func (s *AuthStorage) GetUserByID(ctx context.Context, userID string, appID int3
 	}, nil
 }
 
-func (s *AuthStorage) GetUserData(ctx context.Context, userID string, appID int32) (model.User, error) {
+func (s *AuthStorage) GetUserData(ctx context.Context, userID, appID string) (model.User, error) {
 	const method = "user.storage.GetUserData"
 
 	user, err := s.Queries.GetUserData(ctx, sqlc.GetUserDataParams{
@@ -225,13 +225,13 @@ func (s *AuthStorage) GetUserDeviceID(ctx context.Context, userID, userAgent str
 	return deviceID, nil
 }
 
-func (s *AuthStorage) UpdateLastLoginAt(ctx context.Context, deviceID string, appID int32, latestLoginAt time.Time) error {
-	const method = "user.storage.UpdateLastLoginAt"
+func (s *AuthStorage) UpdateLatestVisitedAt(ctx context.Context, deviceID, appID string, latestVisitedAt time.Time) error {
+	const method = "user.storage.UpdateLatestVisitedAt"
 
 	if err := s.Queries.UpdateLatestLoginAt(ctx, sqlc.UpdateLatestLoginAtParams{
-		ID:          deviceID,
-		LastLoginAt: latestLoginAt,
-		AppID:       appID,
+		ID:              deviceID,
+		LatestVisitedAt: latestVisitedAt,
+		AppID:           appID,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to update latest login at: %w", method, err)
 	}
@@ -242,13 +242,13 @@ func (s *AuthStorage) RegisterDevice(ctx context.Context, device model.UserDevic
 	const method = "user.storage.RegisterDevice"
 
 	if err := s.Queries.RegisterDevice(ctx, sqlc.RegisterDeviceParams{
-		ID:          device.ID,
-		UserID:      device.UserID,
-		AppID:       device.AppID,
-		UserAgent:   device.UserAgent,
-		Ip:          device.IP,
-		Detached:    device.Detached,
-		LastLoginAt: device.LastVisitedAt,
+		ID:              device.ID,
+		UserID:          device.UserID,
+		AppID:           device.AppID,
+		UserAgent:       device.UserAgent,
+		Ip:              device.IP,
+		Detached:        device.Detached,
+		LatestVisitedAt: device.LatestVisitedAt,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to register user device: %w", method, err)
 	}
@@ -260,12 +260,12 @@ func (s *AuthStorage) CreateUserSession(ctx context.Context, session model.Sessi
 	const method = "user.storage.CreateUserSession"
 
 	if err := s.Queries.CreateUserSession(ctx, sqlc.CreateUserSessionParams{
-		UserID:       session.UserID,
-		AppID:        session.AppID,
-		DeviceID:     session.DeviceID,
-		RefreshToken: session.RefreshToken,
-		LastLoginAt:  session.LastLoginAt,
-		ExpiresAt:    session.ExpiresAt,
+		UserID:          session.UserID,
+		AppID:           session.AppID,
+		DeviceID:        session.DeviceID,
+		RefreshToken:    session.RefreshToken,
+		LatestVisitedAt: session.LatestVisitedAt,
+		ExpiresAt:       session.ExpiresAt,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to create user session: %w", method, err)
 	}
@@ -286,12 +286,12 @@ func (s *AuthStorage) GetSessionByRefreshToken(ctx context.Context, refreshToken
 	}
 
 	return model.Session{
-		UserID:       session.UserID,
-		AppID:        session.AppID,
-		DeviceID:     session.DeviceID,
-		RefreshToken: refreshToken,
-		LastLoginAt:  session.LastLoginAt,
-		ExpiresAt:    session.ExpiresAt,
+		UserID:          session.UserID,
+		AppID:           session.AppID,
+		DeviceID:        session.DeviceID,
+		RefreshToken:    refreshToken,
+		LatestVisitedAt: session.LatestVisitedAt,
+		ExpiresAt:       session.ExpiresAt,
 	}, nil
 }
 
@@ -305,7 +305,7 @@ func (s *AuthStorage) DeleteRefreshToken(ctx context.Context, refreshToken strin
 	return nil
 }
 
-func (s *AuthStorage) DeleteSession(ctx context.Context, userID, deviceID string, appID int32) error {
+func (s *AuthStorage) DeleteSession(ctx context.Context, userID, deviceID, appID string) error {
 	const method = "user.storage.DeleteSession"
 
 	if err := s.Queries.DeleteSession(ctx, sqlc.DeleteSessionParams{

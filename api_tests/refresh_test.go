@@ -74,7 +74,7 @@ func TestRefresh_FailCases(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		appID        int32
+		appID        string
 		userAgent    string
 		ip           string
 		refreshToken string

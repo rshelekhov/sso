@@ -62,7 +62,7 @@ func TestDeleteUserFailCases(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		appID        int32
+		appID        string
 		userAgentReg string
 		userAgentDel string
 		ipReg        string

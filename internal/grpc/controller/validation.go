@@ -12,7 +12,7 @@ import (
 
 // TODO: return all errors in one place
 
-const emptyValue = 0
+const emptyValue = ""
 
 func validateLoginData(req *ssov1.LoginRequest, data *model.UserRequestData) error {
 	// TODO: add validation with validator

@@ -91,7 +91,7 @@ func TestRegisterHappyPath(t *testing.T) {
 
 	assert.Equal(t, issuer, claims[key.Issuer].(string))
 	assert.Equal(t, email, claims[key.Email].(string))
-	assert.Equal(t, appID, int32(claims[key.AppID].(float64)))
+	assert.Equal(t, appID, claims[key.AppID].(string))
 
 	const deltaSeconds = 1
 
@@ -143,7 +143,7 @@ func TestRegisterFailCases(t *testing.T) {
 		name        string
 		email       string
 		password    string
-		appID       int32
+		appID       string
 		userAgent   string
 		ip          string
 		expectedErr error

@@ -59,7 +59,7 @@ func TestGetUserFailCases(t *testing.T) {
 		name        string
 		email       string
 		password    string
-		appID       int32
+		appID       string
 		userAgent   string
 		ip          string
 		expectedErr error

@@ -186,12 +186,12 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		UpdatedAt:    currentTime,
 	}
 
-	log.Info("user data before passing into storage",
+	log.Debug("user data before passing into storage",
 		slog.String(key.UserID, user.ID),
 		slog.String(key.Email, user.Email),
 		slog.String(key.PasswordHash, user.PasswordHash),
-		slog.Int(key.AppID, int(user.AppID)),
-		slog.Time(key.UpdatedAt, user.UpdatedAt),
+		slog.String(key.AppID, user.AppID),
+		slog.Time(key.CreatedAt, user.CreatedAt),
 	)
 
 	userDevice := model.UserDeviceRequestData{
@@ -304,12 +304,12 @@ func (u *AuthUsecase) CreateUserSession(
 	expiresAt := time.Now().Add(u.ts.RefreshTokenTTL)
 
 	session := model.Session{
-		UserID:       user.ID,
-		AppID:        user.AppID,
-		DeviceID:     deviceID,
-		RefreshToken: refreshToken,
-		LastLoginAt:  lastVisitedAt,
-		ExpiresAt:    expiresAt,
+		UserID:          user.ID,
+		AppID:           user.AppID,
+		DeviceID:        deviceID,
+		RefreshToken:    refreshToken,
+		LatestVisitedAt: lastVisitedAt,
+		ExpiresAt:       expiresAt,
 	}
 
 	if err = u.storage.CreateUserSession(ctx, session); err != nil {
@@ -319,7 +319,7 @@ func (u *AuthUsecase) CreateUserSession(
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	if err = u.updateLastVisitedAt(ctx, deviceID, user.AppID, lastVisitedAt); err != nil {
+	if err = u.updateLatestVisitedAt(ctx, deviceID, user.AppID, lastVisitedAt); err != nil {
 		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToUpdateLastVisitedAt.Error(),
 			slog.String(key.Error, err.Error()),
 		)
@@ -340,7 +340,7 @@ func (u *AuthUsecase) CreateUserSession(
 	return tokenData, nil
 }
 
-func (u *AuthUsecase) getDeviceID(ctx context.Context, userID string, appID int32, userDeviceRequest model.UserDeviceRequestData) (string, error) {
+func (u *AuthUsecase) getDeviceID(ctx context.Context, userID, appID string, userDeviceRequest model.UserDeviceRequestData) (string, error) {
 	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, userDeviceRequest.UserAgent)
 	if err != nil {
 		if errors.Is(err, le.ErrUserDeviceNotFound) {
@@ -352,15 +352,15 @@ func (u *AuthUsecase) getDeviceID(ctx context.Context, userID string, appID int3
 	return deviceID, nil
 }
 
-func (u *AuthUsecase) registerDevice(ctx context.Context, userID string, appID int32, userDeviceRequest model.UserDeviceRequestData) (string, error) {
+func (u *AuthUsecase) registerDevice(ctx context.Context, userID, appID string, userDeviceRequest model.UserDeviceRequestData) (string, error) {
 	userDevice := model.UserDevice{
-		ID:            ksuid.New().String(),
-		UserID:        userID,
-		AppID:         appID,
-		UserAgent:     userDeviceRequest.UserAgent,
-		IP:            userDeviceRequest.IP,
-		Detached:      false,
-		LastVisitedAt: time.Now(),
+		ID:              ksuid.New().String(),
+		UserID:          userID,
+		AppID:           appID,
+		UserAgent:       userDeviceRequest.UserAgent,
+		IP:              userDeviceRequest.IP,
+		Detached:        false,
+		LatestVisitedAt: time.Now(),
 	}
 
 	if err := u.storage.RegisterDevice(ctx, userDevice); err != nil {
@@ -371,11 +371,11 @@ func (u *AuthUsecase) registerDevice(ctx context.Context, userID string, appID i
 	return userDevice.ID, nil
 }
 
-func (u *AuthUsecase) updateLastVisitedAt(ctx context.Context, deviceID string, appID int32, lastVisitedAt time.Time) error {
-	return u.storage.UpdateLastLoginAt(ctx, deviceID, appID, lastVisitedAt)
+func (u *AuthUsecase) updateLatestVisitedAt(ctx context.Context, deviceID, appID string, lastVisitedAt time.Time) error {
+	return u.storage.UpdateLatestVisitedAt(ctx, deviceID, appID, lastVisitedAt)
 }
 
-func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID int32) error {
+func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID string) error {
 	const method = "usecase.AuthUsecase.LogoutUser"
 
 	reqID, err := requestid.FromContext(ctx)
