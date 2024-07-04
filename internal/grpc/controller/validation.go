@@ -2,7 +2,7 @@ package controller
 
 import (
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/internal/lib/constants/le"
+	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/model"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -12,7 +12,7 @@ import (
 
 // TODO: return all errors in one place
 
-const emptyValue = 0
+const emptyValue = ""
 
 func validateLoginData(req *ssov1.LoginRequest, data *model.UserRequestData) error {
 	// TODO: add validation with validator

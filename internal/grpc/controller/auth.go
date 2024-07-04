@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/internal/lib/constants/le"
+	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"google.golang.org/grpc"

@@ -6,8 +6,8 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	authgrpc "github.com/rshelekhov/sso/internal/grpc/controller"
-	"github.com/rshelekhov/sso/internal/lib/grpc/interceptors/localerrors"
-	"github.com/rshelekhov/sso/internal/lib/grpc/interceptors/requestid"
+	"github.com/rshelekhov/sso/internal/lib/grpc/interceptor/localerror"
+	"github.com/rshelekhov/sso/internal/lib/grpc/interceptor/requestid"
 	"github.com/rshelekhov/sso/internal/port"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -48,7 +48,7 @@ func New(
 			recovery.UnaryServerInterceptor(recoveryOpts...),
 			logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
 			requestid.UnaryServerInterceptor(),
-			localerrors.UnaryServerInterceptor(),
+			localerror.UnaryServerInterceptor(),
 		),
 	)
 
@@ -62,7 +62,7 @@ func New(
 	}
 }
 
-// InterceptorLogger adapts slog logger to interceptors logger.
+// InterceptorLogger adapts slog logger to interceptor logger.
 // This code is simple enough to be copied and not imported.
 func InterceptorLogger(l *slog.Logger) logging.Logger {
 	return logging.LoggerFunc(func(ctx context.Context, lvl logging.Level, msg string, fields ...any) {

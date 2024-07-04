@@ -1,7 +1,7 @@
 package requestid
 
 import (
-	"github.com/rshelekhov/sso/internal/lib/constants/key"
+	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/segmentio/ksuid"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/metadata"

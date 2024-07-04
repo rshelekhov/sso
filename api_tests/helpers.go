@@ -6,8 +6,8 @@ import (
 
 const (
 	issuer            = "sso.rshelekhov.com"
-	emptyAppID        = int32(0)
-	appID             = int32(1)
+	emptyAppID        = ""
+	appID             = "test-app-id"
 	passDefaultLength = 10
 )
 

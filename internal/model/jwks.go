@@ -4,7 +4,7 @@ import "time"
 
 type (
 	JWKSRequestData struct {
-		AppID int32
+		AppID string
 	}
 
 	JWK struct {

@@ -10,7 +10,7 @@ const (
 	DeviceID     = "device_id"
 	ExpirationAt = "exp"
 	PasswordHash = "password_hash"
-	UpdatedAt    = "updated_at"
+	CreatedAt    = "updated_at"
 	Issuer       = "iss"
 	Error        = "error"
 )

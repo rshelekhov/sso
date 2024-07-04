@@ -2,7 +2,7 @@ package jwtoken
 
 import (
 	"context"
-	"github.com/rshelekhov/sso/internal/lib/constants/key"
+	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"

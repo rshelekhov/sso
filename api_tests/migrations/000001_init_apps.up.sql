@@ -1,3 +1,3 @@
 INSERT INTO apps (id, name)
-VALUES (1, 'test')
+VALUES ('test-app-id', 'test')
 ON CONFLICT DO NOTHING;

@@ -8,8 +8,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/constants/key"
-	"github.com/rshelekhov/sso/internal/lib/constants/le"
+	"github.com/rshelekhov/sso/internal/lib/constant/key"
+	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -104,7 +104,7 @@ func TestLoginHappyPath(t *testing.T) {
 
 	assert.Equal(t, issuer, claims[key.Issuer].(string))
 	assert.Equal(t, email, claims[key.Email].(string))
-	assert.Equal(t, appID, int32(claims[key.AppID].(float64)))
+	assert.Equal(t, appID, claims[key.AppID].(string))
 
 	const deltaSeconds = 1
 
@@ -130,7 +130,7 @@ func TestLoginFailCases(t *testing.T) {
 		name        string
 		email       string
 		password    string
-		appID       int32
+		appID       string
 		userAgent   string
 		ip          string
 		expectedErr error
@@ -157,7 +157,7 @@ func TestLoginFailCases(t *testing.T) {
 			name:        "Login with empty appID",
 			email:       gofakeit.Email(),
 			password:    randomFakePassword(),
-			appID:       0,
+			appID:       emptyAppID,
 			userAgent:   gofakeit.UserAgent(),
 			ip:          gofakeit.IPv4Address(),
 			expectedErr: le.ErrAppIDIsRequired,

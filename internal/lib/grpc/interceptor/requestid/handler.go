@@ -1,8 +1,8 @@
 package requestid
 
 import (
-	"github.com/rshelekhov/sso/internal/lib/constants/key"
-	"github.com/rshelekhov/sso/internal/lib/constants/le"
+	"github.com/rshelekhov/sso/internal/lib/constant/key"
+	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 )
