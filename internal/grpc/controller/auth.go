@@ -56,7 +56,7 @@ func (c *authController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 	return &ssov1.LoginResponse{TokenData: tokenDataResponse}, nil
 }
 
-func (c *authController) Register(ctx context.Context, req *ssov1.RegisterRequest) (*ssov1.RegisterResponse, error) {
+func (c *authController) Register(ctx context.Context, req *ssov1.RegisterUserRequest) (*ssov1.RegisterUserResponse, error) {
 	userData := &model.UserRequestData{}
 	if err := validateRegisterData(req, userData); err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func (c *authController) Register(ctx context.Context, req *ssov1.RegisterReques
 		AdditionalFields: tokenData.AdditionalFields,
 	}
 
-	return &ssov1.RegisterResponse{TokenData: tokenDataResponse}, nil
+	return &ssov1.RegisterUserResponse{TokenData: tokenDataResponse}, nil
 }
 
 func (c *authController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.Empty, error) {
