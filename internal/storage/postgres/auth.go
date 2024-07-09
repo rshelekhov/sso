@@ -229,9 +229,9 @@ func (s *AuthStorage) UpdateLatestVisitedAt(ctx context.Context, deviceID, appID
 	const method = "user.storage.UpdateLatestVisitedAt"
 
 	if err := s.Queries.UpdateLatestLoginAt(ctx, sqlc.UpdateLatestLoginAtParams{
-		ID:              deviceID,
-		LatestVisitedAt: latestVisitedAt,
-		AppID:           appID,
+		ID:            deviceID,
+		LastVisitedAt: latestVisitedAt,
+		AppID:         appID,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to update latest login at: %w", method, err)
 	}
@@ -242,13 +242,13 @@ func (s *AuthStorage) RegisterDevice(ctx context.Context, device model.UserDevic
 	const method = "user.storage.RegisterDevice"
 
 	if err := s.Queries.RegisterDevice(ctx, sqlc.RegisterDeviceParams{
-		ID:              device.ID,
-		UserID:          device.UserID,
-		AppID:           device.AppID,
-		UserAgent:       device.UserAgent,
-		Ip:              device.IP,
-		Detached:        device.Detached,
-		LatestVisitedAt: device.LatestVisitedAt,
+		ID:            device.ID,
+		UserID:        device.UserID,
+		AppID:         device.AppID,
+		UserAgent:     device.UserAgent,
+		Ip:            device.IP,
+		Detached:      device.Detached,
+		LastVisitedAt: device.LastVisitedAt,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to register user device: %w", method, err)
 	}
@@ -260,12 +260,12 @@ func (s *AuthStorage) CreateUserSession(ctx context.Context, session model.Sessi
 	const method = "user.storage.CreateUserSession"
 
 	if err := s.Queries.CreateUserSession(ctx, sqlc.CreateUserSessionParams{
-		UserID:          session.UserID,
-		AppID:           session.AppID,
-		DeviceID:        session.DeviceID,
-		RefreshToken:    session.RefreshToken,
-		LatestVisitedAt: session.LatestVisitedAt,
-		ExpiresAt:       session.ExpiresAt,
+		UserID:        session.UserID,
+		AppID:         session.AppID,
+		DeviceID:      session.DeviceID,
+		RefreshToken:  session.RefreshToken,
+		LastVisitedAt: session.LastVisitedAt,
+		ExpiresAt:     session.ExpiresAt,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to create user session: %w", method, err)
 	}
@@ -286,12 +286,12 @@ func (s *AuthStorage) GetSessionByRefreshToken(ctx context.Context, refreshToken
 	}
 
 	return model.Session{
-		UserID:          session.UserID,
-		AppID:           session.AppID,
-		DeviceID:        session.DeviceID,
-		RefreshToken:    refreshToken,
-		LatestVisitedAt: session.LatestVisitedAt,
-		ExpiresAt:       session.ExpiresAt,
+		UserID:        session.UserID,
+		AppID:         session.AppID,
+		DeviceID:      session.DeviceID,
+		RefreshToken:  refreshToken,
+		LastVisitedAt: session.LastVisitedAt,
+		ExpiresAt:     session.ExpiresAt,
 	}, nil
 }
 
