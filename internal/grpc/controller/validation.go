@@ -45,7 +45,7 @@ func validateLoginData(req *ssov1.LoginRequest, data *model.UserRequestData) err
 	return nil
 }
 
-func validateRegisterData(req *ssov1.RegisterRequest, data *model.UserRequestData) error {
+func validateRegisterData(req *ssov1.RegisterUserRequest, data *model.UserRequestData) error {
 	// TODO: add validation with validator
 	if req.GetEmail() == "" {
 		return status.Error(codes.InvalidArgument, le.ErrEmailIsRequired.Error())
