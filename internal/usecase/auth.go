@@ -304,12 +304,12 @@ func (u *AuthUsecase) CreateUserSession(
 	expiresAt := time.Now().Add(u.ts.RefreshTokenTTL)
 
 	session := model.Session{
-		UserID:          user.ID,
-		AppID:           user.AppID,
-		DeviceID:        deviceID,
-		RefreshToken:    refreshToken,
-		LatestVisitedAt: lastVisitedAt,
-		ExpiresAt:       expiresAt,
+		UserID:        user.ID,
+		AppID:         user.AppID,
+		DeviceID:      deviceID,
+		RefreshToken:  refreshToken,
+		LastVisitedAt: lastVisitedAt,
+		ExpiresAt:     expiresAt,
 	}
 
 	if err = u.storage.CreateUserSession(ctx, session); err != nil {
@@ -354,13 +354,13 @@ func (u *AuthUsecase) getDeviceID(ctx context.Context, userID, appID string, use
 
 func (u *AuthUsecase) registerDevice(ctx context.Context, userID, appID string, userDeviceRequest model.UserDeviceRequestData) (string, error) {
 	userDevice := model.UserDevice{
-		ID:              ksuid.New().String(),
-		UserID:          userID,
-		AppID:           appID,
-		UserAgent:       userDeviceRequest.UserAgent,
-		IP:              userDeviceRequest.IP,
-		Detached:        false,
-		LatestVisitedAt: time.Now(),
+		ID:            ksuid.New().String(),
+		UserID:        userID,
+		AppID:         appID,
+		UserAgent:     userDeviceRequest.UserAgent,
+		IP:            userDeviceRequest.IP,
+		Detached:      false,
+		LastVisitedAt: time.Now(),
 	}
 
 	if err := u.storage.RegisterDevice(ctx, userDevice); err != nil {
