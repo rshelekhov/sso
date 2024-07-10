@@ -11,8 +11,18 @@ import (
 )
 
 type App struct {
-	ID   string `db:"id"`
-	Name string `db:"name"`
+	ID        string             `db:"id"`
+	Name      string             `db:"name"`
+	Secret    string             `db:"secret"`
+	Status    int32              `db:"status"`
+	CreatedAt time.Time          `db:"created_at"`
+	UpdatedAt time.Time          `db:"updated_at"`
+	DeletedAt pgtype.Timestamptz `db:"deleted_at"`
+}
+
+type AppStatus struct {
+	ID    int32  `db:"id"`
+	Title string `db:"title"`
 }
 
 type RefreshSession struct {

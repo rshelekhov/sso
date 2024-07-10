@@ -69,8 +69,8 @@ func (s *AuthStorage) ValidateAppID(ctx context.Context, appID string) error {
 	return nil
 }
 
-func (s *AuthStorage) CreateUser(ctx context.Context, user model.User) error {
-	const method = "storage.storage.CreateUser"
+func (s *AuthStorage) RegisterUser(ctx context.Context, user model.User) error {
+	const method = "storage.storage.RegisterUser"
 
 	userStatus, err := s.getUserStatus(ctx, user.Email)
 	if err != nil {

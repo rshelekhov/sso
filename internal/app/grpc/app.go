@@ -24,6 +24,7 @@ type App struct {
 
 func New(
 	log *slog.Logger,
+	appUsecase port.AppUsecase,
 	authUsecases port.AuthUsecase,
 	port string,
 ) *App {
@@ -53,7 +54,7 @@ func New(
 	)
 
 	// Auth controller
-	authgrpc.RegisterController(gRPCServer, log, authUsecases)
+	authgrpc.RegisterController(gRPCServer, log, appUsecase, authUsecases)
 
 	return &App{
 		log:        log,
