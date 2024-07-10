@@ -33,8 +33,8 @@ func main() {
 		cfg.JWTAuth.RefreshTokenTTL,
 		cfg.JWTAuth.RefreshTokenCookieDomain,
 		cfg.JWTAuth.RefreshTokenCookiePath,
-		cfg.JWTAuth.PasswordHash.Cost,
-		cfg.JWTAuth.PasswordHash.Salt,
+		cfg.DefaultHashBcrypt.Cost,
+		cfg.DefaultHashBcrypt.Salt,
 	)
 
 	application := app.New(log, cfg, tokenAuth)

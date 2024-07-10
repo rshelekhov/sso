@@ -15,8 +15,7 @@ type App struct {
 }
 
 func New(log *slog.Logger, cfg *config.ServerSettings, tokenAuth *jwtoken.Service) *App {
-
-	// Auth storage
+	// Storage
 	pg, err := postgres.NewStorage(cfg)
 	if err != nil {
 		log.Error("failed to init storage", logger.Err(err))
@@ -24,13 +23,15 @@ func New(log *slog.Logger, cfg *config.ServerSettings, tokenAuth *jwtoken.Servic
 
 	log.Debug("storage initiated")
 
+	appStorage := postgres.NewAppStorage(pg)
 	authStorage := postgres.NewAuthStorage(pg)
 
-	// Auth usecases
+	// Usecases
+	appUsecase := usecase.NewAppUsecase(log, appStorage, cfg)
 	authUsecases := usecase.NewAuthUsecase(log, authStorage, tokenAuth)
 
 	// App
-	grpcApp := grpcapp.New(log, authUsecases, cfg.GRPCServer.Port)
+	grpcApp := grpcapp.New(log, appUsecase, authUsecases, cfg.GRPCServer.Port)
 
 	return &App{
 		GRPCServer: grpcApp,

@@ -26,10 +26,7 @@ type AuthUsecase struct {
 }
 
 // NewAuthUsecase returns a new instance of the AuthUsecase usecase
-func NewAuthUsecase(
-	log *slog.Logger,
-	storage port.AuthStorage,
-	ts *jwtoken.Service,
+func NewAuthUsecase(log *slog.Logger, storage port.AuthStorage, ts *jwtoken.Service,
 ) *AuthUsecase {
 	return &AuthUsecase{
 		log:     log,
@@ -138,11 +135,11 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, passw
 	return nil
 }
 
-// RegisterNewUser creates new user in the system and returns jwtoken
+// RegisterUser creates new user in the system and returns jwtoken
 //
 // If user with given email already exists, it will return an error
-func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserRequestData) (model.TokenData, error) {
-	const method = "usecase.AuthUsecase.CreateUser"
+func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestData) (model.TokenData, error) {
+	const method = "usecase.AuthUsecase.RegisterUser"
 
 	reqID, err := requestid.FromContext(ctx)
 	if err != nil {
@@ -166,6 +163,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 	hash, err := jwt.PasswordHashBcrypt(
 		data.Password,
 		u.ts.PasswordHashCost,
+		// TODO: get salt from database for each app
 		[]byte(u.ts.PasswordHashSalt),
 	)
 	if err != nil {
@@ -186,14 +184,6 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 		UpdatedAt:    currentTime,
 	}
 
-	log.Debug("user data before passing into storage",
-		slog.String(key.UserID, user.ID),
-		slog.String(key.Email, user.Email),
-		slog.String(key.PasswordHash, user.PasswordHash),
-		slog.String(key.AppID, user.AppID),
-		slog.Time(key.CreatedAt, user.CreatedAt),
-	)
-
 	userDevice := model.UserDeviceRequestData{
 		UserAgent: data.UserDevice.UserAgent,
 		IP:        data.UserDevice.IP,
@@ -202,7 +192,7 @@ func (u *AuthUsecase) RegisterNewUser(ctx context.Context, data *model.UserReque
 	tokenData := model.TokenData{}
 
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
-		if err = u.storage.CreateUser(ctx, user); err != nil {
+		if err = u.storage.RegisterUser(ctx, user); err != nil {
 			if errors.Is(err, le.ErrUserAlreadyExists) {
 				log.LogAttrs(ctx, slog.LevelError, le.ErrUserAlreadyExists.Error(),
 					slog.String(key.Email, data.Email),
@@ -304,12 +294,12 @@ func (u *AuthUsecase) CreateUserSession(
 	expiresAt := time.Now().Add(u.ts.RefreshTokenTTL)
 
 	session := model.Session{
-		UserID:          user.ID,
-		AppID:           user.AppID,
-		DeviceID:        deviceID,
-		RefreshToken:    refreshToken,
-		LatestVisitedAt: lastVisitedAt,
-		ExpiresAt:       expiresAt,
+		UserID:        user.ID,
+		AppID:         user.AppID,
+		DeviceID:      deviceID,
+		RefreshToken:  refreshToken,
+		LastVisitedAt: lastVisitedAt,
+		ExpiresAt:     expiresAt,
 	}
 
 	if err = u.storage.CreateUserSession(ctx, session); err != nil {
@@ -354,13 +344,13 @@ func (u *AuthUsecase) getDeviceID(ctx context.Context, userID, appID string, use
 
 func (u *AuthUsecase) registerDevice(ctx context.Context, userID, appID string, userDeviceRequest model.UserDeviceRequestData) (string, error) {
 	userDevice := model.UserDevice{
-		ID:              ksuid.New().String(),
-		UserID:          userID,
-		AppID:           appID,
-		UserAgent:       userDeviceRequest.UserAgent,
-		IP:              userDeviceRequest.IP,
-		Detached:        false,
-		LatestVisitedAt: time.Now(),
+		ID:            ksuid.New().String(),
+		UserID:        userID,
+		AppID:         appID,
+		UserAgent:     userDeviceRequest.UserAgent,
+		IP:            userDeviceRequest.IP,
+		Detached:      false,
+		LastVisitedAt: time.Now(),
 	}
 
 	if err := u.storage.RegisterDevice(ctx, userDevice); err != nil {

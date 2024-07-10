@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestUpdateUserHappyPath(t *testing.T) {
+func TestUpdateUser_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for request
@@ -21,7 +21,7 @@ func TestUpdateUserHappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,
@@ -53,7 +53,7 @@ func TestUpdateUserHappyPath(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestUpdateUserFailCases(t *testing.T) {
+func TestUpdateUser_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for register request
@@ -120,7 +120,7 @@ func TestUpdateUserFailCases(t *testing.T) {
 			}
 
 			// Register user
-			respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+			respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:    tt.regEmail,
 				Password: pass,
 				AppId:    appID,
@@ -133,7 +133,7 @@ func TestUpdateUserFailCases(t *testing.T) {
 			require.NotEmpty(t, respReg.GetTokenData())
 
 			if tt.name == "Email already taken" {
-				_, err = st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+				_, err = st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 					Email:    emailTaken,
 					Password: pass,
 					AppId:    appID,

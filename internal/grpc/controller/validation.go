@@ -6,6 +6,7 @@ import (
 	"github.com/rshelekhov/sso/internal/model"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"strings"
 )
 
 // TODO: refactor this methods for using general validator
@@ -13,6 +14,19 @@ import (
 // TODO: return all errors in one place
 
 const emptyValue = ""
+
+func validateRegisterAppData(req *ssov1.RegisterAppRequest) error {
+	appName := req.GetAppName()
+
+	if appName == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrAppNameIsRequired.Error())
+	}
+	if strings.Contains(appName, " ") {
+		return status.Error(codes.InvalidArgument, le.ErrAppNameCannotContainSpaces.Error())
+	}
+
+	return nil
+}
 
 func validateLoginData(req *ssov1.LoginRequest, data *model.UserRequestData) error {
 	// TODO: add validation with validator
@@ -45,7 +59,7 @@ func validateLoginData(req *ssov1.LoginRequest, data *model.UserRequestData) err
 	return nil
 }
 
-func validateRegisterData(req *ssov1.RegisterRequest, data *model.UserRequestData) error {
+func validateRegisterData(req *ssov1.RegisterUserRequest, data *model.UserRequestData) error {
 	// TODO: add validation with validator
 	if req.GetEmail() == "" {
 		return status.Error(codes.InvalidArgument, le.ErrEmailIsRequired.Error())

@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestGetJWKSHappyPath(t *testing.T) {
+func TestGetJWKS_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	resp, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{
@@ -26,7 +26,7 @@ func TestGetJWKSHappyPath(t *testing.T) {
 	require.NotEmpty(t, resp.GetTtl())
 }
 
-func TestGetJWKSFailCases(t *testing.T) {
+func TestGetJWKS_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	tests := []struct {

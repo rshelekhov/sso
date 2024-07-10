@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestGetUserHappyPath(t *testing.T) {
+func TestGetUser_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for requests
@@ -21,7 +21,7 @@ func TestGetUserHappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,
@@ -52,7 +52,7 @@ func TestGetUserHappyPath(t *testing.T) {
 	require.NotEmpty(t, respGet.GetUpdatedAt())
 }
 
-func TestGetUserFailCases(t *testing.T) {
+func TestGetUser_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	tests := []struct {
@@ -78,7 +78,7 @@ func TestGetUserFailCases(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// Register user
-			respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+			respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:    tc.email,
 				Password: tc.password,
 				AppId:    appID,

@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func TestLoginHappyPath(t *testing.T) {
+func TestLogin_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for requests
@@ -28,7 +28,7 @@ func TestLoginHappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,
@@ -121,7 +121,7 @@ func getJWKByKid(jwks []*ssov1.JWK, kid string) (*ssov1.JWK, error) {
 	return nil, fmt.Errorf("JWK with kid %s not found", kid)
 }
 
-func TestLoginFailCases(t *testing.T) {
+func TestLogin_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	email := gofakeit.Email()
@@ -219,7 +219,7 @@ func TestLoginFailCases(t *testing.T) {
 			}
 
 			// Register user
-			_, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+			_, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:    emailReg,
 				Password: randomFakePassword(),
 				AppId:    appID,

@@ -10,6 +10,18 @@ const (
 	ErrInternalServerError LocalError = "internal server error"
 
 	// ===========================================================================
+	//	app errors
+	// ===========================================================================
+
+	ErrAppIDIsRequired            LocalError = "appID is required"
+	ErrAppIDDoesNotExist          LocalError = "appID does not exist"
+	ErrAppNameIsRequired          LocalError = "appName is required"
+	ErrAppNameCannotContainSpaces LocalError = "appName cannot contain spaces"
+	ErrFailedToGenerateSecretHash LocalError = "failed to generate secret hash"
+
+	ErrAppAlreadyExists LocalError = "app already exists"
+
+	// ===========================================================================
 	//	auth errors
 	// ===========================================================================
 
@@ -17,8 +29,6 @@ const (
 	ErrIPIsRequired           LocalError = "ip is required"
 	ErrEmailIsRequired        LocalError = "email is required"
 	ErrPasswordIsRequired     LocalError = "password is required"
-	ErrAppIDIsRequired        LocalError = "app_id is required"
-	ErrAppIDDoesNotExist      LocalError = "app_id does not exist"
 	ErrRefreshTokenIsRequired LocalError = "refresh_token is required"
 
 	ErrUserAlreadyExists              LocalError = "user already exists"

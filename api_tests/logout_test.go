@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestLogoutHappyPath(t *testing.T) {
+func TestLogout_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for request
@@ -20,7 +20,7 @@ func TestLogoutHappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,

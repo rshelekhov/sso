@@ -24,17 +24,17 @@ func (q *Queries) CheckAppIDExists(ctx context.Context, id string) (bool, error)
 }
 
 const createUserSession = `-- name: CreateUserSession :exec
-INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, latest_visited_at, expires_at)
+INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, last_visited_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type CreateUserSessionParams struct {
-	UserID          string    `db:"user_id"`
-	AppID           string    `db:"app_id"`
-	DeviceID        string    `db:"device_id"`
-	RefreshToken    string    `db:"refresh_token"`
-	LatestVisitedAt time.Time `db:"latest_visited_at"`
-	ExpiresAt       time.Time `db:"expires_at"`
+	UserID        string    `db:"user_id"`
+	AppID         string    `db:"app_id"`
+	DeviceID      string    `db:"device_id"`
+	RefreshToken  string    `db:"refresh_token"`
+	LastVisitedAt time.Time `db:"last_visited_at"`
+	ExpiresAt     time.Time `db:"expires_at"`
 }
 
 func (q *Queries) CreateUserSession(ctx context.Context, arg CreateUserSessionParams) error {
@@ -43,7 +43,7 @@ func (q *Queries) CreateUserSession(ctx context.Context, arg CreateUserSessionPa
 		arg.AppID,
 		arg.DeviceID,
 		arg.RefreshToken,
-		arg.LatestVisitedAt,
+		arg.LastVisitedAt,
 		arg.ExpiresAt,
 	)
 	return err
@@ -97,17 +97,17 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
 }
 
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
-SELECT user_id, app_id, device_id, latest_visited_at, expires_at
+SELECT user_id, app_id, device_id, last_visited_at, expires_at
 FROM refresh_sessions
 WHERE refresh_token = $1
 `
 
 type GetSessionByRefreshTokenRow struct {
-	UserID          string    `db:"user_id"`
-	AppID           string    `db:"app_id"`
-	DeviceID        string    `db:"device_id"`
-	LatestVisitedAt time.Time `db:"latest_visited_at"`
-	ExpiresAt       time.Time `db:"expires_at"`
+	UserID        string    `db:"user_id"`
+	AppID         string    `db:"app_id"`
+	DeviceID      string    `db:"device_id"`
+	LastVisitedAt time.Time `db:"last_visited_at"`
+	ExpiresAt     time.Time `db:"expires_at"`
 }
 
 func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (GetSessionByRefreshTokenRow, error) {
@@ -117,7 +117,7 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 		&i.UserID,
 		&i.AppID,
 		&i.DeviceID,
-		&i.LatestVisitedAt,
+		&i.LastVisitedAt,
 		&i.ExpiresAt,
 	)
 	return i, err
@@ -292,18 +292,18 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 }
 
 const registerDevice = `-- name: RegisterDevice :exec
-INSERT INTO user_devices (id, user_id, app_id, user_agent, ip, detached, latest_visited_at)
+INSERT INTO user_devices (id, user_id, app_id, user_agent, ip, detached, last_visited_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type RegisterDeviceParams struct {
-	ID              string    `db:"id"`
-	UserID          string    `db:"user_id"`
-	AppID           string    `db:"app_id"`
-	UserAgent       string    `db:"user_agent"`
-	Ip              string    `db:"ip"`
-	Detached        bool      `db:"detached"`
-	LatestVisitedAt time.Time `db:"latest_visited_at"`
+	ID            string    `db:"id"`
+	UserID        string    `db:"user_id"`
+	AppID         string    `db:"app_id"`
+	UserAgent     string    `db:"user_agent"`
+	Ip            string    `db:"ip"`
+	Detached      bool      `db:"detached"`
+	LastVisitedAt time.Time `db:"last_visited_at"`
 }
 
 func (q *Queries) RegisterDevice(ctx context.Context, arg RegisterDeviceParams) error {
@@ -314,25 +314,25 @@ func (q *Queries) RegisterDevice(ctx context.Context, arg RegisterDeviceParams) 
 		arg.UserAgent,
 		arg.Ip,
 		arg.Detached,
-		arg.LatestVisitedAt,
+		arg.LastVisitedAt,
 	)
 	return err
 }
 
 const updateLatestLoginAt = `-- name: UpdateLatestLoginAt :exec
 UPDATE user_devices
-SET latest_visited_at = $1
+SET last_visited_at = $1
 WHERE id = $2
   AND app_id = $3
 `
 
 type UpdateLatestLoginAtParams struct {
-	LatestVisitedAt time.Time `db:"latest_visited_at"`
-	ID              string    `db:"id"`
-	AppID           string    `db:"app_id"`
+	LastVisitedAt time.Time `db:"last_visited_at"`
+	ID            string    `db:"id"`
+	AppID         string    `db:"app_id"`
 }
 
 func (q *Queries) UpdateLatestLoginAt(ctx context.Context, arg UpdateLatestLoginAtParams) error {
-	_, err := q.db.Exec(ctx, updateLatestLoginAt, arg.LatestVisitedAt, arg.ID, arg.AppID)
+	_, err := q.db.Exec(ctx, updateLatestLoginAt, arg.LastVisitedAt, arg.ID, arg.AppID)
 	return err
 }

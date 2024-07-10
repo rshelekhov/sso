@@ -13,8 +13,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_active_users ON users (email) WHERE delete
 
 CREATE TABLE IF NOT EXISTS apps
 (
-    id       character varying PRIMARY KEY,
-    name     character varying NOT NULL UNIQUE
+    id         character varying PRIMARY KEY,
+    name       character varying NOT NULL UNIQUE,
+    secret     character varying NOT NULL UNIQUE,
+    status     int NOT NULL,
+    created_at timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
+    deleted_at timestamp WITH TIME ZONE DEFAULT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS app_statuses
+(
+    id    int PRIMARY KEY,
+    title character varying NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS refresh_sessions
@@ -24,7 +36,7 @@ CREATE TABLE IF NOT EXISTS refresh_sessions
     app_id        character varying NOT NULL,
     device_id     character varying NOT NULL,
     refresh_token character varying NOT NULL,
-    latest_visited_at timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
+    last_visited_at timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     expires_at    timestamp WITH TIME ZONE NOT NULL
 );
 
@@ -38,7 +50,7 @@ CREATE TABLE IF NOT EXISTS user_devices
     user_agent      character varying NOT NULL,
     ip              character varying NOT NULL,
     detached        boolean NOT NULL,
-    latest_visited_at   timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
+    last_visited_at   timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     detached_at     timestamp WITH TIME ZONE DEFAULT NULL
 );
 

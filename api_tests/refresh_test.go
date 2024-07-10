@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestRefreshHappyPath(t *testing.T) {
+func TestRefresh_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for request
@@ -20,7 +20,7 @@ func TestRefreshHappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,
@@ -59,7 +59,7 @@ func TestRefresh_FailCases(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: password,
 		AppId:    appID,

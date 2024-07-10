@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func TestRegisterHappyPath(t *testing.T) {
+func TestRegisterUser_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for request
@@ -28,7 +28,7 @@ func TestRegisterHappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,
@@ -99,7 +99,7 @@ func TestRegisterHappyPath(t *testing.T) {
 	assert.InDelta(t, float64(loginTime.Add(st.Cfg.JWTAuth.AccessTokenTTL).Unix()), claims[key.ExpirationAt].(float64), deltaSeconds)
 }
 
-func TestRegisterDuplicatedRegistration(t *testing.T) {
+func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for request
@@ -109,7 +109,7 @@ func TestRegisterDuplicatedRegistration(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,
@@ -122,7 +122,7 @@ func TestRegisterDuplicatedRegistration(t *testing.T) {
 	require.NotEmpty(t, respReg.GetTokenData())
 
 	// Try to register again
-	respReg, err = st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err = st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,
@@ -136,7 +136,7 @@ func TestRegisterDuplicatedRegistration(t *testing.T) {
 	assert.ErrorContains(t, err, le.ErrUserAlreadyExists.Error())
 }
 
-func TestRegisterFailCases(t *testing.T) {
+func TestRegisterUser_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	tests := []struct {
@@ -198,7 +198,7 @@ func TestRegisterFailCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Register user
-			_, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+			_, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:    tt.email,
 				Password: tt.password,
 				AppId:    tt.appID,
@@ -213,13 +213,13 @@ func TestRegisterFailCases(t *testing.T) {
 	}
 }
 
-func TestRegisterUserAlreadyExists(t *testing.T) {
+func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	email := gofakeit.Email()
 
 	// Register first user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: randomFakePassword(),
 		AppId:    appID,
@@ -232,7 +232,7 @@ func TestRegisterUserAlreadyExists(t *testing.T) {
 	require.NotEmpty(t, respReg.GetTokenData())
 
 	// Register second user
-	respReg, err = st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err = st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: randomFakePassword(),
 		AppId:    appID,
@@ -247,7 +247,7 @@ func TestRegisterUserAlreadyExists(t *testing.T) {
 }
 
 // Test register new user using email with soft deleted user
-func TestRegisterUserSoftDeleted(t *testing.T) {
+func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	email := gofakeit.Email()
@@ -255,7 +255,7 @@ func TestRegisterUserSoftDeleted(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register first user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: randomFakePassword(),
 		AppId:    appID,
@@ -288,7 +288,7 @@ func TestRegisterUserSoftDeleted(t *testing.T) {
 	require.NoError(t, err)
 
 	// Register second user
-	respReg, err = st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err = st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: randomFakePassword(),
 		AppId:    appID,

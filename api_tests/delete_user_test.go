@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestDeleteUserHappyPath(t *testing.T) {
+func TestDeleteUser_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for requests
@@ -21,7 +21,7 @@ func TestDeleteUserHappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,
@@ -54,7 +54,7 @@ func TestDeleteUserHappyPath(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDeleteUserFailCases(t *testing.T) {
+func TestDeleteUser_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	userAgent := gofakeit.UserAgent()
@@ -101,7 +101,7 @@ func TestDeleteUserFailCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Register user
-			resp, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+			resp, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:    gofakeit.Email(),
 				Password: randomFakePassword(),
 				AppId:    appID,
