@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestRefreshHappyPath(t *testing.T) {
+func TestRefresh_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for request

@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestLogoutHappyPath(t *testing.T) {
+func TestLogout_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for request

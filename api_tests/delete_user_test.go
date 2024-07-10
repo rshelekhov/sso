@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestDeleteUserHappyPath(t *testing.T) {
+func TestDeleteUser_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for requests
@@ -54,7 +54,7 @@ func TestDeleteUserHappyPath(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestDeleteUserFailCases(t *testing.T) {
+func TestDeleteUser_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	userAgent := gofakeit.UserAgent()

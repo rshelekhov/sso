@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-func TestRegisterHappyPath(t *testing.T) {
+func TestRegisterUser_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for request
@@ -99,7 +99,7 @@ func TestRegisterHappyPath(t *testing.T) {
 	assert.InDelta(t, float64(loginTime.Add(st.Cfg.JWTAuth.AccessTokenTTL).Unix()), claims[key.ExpirationAt].(float64), deltaSeconds)
 }
 
-func TestRegisterDuplicatedRegistration(t *testing.T) {
+func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for request
@@ -136,7 +136,7 @@ func TestRegisterDuplicatedRegistration(t *testing.T) {
 	assert.ErrorContains(t, err, le.ErrUserAlreadyExists.Error())
 }
 
-func TestRegisterFailCases(t *testing.T) {
+func TestRegisterUser_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	tests := []struct {
@@ -213,7 +213,7 @@ func TestRegisterFailCases(t *testing.T) {
 	}
 }
 
-func TestRegisterUserAlreadyExists(t *testing.T) {
+func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	email := gofakeit.Email()
@@ -247,7 +247,7 @@ func TestRegisterUserAlreadyExists(t *testing.T) {
 }
 
 // Test register new user using email with soft deleted user
-func TestRegisterUserSoftDeleted(t *testing.T) {
+func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	email := gofakeit.Email()

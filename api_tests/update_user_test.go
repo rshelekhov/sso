@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestUpdateUserHappyPath(t *testing.T) {
+func TestUpdateUser_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for request
@@ -53,7 +53,7 @@ func TestUpdateUserHappyPath(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestUpdateUserFailCases(t *testing.T) {
+func TestUpdateUser_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for register request

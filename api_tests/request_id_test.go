@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestRequestIDHappyPath(t *testing.T) {
+func TestRequestID_HappyPath(t *testing.T) {
 	tests := []struct {
 		name            string
 		firstRequestID  string

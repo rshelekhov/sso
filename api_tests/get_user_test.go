@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestGetUserHappyPath(t *testing.T) {
+func TestGetUser_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for requests
@@ -52,7 +52,7 @@ func TestGetUserHappyPath(t *testing.T) {
 	require.NotEmpty(t, respGet.GetUpdatedAt())
 }
 
-func TestGetUserFailCases(t *testing.T) {
+func TestGetUser_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	tests := []struct {
