@@ -28,7 +28,7 @@ func TestLoginHappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,
@@ -219,7 +219,7 @@ func TestLoginFailCases(t *testing.T) {
 			}
 
 			// Register user
-			_, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+			_, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:    emailReg,
 				Password: randomFakePassword(),
 				AppId:    appID,

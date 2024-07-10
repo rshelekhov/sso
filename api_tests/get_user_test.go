@@ -21,7 +21,7 @@ func TestGetUserHappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,
@@ -78,7 +78,7 @@ func TestGetUserFailCases(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// Register user
-			respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+			respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:    tc.email,
 				Password: tc.password,
 				AppId:    appID,

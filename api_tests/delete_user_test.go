@@ -21,7 +21,7 @@ func TestDeleteUserHappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	respReg, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:    email,
 		Password: pass,
 		AppId:    appID,
@@ -101,7 +101,7 @@ func TestDeleteUserFailCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Register user
-			resp, err := st.AuthClient.Register(ctx, &ssov1.RegisterRequest{
+			resp, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:    gofakeit.Email(),
 				Password: randomFakePassword(),
 				AppId:    appID,

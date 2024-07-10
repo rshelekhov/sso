@@ -1,1 +1,0 @@
-DELETE FROM apps WHERE id = 'test-app-id';
