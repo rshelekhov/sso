@@ -8,6 +8,7 @@ import (
 	"context"
 	"flag"
 	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"github.com/rshelekhov/sso/internal/storage/postgres"
 	"github.com/rshelekhov/sso/internal/usecase"
@@ -29,7 +30,19 @@ func main() {
 
 	log := logger.SetupLogger(cfg.AppEnv)
 
-	// Register app
+	tokenService := jwtoken.NewService(
+		cfg.JWTAuth.Issuer,
+		cfg.JWTAuth.SigningMethod,
+		cfg.JWTAuth.KeysPath,
+		cfg.JWTAuth.JWKSetTTL,
+		cfg.JWTAuth.AccessTokenTTL,
+		cfg.JWTAuth.RefreshTokenTTL,
+		cfg.JWTAuth.RefreshTokenCookieDomain,
+		cfg.JWTAuth.RefreshTokenCookiePath,
+		cfg.DefaultHashBcrypt.Cost,
+		cfg.DefaultHashBcrypt.Salt,
+	)
+
 	pg, err := postgres.NewStorage(cfg)
 	if err != nil {
 		log.Error("failed to init storage: ", err)
@@ -37,7 +50,7 @@ func main() {
 
 	appStorage := postgres.NewAppStorage(pg)
 
-	appUsecase := usecase.NewAppUsecase(log, appStorage, cfg)
+	appUsecase := usecase.NewAppUsecase(cfg, log, appStorage, tokenService)
 
 	err = appUsecase.RegisterApp(context.Background(), appName)
 	if err != nil {
