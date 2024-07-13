@@ -3,6 +3,7 @@ package jwtoken
 import (
 	"context"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
@@ -81,6 +82,11 @@ func (ts *Service) Algorithm() jwt.SigningMethod {
 	}
 }
 
+const (
+	privateKeyFilePathFormat = "%s/app_%s_private.pem"
+	publicKeyFilePathFormat  = "%s/app_%s_public.pem"
+)
+
 func (ts *Service) NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error) {
 	claims := jwt.MapClaims{}
 
@@ -90,12 +96,7 @@ func (ts *Service) NewAccessToken(appID, kid string, additionalClaims map[string
 		}
 	}
 
-	filePath := fmt.Sprintf("%s/app_%s_private.pem", ts.KeysPath, appID)
-
-	// TODO: add logic for creating keys
-	// check if private key exists
-	// if not, create them and save to file
-	// also generate public key and save to file
+	filePath := fmt.Sprintf(privateKeyFilePathFormat, ts.KeysPath, appID)
 
 	privateKeyBytes, err := os.ReadFile(filePath)
 	if err != nil {
@@ -112,6 +113,105 @@ func (ts *Service) NewAccessToken(appID, kid string, additionalClaims map[string
 	token.Header[Kid] = kid
 
 	return token.SignedString(privateKey)
+}
+
+func (ts *Service) GeneratePEMKeyPair(appID string) error {
+	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, ts.KeysPath, appID)
+	publicKeyFilePath := fmt.Sprintf(publicKeyFilePathFormat, ts.KeysPath, appID)
+
+	// Ensure the keysPath directory exists
+	if err := os.MkdirAll(ts.KeysPath, os.ModePerm); err != nil {
+		return err
+	}
+
+	// Check if the private key exists
+	if _, err := os.Stat(privateKeyFilePath); os.IsNotExist(err) {
+		// Private key does not exist, create it
+		privateKey, err := generateAndSavePrivateKey(privateKeyFilePath)
+		if err != nil {
+			return err
+		}
+
+		// Generate public key
+		if err = generateAndSavePublicKey(privateKey, publicKeyFilePath); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func generateAndSavePrivateKey(filePath string) (*rsa.PrivateKey, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save private key to file
+	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+
+	// Create a PEM block with the DER encoded private key
+	b64 := []byte(base64.StdEncoding.EncodeToString(privateKeyBytes))
+	privatePEM := fmt.Sprintf("-----BEGIN PRIVATE KEY-----\n%s-----END PRIVATE KEY-----\n", make64ColsString(b64))
+
+	if err := os.WriteFile(filePath, []byte(privatePEM), 0600); err != nil {
+		return nil, fmt.Errorf("failed to save private key to file: %w", err)
+	}
+
+	return privateKey, nil
+}
+
+func generateAndSavePublicKey(privateKey *rsa.PrivateKey, filePath string) error {
+	publicKey := &privateKey.PublicKey
+
+	// Marshal public key to PKIX, ASN.1 DER form
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		return fmt.Errorf("failed to marshal public key: %w", err)
+	}
+
+	// Create a PEM block with the DER encoded public key
+	pemBlock := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKeyBytes,
+	}
+
+	// Encode the PEM block to bytes
+	publicPEM := pem.EncodeToMemory(pemBlock)
+
+	// Write the PEM file
+	if err := os.WriteFile(filePath, []byte(publicPEM), 0644); err != nil {
+		return fmt.Errorf("failed to save public key to file: %w", err)
+	}
+
+	return nil
+}
+
+func make64ColsString(slice []byte) string {
+	chunks := chunkSlice(slice, 64)
+
+	result := ""
+	for _, line := range chunks {
+		result = result + string(line) + "\n"
+	}
+	return result
+}
+
+// chunkSlice split slices
+func chunkSlice(slice []byte, chunkSize int) [][]byte {
+	var chunks [][]byte
+	for i := 0; i < len(slice); i += chunkSize {
+		end := i + chunkSize
+
+		// necessary check to avoid slicing beyond
+		// slice capacity
+		if end > len(slice) {
+			end = len(slice)
+		}
+		chunks = append(chunks, slice[i:end])
+	}
+
+	return chunks
 }
 
 func (ts *Service) GetKeyID(appID string) (string, error) {
@@ -149,7 +249,7 @@ func (ts *Service) GetPublicKey(appID string) (interface{}, error) {
 
 func (ts *Service) getPublicKeyFromPEM(appID, keysPath string) (interface{}, error) {
 	// Construct the complete file path based on the AppID and provided keysPath
-	filePath := fmt.Sprintf("%s/app_%s_public.pem", keysPath, appID)
+	filePath := fmt.Sprintf(publicKeyFilePathFormat, keysPath, appID)
 
 	// Read the public key from the PEM file
 	pemData, err := os.ReadFile(filePath)

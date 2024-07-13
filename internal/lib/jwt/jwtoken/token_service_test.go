@@ -2,28 +2,77 @@ package jwtoken
 
 import (
 	"context"
+	"fmt"
 	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
 const (
-	appID           = 1
-	emptyAppID      = 0
+	appID           = "test-app-id"
+	emptyAppID      = ""
 	keysPath        = "./test_keys/"
 	invalidKeysPath = "./invalid_test_keys/"
 	invalidKey      = "invalidKey"
 )
 
+var (
+	privateKeyFilePath = filepath.Join(keysPath, fmt.Sprintf("app_%s_private.pem", appID))
+	publicKeyFilePath  = filepath.Join(keysPath, fmt.Sprintf("app_%s_public.pem", appID))
+)
+
+// ===========================================================================
+//   Tests for GeneratePEMKeyPair
+// ===========================================================================
+
+func TestGeneratePEMKeyPair_HappyPath(t *testing.T) {
+	// Ensure the keysPath directory exists
+	createTestDir(t, keysPath)
+
+	// Cleanup the directory after test
+	defer removeTestDir(t, keysPath)
+
+	ts := &Service{
+		KeysPath: keysPath,
+	}
+
+	err := ts.GeneratePEMKeyPair(appID)
+	if err != nil {
+		t.Fatalf("Failed to generate PEM key pair: %v", err)
+	}
+
+	// Check if the files were created
+	if _, err = os.Stat(privateKeyFilePath); os.IsNotExist(err) {
+		t.Errorf("Failed to create private key file: %v", err)
+	}
+
+	if _, err = os.Stat(publicKeyFilePath); os.IsNotExist(err) {
+		t.Errorf("Failed to create public key file: %v", err)
+	}
+}
+
 // ===========================================================================
 //   Tests for NewAccessToken
 // ===========================================================================
 
-func TestNewAccessTokenHappyPath(t *testing.T) {
+func TestNewAccessToken_HappyPath(t *testing.T) {
+	// Ensure the keysPath directory exists
+	createTestDir(t, keysPath)
+
+	// Cleanup the directory after test
+	defer removeTestDir(t, keysPath)
+
 	ts := &Service{
 		KeysPath: keysPath,
+	}
+
+	err := ts.GeneratePEMKeyPair(appID)
+	if err != nil {
+		t.Fatalf("Failed to generate PEM key pair: %v", err)
 	}
 
 	keyID, err := ts.GetKeyID(appID)
@@ -40,10 +89,10 @@ func TestNewAccessTokenHappyPath(t *testing.T) {
 	require.NotEmpty(t, token)
 }
 
-func TestNewAccessTokenFailCases(t *testing.T) {
+func TestNewAccessToken_FailCases(t *testing.T) {
 	tests := []struct {
 		name     string
-		appID    int32
+		appID    string
 		keysPath string
 	}{
 		{
@@ -86,8 +135,19 @@ func TestNewAccessTokenFailCases(t *testing.T) {
 // ===========================================================================
 
 func TestGetKeyID(t *testing.T) {
+	// Ensure the keysPath directory exists
+	createTestDir(t, keysPath)
+
+	// Cleanup the directory after test
+	defer removeTestDir(t, keysPath)
+
 	ts := &Service{
 		KeysPath: keysPath,
+	}
+
+	err := ts.GeneratePEMKeyPair(appID)
+	if err != nil {
+		t.Fatalf("Failed to generate PEM key pair: %v", err)
 	}
 
 	keyID, err := ts.GetKeyID(appID)
@@ -98,10 +158,10 @@ func TestGetKeyID(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestGetKeyIDFailCases(t *testing.T) {
+func TestGetKeyID_FailCases(t *testing.T) {
 	tests := []struct {
 		name     string
-		appID    int32
+		appID    string
 		keysPath string
 	}{
 		{
@@ -142,9 +202,20 @@ func TestGetKeyIDFailCases(t *testing.T) {
 //   Tests for GetUserID
 // ===========================================================================
 
-func TestGetUserIDHappyPath(t *testing.T) {
+func TestGetUserID_HappyPath(t *testing.T) {
+	// Ensure the keysPath directory exists
+	createTestDir(t, keysPath)
+
+	// Cleanup the directory after test
+	defer removeTestDir(t, keysPath)
+
 	ts := &Service{
 		KeysPath: keysPath,
+	}
+
+	err := ts.GeneratePEMKeyPair(appID)
+	if err != nil {
+		t.Fatalf("Failed to generate PEM key pair: %v", err)
 	}
 
 	userID := ksuid.New().String()
@@ -178,10 +249,10 @@ func TestGetUserIDHappyPath(t *testing.T) {
 	require.Empty(t, err)
 }
 
-func TestGetUserIDFailCases(t *testing.T) {
+func TestGetUserID_FailCases(t *testing.T) {
 	tests := []struct {
 		name  string
-		appID int32
+		appID string
 		key   string
 		token bool
 		md    bool
@@ -225,8 +296,19 @@ func TestGetUserIDFailCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Ensure the keysPath directory exists
+			createTestDir(t, keysPath)
+
+			// Cleanup the directory after test
+			defer removeTestDir(t, keysPath)
+
 			ts := &Service{
 				KeysPath: keysPath,
+			}
+
+			err := ts.GeneratePEMKeyPair(appID)
+			if err != nil {
+				t.Fatalf("Failed to generate PEM key pair: %v", err)
 			}
 
 			userID := ksuid.New().String()
@@ -263,5 +345,21 @@ func TestGetUserIDFailCases(t *testing.T) {
 			require.Empty(t, uid)
 			require.Error(t, err)
 		})
+	}
+}
+
+// ===========================================================================
+//   Helper functions
+// ===========================================================================
+
+func createTestDir(t *testing.T, dir string) {
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		t.Fatalf("Failed to create directory: %v", err)
+	}
+}
+
+func removeTestDir(t *testing.T, dir string) {
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatalf("Failed to remove directory: %v", err)
 	}
 }
