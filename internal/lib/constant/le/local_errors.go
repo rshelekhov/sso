@@ -20,6 +20,7 @@ const (
 	ErrFailedToGenerateSecretHash LocalError = "failed to generate secret hash"
 
 	ErrAppAlreadyExists LocalError = "app already exists"
+	ErrAppNotFound      LocalError = "app not found"
 
 	// ===========================================================================
 	//	auth errors
