@@ -8,7 +8,28 @@ package sqlc
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const deleteApp = `-- name: DeleteApp :exec
+UPDATE apps
+SET deleted_at = $1
+WHERE id = $2
+  AND secret = $3
+    AND deleted_at IS NULL
+`
+
+type DeleteAppParams struct {
+	DeletedAt pgtype.Timestamptz `db:"deleted_at"`
+	ID        string             `db:"id"`
+	Secret    string             `db:"secret"`
+}
+
+func (q *Queries) DeleteApp(ctx context.Context, arg DeleteAppParams) error {
+	_, err := q.db.Exec(ctx, deleteApp, arg.DeletedAt, arg.ID, arg.Secret)
+	return err
+}
 
 const insertApp = `-- name: InsertApp :exec
 INSERT INTO apps (id, name, secret, status, created_at, updated_at)

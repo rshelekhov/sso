@@ -9,6 +9,7 @@ import (
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
+	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
@@ -18,16 +19,23 @@ import (
 )
 
 type AppUsecase struct {
+	cfg     *config.ServerSettings
 	log     *slog.Logger
 	storage port.AppStorage
-	cfg     *config.ServerSettings
+	ts      *jwtoken.Service
 }
 
-func NewAppUsecase(log *slog.Logger, storage port.AppStorage, cfg *config.ServerSettings) *AppUsecase {
+func NewAppUsecase(
+	cfg *config.ServerSettings,
+	log *slog.Logger,
+	storage port.AppStorage,
+	ts *jwtoken.Service,
+) *AppUsecase {
 	return &AppUsecase{
+		cfg:     cfg,
 		log:     log,
 		storage: storage,
-		cfg:     cfg,
+		ts:      ts,
 	}
 }
 
@@ -41,7 +49,7 @@ func (u *AppUsecase) RegisterApp(ctx context.Context, appName string) error {
 	secretHash, err := u.generateAndHashSecret(appName)
 	if err != nil {
 		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGenerateSecretHash.Error(),
-			slog.String(key.Error, err.Error()),
+			slog.Any(key.Error, err),
 		)
 		return le.ErrInternalServerError
 	}
@@ -64,8 +72,27 @@ func (u *AppUsecase) RegisterApp(ctx context.Context, appName string) error {
 		}
 		log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
 			slog.String(key.AppID, appID),
-			slog.String(key.Error, err.Error()),
+			slog.Any(key.Error, err),
 		)
+		return le.ErrInternalServerError
+	}
+
+	if err = u.ts.GeneratePEMKeyPair(appID); err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
+			slog.String(key.AppID, appID),
+			slog.Any(key.Error, err),
+		)
+
+		// TODO: add test case for checking this
+		err = u.DeleteApp(ctx, appData.ID, appData.Secret)
+		if err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
+				slog.String(key.AppID, appID),
+				slog.Any(key.Error, err),
+			)
+			return le.ErrInternalServerError
+		}
+
 		return le.ErrInternalServerError
 	}
 
@@ -104,4 +131,32 @@ func (u *AppUsecase) generateAndHashSecret(name string) (string, error) {
 	}
 
 	return string(secretHashBcrypt), nil
+}
+
+func (u *AppUsecase) DeleteApp(ctx context.Context, appID, secretHash string) error {
+	const method = "usecase.AppUsecase.RegisterApp"
+
+	log := u.log.With(slog.String(key.Method, method))
+
+	appData := model.AppData{
+		ID:        appID,
+		Secret:    secretHash,
+		DeletedAt: time.Now(),
+	}
+
+	if err := u.storage.DeleteApp(ctx, appData); err != nil {
+		if errors.Is(err, le.ErrAppNotFound) {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrAppNotFound.Error())
+			return le.ErrAppNotFound
+		}
+		log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
+			slog.String(key.AppID, appID),
+			slog.Any(key.Error, err),
+		)
+		return le.ErrInternalServerError
+	}
+
+	log.Info("app deleted", slog.String(key.AppID, appID))
+
+	return nil
 }
