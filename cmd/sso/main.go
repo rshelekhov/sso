@@ -24,7 +24,7 @@ func main() {
 	log.Info("starting application")
 	log.Debug("logger debug mode enabled")
 
-	tokenAuth := jwtoken.NewService(
+	tokenService := jwtoken.NewService(
 		cfg.JWTAuth.Issuer,
 		cfg.JWTAuth.SigningMethod,
 		cfg.JWTAuth.KeysPath,
@@ -37,7 +37,7 @@ func main() {
 		cfg.DefaultHashBcrypt.Salt,
 	)
 
-	application := app.New(log, cfg, tokenAuth)
+	application := app.New(log, cfg, tokenService)
 
 	go func() {
 		application.GRPCServer.MustRun()

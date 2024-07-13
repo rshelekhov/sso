@@ -14,7 +14,7 @@ type App struct {
 	GRPCServer *grpcapp.App
 }
 
-func New(log *slog.Logger, cfg *config.ServerSettings, tokenAuth *jwtoken.Service) *App {
+func New(log *slog.Logger, cfg *config.ServerSettings, tokenService *jwtoken.Service) *App {
 	// Storage
 	pg, err := postgres.NewStorage(cfg)
 	if err != nil {
@@ -27,8 +27,8 @@ func New(log *slog.Logger, cfg *config.ServerSettings, tokenAuth *jwtoken.Servic
 	authStorage := postgres.NewAuthStorage(pg)
 
 	// Usecases
-	appUsecase := usecase.NewAppUsecase(log, appStorage, cfg)
-	authUsecases := usecase.NewAuthUsecase(log, authStorage, tokenAuth)
+	appUsecase := usecase.NewAppUsecase(cfg, log, appStorage, tokenService)
+	authUsecases := usecase.NewAuthUsecase(log, authStorage, tokenService)
 
 	// App
 	grpcApp := grpcapp.New(log, appUsecase, authUsecases, cfg.GRPCServer.Port)
