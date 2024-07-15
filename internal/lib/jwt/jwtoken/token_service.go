@@ -32,6 +32,19 @@ func (c ContextKey) String() string {
 	return c.name
 }
 
+type TokenService interface {
+	Algorithm() jwt.SigningMethod
+	NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error)
+	GeneratePEMKeyPair(appID string) error
+	GetKeyID(appID string) (string, error)
+	GetPublicKey(appID string) (interface{}, error)
+	NewRefreshToken() (string, error)
+	GetUserID(ctx context.Context, appID string, key string) (string, error)
+	GetClaimsFromToken(ctx context.Context, appID string) (map[string]interface{}, error)
+	GetTokenFromContext(ctx context.Context, appID string) (*jwt.Token, error)
+	ParseToken(tokenString, appID string) (*jwt.Token, error)
+}
+
 type Service struct {
 	Issuer                   string
 	SigningMethod            string
