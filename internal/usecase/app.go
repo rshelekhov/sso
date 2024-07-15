@@ -22,14 +22,14 @@ type AppUsecase struct {
 	cfg     *config.ServerSettings
 	log     *slog.Logger
 	storage port.AppStorage
-	ts      *jwtoken.Service
+	ts      jwtoken.TokenService
 }
 
 func NewAppUsecase(
 	cfg *config.ServerSettings,
 	log *slog.Logger,
 	storage port.AppStorage,
-	ts *jwtoken.Service,
+	ts jwtoken.TokenService,
 ) *AppUsecase {
 	return &AppUsecase{
 		cfg:     cfg,
@@ -83,7 +83,6 @@ func (u *AppUsecase) RegisterApp(ctx context.Context, appName string) error {
 			slog.Any(key.Error, err),
 		)
 
-		// TODO: add test case for checking this
 		err = u.DeleteApp(ctx, appData.ID, appData.Secret)
 		if err != nil {
 			log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
