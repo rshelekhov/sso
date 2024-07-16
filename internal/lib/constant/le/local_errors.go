@@ -10,6 +10,14 @@ const (
 	ErrInternalServerError LocalError = "internal server error"
 
 	// ===========================================================================
+	//	storage errors
+	// ===========================================================================
+
+	ErrLocalKeyStorageSettingsEmpty LocalError = "local key storage settings is empty"
+	ErrS3KeyStorageSettingsEmpty    LocalError = "s3 key storage settings is empty"
+	ErrFailedToCommitTransaction    LocalError = "failed to commit transaction"
+
+	// ===========================================================================
 	//	app errors
 	// ===========================================================================
 
@@ -32,23 +40,25 @@ const (
 	ErrPasswordIsRequired     LocalError = "password is required"
 	ErrRefreshTokenIsRequired LocalError = "refresh_token is required"
 
-	ErrUserAlreadyExists              LocalError = "user already exists"
-	ErrPasswordsDoNotMatch            LocalError = "invalid credentials: passwords don't match"
-	ErrCurrentPasswordIsIncorrect     LocalError = "invalid credentials: current password is incorrect"
-	ErrNewPasswordSameAsCurrent       LocalError = "invalid credentials: new password same as current"
-	ErrInvalidCredentials             LocalError = "invalid credentials"
-	ErrEmailAlreadyTaken              LocalError = "email already taken"
-	ErrFailedToCreateUser             LocalError = "failed to create user"
-	ErrFailedToGeneratePasswordHash   LocalError = "failed to generate password hash"
-	ErrFailedToGetUserByEmail         LocalError = "failed to get user by email"
-	ErrFailedToGetUser                LocalError = "failed to get user"
-	ErrFailedToCheckIfPasswordMatch   LocalError = "failed to check if password match"
-	ErrUserNotFound                   LocalError = "user not found"
-	ErrNoEmailChangesDetected         LocalError = "no changes detected"
-	ErrNoPasswordChangesDetected      LocalError = "no password changes detected"
-	ErrFailedToCheckEmailUniqueness   LocalError = "failed to check email uniqueness"
-	ErrFailedToCheckIfPasswordChanged LocalError = "failed to check if password changed"
-	ErrFailedToDeleteUser             LocalError = "failed to delete user"
+	ErrUserAlreadyExists            LocalError = "user already exists"
+	ErrPasswordsDoNotMatch          LocalError = "invalid credentials: passwords don't match"
+	ErrCurrentPasswordIsIncorrect   LocalError = "invalid credentials: current password is incorrect"
+	ErrInvalidCredentials           LocalError = "invalid credentials"
+	ErrEmailAlreadyTaken            LocalError = "email already taken"
+	ErrFailedToCreateUser           LocalError = "failed to create user"
+	ErrFailedToGeneratePasswordHash LocalError = "failed to generate password hash"
+	ErrFailedToGetUserByEmail       LocalError = "failed to get user by email"
+	ErrFailedToGetUser              LocalError = "failed to get user"
+	ErrFailedToCheckIfPasswordMatch LocalError = "failed to check if password match"
+	ErrUserNotFound                 LocalError = "user not found"
+	ErrNoEmailChangesDetected       LocalError = "no changes detected"
+	ErrNoPasswordChangesDetected    LocalError = "no password changes detected"
+	ErrFailedToCheckEmailUniqueness LocalError = "failed to check email uniqueness"
+	ErrFailedToDeleteUser           LocalError = "failed to delete user"
+
+	// ===========================================================================
+	//	JWT service errors
+	// ===========================================================================
 
 	ErrFailedToGetAppSignKey         LocalError = "failed to get app sign key"
 	ErrFailedToCreateAccessToken     LocalError = "failed to create access jwtoken"
@@ -63,12 +73,7 @@ const (
 	ErrFailedToGetUserIDFromToken    LocalError = "failed to get user id from jwtoken"
 	ErrFailedToGetDeviceID           LocalError = "failed to get device id"
 	ErrFailedToDeleteSession         LocalError = "failed to delete session"
-	ErrFailedToReadFile              LocalError = "failed to read file"
-	ErrFailedToDecodePEM             LocalError = "failed to decode pem"
-	ErrFailedToParsePKIXPublicKey    LocalError = "failed to parse pkix public key"
 	ErrUnknownTypeOfPublicKey        LocalError = "unknown type of public key"
-	ErrFailedToTypeAssertJWK         LocalError = "failed to type assert jwk"
-	ErrFailedToUnmarshalJWK          LocalError = "failed to unmarshal jwk"
 	ErrFailedToGetJWKS               LocalError = "failed to get jwks"
 	ErrFailedToGetKeyID              LocalError = "failed to get key id"
 
@@ -78,6 +83,4 @@ const (
 	ErrUserIDNotFoundInCtx         LocalError = "user id not found in ctx"
 	ErrFailedToGetRequestIDFromCtx LocalError = "failed to get request id from ctx"
 	ErrRequestIDNotFoundInCtx      LocalError = "request id not found in ctx"
-
-	ErrFailedToCommitTransaction LocalError = "failed to commit transaction"
 )
