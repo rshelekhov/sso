@@ -77,7 +77,7 @@ func (u *AppUsecase) RegisterApp(ctx context.Context, appName string) error {
 		return le.ErrInternalServerError
 	}
 
-	if err = u.ts.GeneratePEMKeyPair(appID); err != nil {
+	if err = u.ts.GeneratePrivateKey(appID); err != nil {
 		log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
 			slog.String(key.AppID, appID),
 			slog.Any(key.Error, err),

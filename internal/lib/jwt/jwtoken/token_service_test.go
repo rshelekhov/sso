@@ -26,7 +26,7 @@ var (
 )
 
 // ===========================================================================
-//   Tests for GeneratePEMKeyPair
+//   Tests for GeneratePrivateKey
 // ===========================================================================
 
 func TestGeneratePEMKeyPair_HappyPath(t *testing.T) {
@@ -40,7 +40,7 @@ func TestGeneratePEMKeyPair_HappyPath(t *testing.T) {
 		KeysPath: keysPath,
 	}
 
-	err := ts.GeneratePEMKeyPair(appID)
+	err := ts.GeneratePrivateKey(appID)
 	if err != nil {
 		t.Fatalf("Failed to generate PEM key pair: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestNewAccessToken_HappyPath(t *testing.T) {
 		KeysPath: keysPath,
 	}
 
-	err := ts.GeneratePEMKeyPair(appID)
+	err := ts.GeneratePrivateKey(appID)
 	if err != nil {
 		t.Fatalf("Failed to generate PEM key pair: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestGetKeyID(t *testing.T) {
 		KeysPath: keysPath,
 	}
 
-	err := ts.GeneratePEMKeyPair(appID)
+	err := ts.GeneratePrivateKey(appID)
 	if err != nil {
 		t.Fatalf("Failed to generate PEM key pair: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestGetUserID_HappyPath(t *testing.T) {
 		KeysPath: keysPath,
 	}
 
-	err := ts.GeneratePEMKeyPair(appID)
+	err := ts.GeneratePrivateKey(appID)
 	if err != nil {
 		t.Fatalf("Failed to generate PEM key pair: %v", err)
 	}
@@ -306,7 +306,7 @@ func TestGetUserID_FailCases(t *testing.T) {
 				KeysPath: keysPath,
 			}
 
-			err := ts.GeneratePEMKeyPair(appID)
+			err := ts.GeneratePrivateKey(appID)
 			if err != nil {
 				t.Fatalf("Failed to generate PEM key pair: %v", err)
 			}

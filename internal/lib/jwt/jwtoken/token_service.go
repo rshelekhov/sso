@@ -2,19 +2,15 @@ package jwtoken
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
+	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
 	"google.golang.org/grpc/metadata"
-	"os"
 	"strings"
 	"time"
 )
@@ -35,7 +31,7 @@ func (c ContextKey) String() string {
 type TokenService interface {
 	Algorithm() jwt.SigningMethod
 	NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error)
-	GeneratePEMKeyPair(appID string) error
+	GeneratePrivateKey(appID string) error
 	GetKeyID(appID string) (string, error)
 	GetPublicKey(appID string) (interface{}, error)
 	NewRefreshToken() (string, error)
@@ -48,7 +44,7 @@ type TokenService interface {
 type Service struct {
 	Issuer                   string
 	SigningMethod            string
-	KeysPath                 string
+	KeyStorage               port.KeyStorage
 	JWKSetTTL                time.Duration
 	AccessTokenTTL           time.Duration
 	RefreshTokenTTL          time.Duration
@@ -61,7 +57,7 @@ type Service struct {
 func NewService(
 	issuer string,
 	signingMethod string,
-	keysPath string,
+	keyStorage port.KeyStorage,
 	JWKSetTTL time.Duration,
 	accessTokenTTL time.Duration,
 	refreshTokenTTL time.Duration,
@@ -73,7 +69,7 @@ func NewService(
 	return &Service{
 		Issuer:                   issuer,
 		SigningMethod:            signingMethod,
-		KeysPath:                 keysPath,
+		KeyStorage:               keyStorage,
 		JWKSetTTL:                JWKSetTTL,
 		AccessTokenTTL:           accessTokenTTL,
 		RefreshTokenTTL:          refreshTokenTTL,
@@ -109,14 +105,12 @@ func (ts *Service) NewAccessToken(appID, kid string, additionalClaims map[string
 		}
 	}
 
-	filePath := fmt.Sprintf(privateKeyFilePathFormat, ts.KeysPath, appID)
-
-	privateKeyBytes, err := os.ReadFile(filePath)
+	privateKeyPEM, err := ts.KeyStorage.GetPrivateKey(appID)
 	if err != nil {
 		return "", fmt.Errorf("failed to read private key: %w", err)
 	}
 
-	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyBytes)
+	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyPEM)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse rsa private key from pem: %w", err)
 	}
@@ -126,105 +120,6 @@ func (ts *Service) NewAccessToken(appID, kid string, additionalClaims map[string
 	token.Header[Kid] = kid
 
 	return token.SignedString(privateKey)
-}
-
-func (ts *Service) GeneratePEMKeyPair(appID string) error {
-	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, ts.KeysPath, appID)
-	publicKeyFilePath := fmt.Sprintf(publicKeyFilePathFormat, ts.KeysPath, appID)
-
-	// Ensure the keysPath directory exists
-	if err := os.MkdirAll(ts.KeysPath, os.ModePerm); err != nil {
-		return err
-	}
-
-	// Check if the private key exists
-	if _, err := os.Stat(privateKeyFilePath); os.IsNotExist(err) {
-		// Private key does not exist, create it
-		privateKey, err := generateAndSavePrivateKey(privateKeyFilePath)
-		if err != nil {
-			return err
-		}
-
-		// Generate public key
-		if err = generateAndSavePublicKey(privateKey, publicKeyFilePath); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func generateAndSavePrivateKey(filePath string) (*rsa.PrivateKey, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, err
-	}
-
-	// Save private key to file
-	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-
-	// Create a PEM block with the DER encoded private key
-	b64 := []byte(base64.StdEncoding.EncodeToString(privateKeyBytes))
-	privatePEM := fmt.Sprintf("-----BEGIN PRIVATE KEY-----\n%s-----END PRIVATE KEY-----\n", make64ColsString(b64))
-
-	if err := os.WriteFile(filePath, []byte(privatePEM), 0600); err != nil {
-		return nil, fmt.Errorf("failed to save private key to file: %w", err)
-	}
-
-	return privateKey, nil
-}
-
-func generateAndSavePublicKey(privateKey *rsa.PrivateKey, filePath string) error {
-	publicKey := &privateKey.PublicKey
-
-	// Marshal public key to PKIX, ASN.1 DER form
-	publicKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey)
-	if err != nil {
-		return fmt.Errorf("failed to marshal public key: %w", err)
-	}
-
-	// Create a PEM block with the DER encoded public key
-	pemBlock := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: publicKeyBytes,
-	}
-
-	// Encode the PEM block to bytes
-	publicPEM := pem.EncodeToMemory(pemBlock)
-
-	// Write the PEM file
-	if err := os.WriteFile(filePath, []byte(publicPEM), 0644); err != nil {
-		return fmt.Errorf("failed to save public key to file: %w", err)
-	}
-
-	return nil
-}
-
-func make64ColsString(slice []byte) string {
-	chunks := chunkSlice(slice, 64)
-
-	result := ""
-	for _, line := range chunks {
-		result = result + string(line) + "\n"
-	}
-	return result
-}
-
-// chunkSlice split slices
-func chunkSlice(slice []byte, chunkSize int) [][]byte {
-	var chunks [][]byte
-	for i := 0; i < len(slice); i += chunkSize {
-		end := i + chunkSize
-
-		// necessary check to avoid slicing beyond
-		// slice capacity
-		if end > len(slice) {
-			end = len(slice)
-		}
-		chunks = append(chunks, slice[i:end])
-	}
-
-	return chunks
 }
 
 func (ts *Service) GetKeyID(appID string) (string, error) {
@@ -242,47 +137,6 @@ func (ts *Service) GetKeyID(appID string) (string, error) {
 	}
 
 	return keyID, err
-}
-
-func (ts *Service) GetPublicKey(appID string) (interface{}, error) {
-	pub, err := ts.getPublicKeyFromPEM(appID, ts.KeysPath)
-	if err != nil {
-		return nil, err
-	}
-
-	switch pub := pub.(type) {
-	case *rsa.PublicKey:
-		return pub, nil
-	case *ecdsa.PublicKey:
-		return pub, nil
-	default:
-		return nil, le.ErrUnknownTypeOfPublicKey
-	}
-}
-
-func (ts *Service) getPublicKeyFromPEM(appID, keysPath string) (interface{}, error) {
-	// Construct the complete file path based on the AppID and provided keysPath
-	filePath := fmt.Sprintf(publicKeyFilePathFormat, keysPath, appID)
-
-	// Read the public key from the PEM file
-	pemData, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Decode the PEM data to get the public key
-	block, _ := pem.Decode(pemData)
-	if block == nil {
-		return nil, le.ErrFailedToDecodePEM
-	}
-
-	// Parse the public key
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, le.ErrFailedToParsePKIXPublicKey
-	}
-
-	return pub, nil
 }
 
 func (ts *Service) NewRefreshToken() (string, error) {
