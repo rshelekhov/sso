@@ -23,7 +23,7 @@ func (m *MockTokenService) Algorithm() jwt.SigningMethod {
 	return args.Get(0).(jwt.SigningMethod)
 }
 
-func (m *MockTokenService) GeneratePEMKeyPair(appID string) error {
+func (m *MockTokenService) GeneratePrivateKey(appID string) error {
 	args := m.Called(appID)
 	return args.Error(0)
 }
