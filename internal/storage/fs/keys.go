@@ -7,12 +7,12 @@ import (
 )
 
 type KeyStorage struct {
-	KeysPath string
+	PrivateKeyPath string
 }
 
 func NewKeyStorage(settings config.KeyStorageLocal) (*KeyStorage, error) {
 	return &KeyStorage{
-		KeysPath: settings.Path,
+		PrivateKeyPath: settings.Path,
 	}, nil
 }
 
@@ -20,11 +20,11 @@ const privateKeyFilePathFormat = "%s/app_%s_private.pem"
 
 func (s *KeyStorage) SavePrivateKey(appID string, privateKeyPEM []byte) error {
 	// Ensure the keysPath directory exists
-	if err := os.MkdirAll(s.KeysPath, os.ModePerm); err != nil {
+	if err := os.MkdirAll(s.PrivateKeyPath, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create keys path: %w", err)
 	}
 
-	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.KeysPath, appID)
+	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, appID)
 
 	if err := os.WriteFile(privateKeyFilePath, privateKeyPEM, 0600); err != nil {
 		return fmt.Errorf("failed to save private key to file: %w", err)
@@ -34,7 +34,7 @@ func (s *KeyStorage) SavePrivateKey(appID string, privateKeyPEM []byte) error {
 }
 
 func (s *KeyStorage) GetPrivateKey(appID string) ([]byte, error) {
-	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.KeysPath, appID)
+	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, appID)
 
 	privateKeyBytes, err := os.ReadFile(privateKeyFilePath)
 	if err != nil {
