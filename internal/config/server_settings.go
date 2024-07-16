@@ -4,11 +4,12 @@ import "time"
 
 type (
 	ServerSettings struct {
-		AppEnv            string           `mapstructure:"APP_ENV"`
-		GRPCServer        GRPCServerConfig `mapstructure:",squash"`
-		Postgres          PostgresConfig   `mapstructure:",squash"`
-		JWTAuth           JWTConfig        `mapstructure:",squash"`
-		DefaultHashBcrypt HashBcryptConfig `mapstructure:",squash"`
+		AppEnv            string             `mapstructure:"APP_ENV"`
+		GRPCServer        GRPCServerConfig   `mapstructure:",squash"`
+		Postgres          PostgresConfig     `mapstructure:",squash"`
+		JWTAuth           JWTConfig          `mapstructure:",squash"`
+		DefaultHashBcrypt HashBcryptConfig   `mapstructure:",squash"`
+		KeyStorage        KeyStorageSettings `mapstructure:",squash"`
 	}
 
 	GRPCServerConfig struct {
@@ -35,9 +36,9 @@ type (
 	}
 
 	JWTConfig struct {
-		Issuer                   string        `mapstructure:"JWT_ISSUER"`
-		SigningMethod            string        `mapstructure:"JWT_SIGNING_METHOD"`
-		KeysPath                 string        `mapstructure:"JWT_KEYS_PATH"`
+		Issuer        string `mapstructure:"JWT_ISSUER"`
+		SigningMethod string `mapstructure:"JWT_SIGNING_METHOD"`
+		// KeysPath                 string        `mapstructure:"JWT_KEYS_PATH"`
 		JWKSetTTL                time.Duration `mapstructure:"JWT_JWK_SET_TTL"`
 		AccessTokenTTL           time.Duration `mapstructure:"JWT_ACCESS_TOKEN_TTL"`
 		RefreshTokenTTL          time.Duration `mapstructure:"JWT_REFRESH_TOKEN_TTL"`
@@ -49,4 +50,28 @@ type (
 		Cost int    `mapstructure:"DEFAULT_HASH_BCRYPT_COST"`
 		Salt string `mapstructure:"DEFAULT_HASH_BCRYPT_SALT"`
 	}
+
+	KeyStorageSettings struct {
+		Type  KeyStorageType `mapstructure:"KEY_STORAGE_TYPE"`
+		Local *KeyStorageLocal
+		S3    *KeyStorageS3
+	}
+
+	KeyStorageLocal struct {
+		Path string `mapstructure:"KEY_STORAGE_LOCAL_PATH"`
+	}
+
+	KeyStorageS3 struct {
+		Region         string `mapstructure:"KEY_STORAGE_S3_REGION"`
+		Bucket         string `mapstructure:"KEY_STORAGE_S3_BUCKET"`
+		PrivateKeyPath string `mapstructure:"KEY_STORAGE_S3_KEY"`
+		Endpoint       string `mapstructure:"KEY_STORAGE_S3_ENDPOINT"`
+	}
+)
+
+type KeyStorageType string
+
+const (
+	KeyStorageTypeLocal KeyStorageType = "local"
+	KeyStorageTypeS3    KeyStorageType = "s3"
 )
