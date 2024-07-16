@@ -9,11 +9,34 @@ import (
 	"strings"
 )
 
-// TODO: refactor this methods for using general validator
-
-// TODO: return all errors in one place
-
 const emptyValue = ""
+
+func validateAppID(appID string) error {
+	if appID == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
+	}
+	return nil
+}
+
+func validateUserCredentials(email, password string) error {
+	if email == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrEmailIsRequired.Error())
+	}
+	if password == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrPasswordIsRequired.Error())
+	}
+	return nil
+}
+
+func validateUserDeviceData(userAgent, ip string) error {
+	if userAgent == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
+	}
+	if ip == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
+	}
+	return nil
+}
 
 func validateRegisterAppData(req *ssov1.RegisterAppRequest) error {
 	appName := req.GetAppName()
@@ -29,25 +52,14 @@ func validateRegisterAppData(req *ssov1.RegisterAppRequest) error {
 }
 
 func validateLoginData(req *ssov1.LoginRequest, data *model.UserRequestData) error {
-	// TODO: add validation with validator
-	if req.GetEmail() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrEmailIsRequired.Error())
+	if err := validateUserCredentials(req.GetEmail(), req.GetPassword()); err != nil {
+		return err
 	}
-
-	if req.GetPassword() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrPasswordIsRequired.Error())
+	if err := validateAppID(req.GetAppId()); err != nil {
+		return err
 	}
-
-	if req.GetAppId() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
-	}
-
-	if req.UserDeviceData.GetUserAgent() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
-	}
-
-	if req.UserDeviceData.GetIp() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
+	if err := validateUserDeviceData(req.UserDeviceData.GetUserAgent(), req.UserDeviceData.GetIp()); err != nil {
+		return err
 	}
 
 	data.Email = req.GetEmail()
@@ -60,25 +72,14 @@ func validateLoginData(req *ssov1.LoginRequest, data *model.UserRequestData) err
 }
 
 func validateRegisterData(req *ssov1.RegisterUserRequest, data *model.UserRequestData) error {
-	// TODO: add validation with validator
-	if req.GetEmail() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrEmailIsRequired.Error())
+	if err := validateUserCredentials(req.GetEmail(), req.GetPassword()); err != nil {
+		return err
 	}
-
-	if req.GetPassword() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrPasswordIsRequired.Error())
+	if err := validateAppID(req.GetAppId()); err != nil {
+		return err
 	}
-
-	if req.GetAppId() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
-	}
-
-	if req.UserDeviceData.GetUserAgent() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
-	}
-
-	if req.UserDeviceData.GetIp() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
+	if err := validateUserDeviceData(req.UserDeviceData.GetUserAgent(), req.UserDeviceData.GetIp()); err != nil {
+		return err
 	}
 
 	data.Email = req.GetEmail()
@@ -91,17 +92,11 @@ func validateRegisterData(req *ssov1.RegisterUserRequest, data *model.UserReques
 }
 
 func validateLogout(req *ssov1.LogoutRequest, data *model.UserRequestData) error {
-	// TODO: add validation with validator
-	if req.GetAppId() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
+	if err := validateAppID(req.GetAppId()); err != nil {
+		return err
 	}
-
-	if req.UserDeviceData.GetUserAgent() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
-	}
-
-	if req.UserDeviceData.GetIp() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
+	if err := validateUserDeviceData(req.UserDeviceData.GetUserAgent(), req.UserDeviceData.GetIp()); err != nil {
+		return err
 	}
 
 	data.AppID = req.GetAppId()
@@ -112,21 +107,14 @@ func validateLogout(req *ssov1.LogoutRequest, data *model.UserRequestData) error
 }
 
 func validateRefresh(req *ssov1.RefreshRequest, data *model.RefreshRequestData) error {
-	// TODO: add validation with validator
-	if req.GetRefreshToken() == "" {
+	if req.GetRefreshToken() == emptyValue {
 		return status.Error(codes.InvalidArgument, le.ErrRefreshTokenIsRequired.Error())
 	}
-
-	if req.GetAppId() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
+	if err := validateAppID(req.GetAppId()); err != nil {
+		return err
 	}
-
-	if req.UserDeviceData.GetUserAgent() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
-	}
-
-	if req.UserDeviceData.GetIp() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
+	if err := validateUserDeviceData(req.UserDeviceData.GetUserAgent(), req.UserDeviceData.GetIp()); err != nil {
+		return err
 	}
 
 	data.RefreshToken = req.GetRefreshToken()
@@ -138,9 +126,8 @@ func validateRefresh(req *ssov1.RefreshRequest, data *model.RefreshRequestData) 
 }
 
 func validateGetJWKS(req *ssov1.GetJWKSRequest, data *model.JWKSRequestData) error {
-	// TODO: add validation with validator
-	if req.GetAppId() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
+	if err := validateAppID(req.GetAppId()); err != nil {
+		return err
 	}
 
 	data.AppID = req.GetAppId()
@@ -149,9 +136,8 @@ func validateGetJWKS(req *ssov1.GetJWKSRequest, data *model.JWKSRequestData) err
 }
 
 func validateGetUser(req *ssov1.GetUserRequest, data *model.UserRequestData) error {
-	// TODO: add validation with validator
-	if req.GetAppId() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
+	if err := validateAppID(req.GetAppId()); err != nil {
+		return err
 	}
 
 	data.AppID = req.GetAppId()
@@ -160,10 +146,8 @@ func validateGetUser(req *ssov1.GetUserRequest, data *model.UserRequestData) err
 }
 
 func validateUpdateUser(req *ssov1.UpdateUserRequest, data *model.UserRequestData) error {
-	// TODO: add validation with validator
-
-	if req.GetAppId() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
+	if err := validateAppID(req.GetAppId()); err != nil {
+		return err
 	}
 
 	data.Email = req.GetEmail()
@@ -172,7 +156,7 @@ func validateUpdateUser(req *ssov1.UpdateUserRequest, data *model.UserRequestDat
 	data.AppID = req.GetAppId()
 
 	// If UpdatedPassword is not empty, ensure Password is not empty
-	if data.UpdatedPassword != "" && data.Password == "" {
+	if data.UpdatedPassword != emptyValue && data.Password == emptyValue {
 		return status.Error(codes.InvalidArgument, le.ErrPasswordIsRequired.Error())
 	}
 
@@ -180,17 +164,11 @@ func validateUpdateUser(req *ssov1.UpdateUserRequest, data *model.UserRequestDat
 }
 
 func validateDeleteUser(req *ssov1.DeleteUserRequest, data *model.UserRequestData) error {
-	// TODO: add validation with validator
-	if req.GetAppId() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
+	if err := validateAppID(req.GetAppId()); err != nil {
+		return err
 	}
-
-	if req.UserDeviceData.GetUserAgent() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
-	}
-
-	if req.UserDeviceData.GetIp() == "" {
-		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
+	if err := validateUserDeviceData(req.UserDeviceData.GetUserAgent(), req.UserDeviceData.GetIp()); err != nil {
+		return err
 	}
 
 	data.AppID = req.GetAppId()
