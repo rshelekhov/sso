@@ -60,7 +60,6 @@ const (
 	//	JWT service errors
 	// ===========================================================================
 
-	ErrFailedToGetAppSignKey         LocalError = "failed to get app sign key"
 	ErrFailedToCreateAccessToken     LocalError = "failed to create access jwtoken"
 	ErrFailedToCreateRefreshToken    LocalError = "failed to create refresh jwtoken"
 	ErrUserDeviceNotFound            LocalError = "user device not found"
@@ -77,6 +76,8 @@ const (
 	ErrFailedToGetJWKS               LocalError = "failed to get jwks"
 	ErrFailedToGetKeyID              LocalError = "failed to get key id"
 
+	ErrEmptyKidIsNotAllowed        LocalError = "empty kid is not allowed"
+	ErrEmptyAppIDIsNotAllowed      LocalError = "empty app id is not allowed"
 	ErrNoMetaDataFoundInCtx        LocalError = "no metadata found in ctx"
 	ErrNoTokenFoundInMetadata      LocalError = "no token found in metadata"
 	ErrFailedToParseTokenClaims    LocalError = "failed to parse jwtoken claims"

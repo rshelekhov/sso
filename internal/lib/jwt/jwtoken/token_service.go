@@ -22,6 +22,7 @@ type ContextKey struct {
 const (
 	AccessTokenKey = "access_token"
 	Kid            = "kid"
+	emptyValue     = ""
 )
 
 func (c ContextKey) String() string {
@@ -91,12 +92,11 @@ func (ts *Service) Algorithm() jwt.SigningMethod {
 	}
 }
 
-const (
-	privateKeyFilePathFormat = "%s/app_%s_private.pem"
-	publicKeyFilePathFormat  = "%s/app_%s_public.pem"
-)
-
 func (ts *Service) NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error) {
+	if kid == emptyValue {
+		return "", le.ErrEmptyKidIsNotAllowed
+	}
+
 	claims := jwt.MapClaims{}
 
 	if additionalClaims != nil { // nolint:gosimple
@@ -123,6 +123,10 @@ func (ts *Service) NewAccessToken(appID, kid string, additionalClaims map[string
 }
 
 func (ts *Service) GetKeyID(appID string) (string, error) {
+	if appID == emptyValue {
+		return "", le.ErrEmptyAppIDIsNotAllowed
+	}
+
 	// Get public key
 	pub, err := ts.GetPublicKey(appID)
 	if err != nil {
