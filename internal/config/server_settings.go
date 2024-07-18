@@ -13,7 +13,7 @@ type (
 	}
 
 	GRPCServerConfig struct {
-		Port    string        `mapstructure:"GRPC_SERVER_PORT"`
+		Port    string        `mapstructure:"GRPC_SERVER_PORT" envDefault:"44044"`
 		Timeout time.Duration `mapstructure:"GRPC_SERVER_TIMEOUT"`
 	}
 
@@ -38,7 +38,7 @@ type (
 	JWTConfig struct {
 		Issuer        string `mapstructure:"JWT_ISSUER"`
 		SigningMethod string `mapstructure:"JWT_SIGNING_METHOD"`
-		// KeysPath                 string        `mapstructure:"JWT_KEYS_PATH"`
+		// PrivateKeyPath                 string        `mapstructure:"JWT_KEYS_PATH"`
 		JWKSetTTL                time.Duration `mapstructure:"JWT_JWK_SET_TTL"`
 		AccessTokenTTL           time.Duration `mapstructure:"JWT_ACCESS_TOKEN_TTL"`
 		RefreshTokenTTL          time.Duration `mapstructure:"JWT_REFRESH_TOKEN_TTL"`
@@ -64,7 +64,9 @@ type (
 	KeyStorageS3 struct {
 		Region         string `mapstructure:"KEY_STORAGE_S3_REGION"`
 		Bucket         string `mapstructure:"KEY_STORAGE_S3_BUCKET"`
-		PrivateKeyPath string `mapstructure:"KEY_STORAGE_S3_KEY"`
+		AccessKey      string `mapstructure:"KEY_STORAGE_S3_ACCESS_KEY"`
+		SecretKey      string `mapstructure:"KEY_STORAGE_S3_SECRET_KEY"`
+		PrivateKeyPath string `mapstructure:"KEY_STORAGE_S3_PRIVATE_KEY_PATH"`
 		Endpoint       string `mapstructure:"KEY_STORAGE_S3_ENDPOINT"`
 	}
 )
