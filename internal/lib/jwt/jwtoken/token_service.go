@@ -2,18 +2,15 @@ package jwtoken
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
+	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
 	"google.golang.org/grpc/metadata"
-	"os"
 	"strings"
 	"time"
 )
@@ -25,16 +22,30 @@ type ContextKey struct {
 const (
 	AccessTokenKey = "access_token"
 	Kid            = "kid"
+	emptyValue     = ""
 )
 
 func (c ContextKey) String() string {
 	return c.name
 }
 
+type TokenService interface {
+	Algorithm() jwt.SigningMethod
+	NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error)
+	GeneratePrivateKey(appID string) error
+	GetKeyID(appID string) (string, error)
+	GetPublicKey(appID string) (interface{}, error)
+	NewRefreshToken() (string, error)
+	GetUserID(ctx context.Context, appID string, key string) (string, error)
+	GetClaimsFromToken(ctx context.Context, appID string) (map[string]interface{}, error)
+	GetTokenFromContext(ctx context.Context, appID string) (*jwt.Token, error)
+	ParseToken(tokenString, appID string) (*jwt.Token, error)
+}
+
 type Service struct {
 	Issuer                   string
 	SigningMethod            string
-	KeysPath                 string
+	KeyStorage               port.KeyStorage
 	JWKSetTTL                time.Duration
 	AccessTokenTTL           time.Duration
 	RefreshTokenTTL          time.Duration
@@ -47,7 +58,7 @@ type Service struct {
 func NewService(
 	issuer string,
 	signingMethod string,
-	keysPath string,
+	keyStorage port.KeyStorage,
 	JWKSetTTL time.Duration,
 	accessTokenTTL time.Duration,
 	refreshTokenTTL time.Duration,
@@ -59,7 +70,7 @@ func NewService(
 	return &Service{
 		Issuer:                   issuer,
 		SigningMethod:            signingMethod,
-		KeysPath:                 keysPath,
+		KeyStorage:               keyStorage,
 		JWKSetTTL:                JWKSetTTL,
 		AccessTokenTTL:           accessTokenTTL,
 		RefreshTokenTTL:          refreshTokenTTL,
@@ -82,6 +93,10 @@ func (ts *Service) Algorithm() jwt.SigningMethod {
 }
 
 func (ts *Service) NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error) {
+	if kid == emptyValue {
+		return "", le.ErrEmptyKidIsNotAllowed
+	}
+
 	claims := jwt.MapClaims{}
 
 	if additionalClaims != nil { // nolint:gosimple
@@ -90,19 +105,12 @@ func (ts *Service) NewAccessToken(appID, kid string, additionalClaims map[string
 		}
 	}
 
-	filePath := fmt.Sprintf("%s/app_%s_private.pem", ts.KeysPath, appID)
-
-	// TODO: add logic for creating keys
-	// check if private key exists
-	// if not, create them and save to file
-	// also generate public key and save to file
-
-	privateKeyBytes, err := os.ReadFile(filePath)
+	privateKeyPEM, err := ts.KeyStorage.GetPrivateKey(appID)
 	if err != nil {
 		return "", fmt.Errorf("failed to read private key: %w", err)
 	}
 
-	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyBytes)
+	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyPEM)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse rsa private key from pem: %w", err)
 	}
@@ -115,6 +123,10 @@ func (ts *Service) NewAccessToken(appID, kid string, additionalClaims map[string
 }
 
 func (ts *Service) GetKeyID(appID string) (string, error) {
+	if appID == emptyValue {
+		return "", le.ErrEmptyAppIDIsNotAllowed
+	}
+
 	// Get public key
 	pub, err := ts.GetPublicKey(appID)
 	if err != nil {
@@ -129,47 +141,6 @@ func (ts *Service) GetKeyID(appID string) (string, error) {
 	}
 
 	return keyID, err
-}
-
-func (ts *Service) GetPublicKey(appID string) (interface{}, error) {
-	pub, err := ts.getPublicKeyFromPEM(appID, ts.KeysPath)
-	if err != nil {
-		return nil, err
-	}
-
-	switch pub := pub.(type) {
-	case *rsa.PublicKey:
-		return pub, nil
-	case *ecdsa.PublicKey:
-		return pub, nil
-	default:
-		return nil, le.ErrUnknownTypeOfPublicKey
-	}
-}
-
-func (ts *Service) getPublicKeyFromPEM(appID, keysPath string) (interface{}, error) {
-	// Construct the complete file path based on the AppID and provided keysPath
-	filePath := fmt.Sprintf("%s/app_%s_public.pem", keysPath, appID)
-
-	// Read the public key from the PEM file
-	pemData, err := os.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	// Decode the PEM data to get the public key
-	block, _ := pem.Decode(pemData)
-	if block == nil {
-		return nil, le.ErrFailedToDecodePEM
-	}
-
-	// Parse the public key
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return nil, le.ErrFailedToParsePKIXPublicKey
-	}
-
-	return pub, nil
 }
 
 func (ts *Service) NewRefreshToken() (string, error) {

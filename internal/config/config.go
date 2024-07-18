@@ -37,6 +37,25 @@ func MustLoadPath(configPath string) *ServerSettings {
 		log.Fatalf("error unmarshalling config file into struct: %s: ", err)
 	}
 
+	switch cfg.KeyStorage.Type {
+	case KeyStorageTypeLocal:
+		var local KeyStorageLocal
+		err = viper.Unmarshal(&local)
+		if err != nil {
+			log.Fatalf("error unmarshalling config file into struct with settings for key local storage: %s: ", err)
+		}
+		cfg.KeyStorage.Local = &local
+	case KeyStorageTypeS3:
+		var s3 KeyStorageS3
+		err = viper.Unmarshal(&s3)
+		if err != nil {
+			log.Fatalf("error unmarshalling config file into struct with settings for key s3 storage: %s: ", err)
+		}
+		cfg.KeyStorage.S3 = &s3
+	default:
+		log.Fatalf("unknown key storage type: %s", cfg.KeyStorage.Type)
+	}
+
 	return &cfg
 }
 

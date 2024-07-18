@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	issuer            = "sso.rshelekhov.com"
+	issuer            = "sso.reframedapp.com"
 	emptyAppID        = ""
 	appID             = "test-app-id"
 	passDefaultLength = 10

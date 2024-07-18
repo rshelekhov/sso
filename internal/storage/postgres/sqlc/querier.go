@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	CheckAppIDExists(ctx context.Context, id string) (bool, error)
 	CreateUserSession(ctx context.Context, arg CreateUserSessionParams) error
+	DeleteApp(ctx context.Context, arg DeleteAppParams) error
 	DeleteRefreshTokenFromSession(ctx context.Context, refreshToken string) error
 	DeleteSession(ctx context.Context, arg DeleteSessionParams) error
 	DeleteUser(ctx context.Context, arg DeleteUserParams) error
