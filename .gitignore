@@ -4,8 +4,11 @@
 # ENV
 config/.env
 
-# Certs folder with private key
-/certs/
+# Certs folder with private keys
+/certs/*
+
+# Don't ignore this file (need for api tests)
+!/certs/app_test-app-id_private.pem
 
 # Other
 .DS_Store

@@ -10,6 +10,7 @@ import (
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/rshelekhov/sso/internal/lib/logger"
+	"github.com/rshelekhov/sso/internal/storage"
 	"github.com/rshelekhov/sso/internal/storage/postgres"
 	"github.com/rshelekhov/sso/internal/usecase"
 	"os"
@@ -30,10 +31,22 @@ func main() {
 
 	log := logger.SetupLogger(cfg.AppEnv)
 
+	pg, err := postgres.NewStorage(cfg)
+	if err != nil {
+		log.Error("failed to init storage: ", err)
+	}
+
+	appStorage := postgres.NewAppStorage(pg)
+
+	keyStorage, err := storage.NewKeyStorage(cfg.KeyStorage)
+	if err != nil {
+		log.Error("failed to init key storage", logger.Err(err))
+	}
+
 	tokenService := jwtoken.NewService(
 		cfg.JWTAuth.Issuer,
 		cfg.JWTAuth.SigningMethod,
-		cfg.JWTAuth.KeysPath,
+		keyStorage,
 		cfg.JWTAuth.JWKSetTTL,
 		cfg.JWTAuth.AccessTokenTTL,
 		cfg.JWTAuth.RefreshTokenTTL,
@@ -42,13 +55,6 @@ func main() {
 		cfg.DefaultHashBcrypt.Cost,
 		cfg.DefaultHashBcrypt.Salt,
 	)
-
-	pg, err := postgres.NewStorage(cfg)
-	if err != nil {
-		log.Error("failed to init storage: ", err)
-	}
-
-	appStorage := postgres.NewAppStorage(pg)
 
 	appUsecase := usecase.NewAppUsecase(cfg, log, appStorage, tokenService)
 

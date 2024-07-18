@@ -4,7 +4,6 @@ import (
 	"github.com/rshelekhov/sso/internal/app"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/constant/key"
-	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"log/slog"
 	"os"
@@ -24,20 +23,7 @@ func main() {
 	log.Info("starting application")
 	log.Debug("logger debug mode enabled")
 
-	tokenService := jwtoken.NewService(
-		cfg.JWTAuth.Issuer,
-		cfg.JWTAuth.SigningMethod,
-		cfg.JWTAuth.KeysPath,
-		cfg.JWTAuth.JWKSetTTL,
-		cfg.JWTAuth.AccessTokenTTL,
-		cfg.JWTAuth.RefreshTokenTTL,
-		cfg.JWTAuth.RefreshTokenCookieDomain,
-		cfg.JWTAuth.RefreshTokenCookiePath,
-		cfg.DefaultHashBcrypt.Cost,
-		cfg.DefaultHashBcrypt.Salt,
-	)
-
-	application := app.New(log, cfg, tokenService)
+	application := app.New(log, cfg)
 
 	go func() {
 		application.GRPCServer.MustRun()
