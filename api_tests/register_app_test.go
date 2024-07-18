@@ -71,9 +71,9 @@ func TestRegisterApp_AppAlreadyExists(t *testing.T) {
 	require.Contains(t, err.Error(), le.ErrAppAlreadyExists.Error())
 }
 
-// TestRegisterApp_GeneratePEMKeyPairError tests the scenario where the GeneratePrivateKey function
+// TestRegisterApp_GeneratePrivateKeyError tests the scenario where the GeneratePrivateKey function
 // returns an error and then app is deleted
-func TestRegisterApp_GeneratePEMKeyPairError(t *testing.T) {
+func TestRegisterApp_GeneratePrivateKeyError(t *testing.T) {
 	ctx, _ := suite.New(t)
 
 	// Create mocks
@@ -112,7 +112,9 @@ func TestRegisterApp_GeneratePEMKeyPairError(t *testing.T) {
 	mockTS.AssertExpectations(t)
 }
 
-func TestRegisterApp_GeneratePEMKeyPairError_DeleteAppError(t *testing.T) {
+// TestRegisterApp_GeneratePrivateKeyError_DeleteAppError tests the scenario where the GeneratePrivateKey function
+// returns an error, and then we get an error when deleting the app
+func TestRegisterApp_GeneratePrivateKeyError_DeleteAppError(t *testing.T) {
 	ctx, _ := suite.New(t)
 
 	// Create mocks
