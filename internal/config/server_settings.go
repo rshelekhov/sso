@@ -4,12 +4,13 @@ import "time"
 
 type (
 	ServerSettings struct {
-		AppEnv            string             `mapstructure:"APP_ENV"`
-		GRPCServer        GRPCServerConfig   `mapstructure:",squash"`
-		Postgres          PostgresConfig     `mapstructure:",squash"`
-		JWTAuth           JWTConfig          `mapstructure:",squash"`
-		DefaultHashBcrypt HashBcryptConfig   `mapstructure:",squash"`
-		KeyStorage        KeyStorageSettings `mapstructure:",squash"`
+		AppEnv            string           `mapstructure:"APP_ENV"`
+		GRPCServer        GRPCServerConfig `mapstructure:",squash"`
+		Postgres          PostgresConfig   `mapstructure:",squash"`
+		JWTAuth           JWTConfig        `mapstructure:",squash"`
+		DefaultHashBcrypt HashBcryptConfig `mapstructure:",squash"`
+		KeyStorage        KeyStorageConfig `mapstructure:",squash"`
+		MailService       MailgunConfig    `mapstructure:",squash"`
 	}
 
 	GRPCServerConfig struct {
@@ -51,7 +52,7 @@ type (
 		Salt string `mapstructure:"DEFAULT_HASH_BCRYPT_SALT"`
 	}
 
-	KeyStorageSettings struct {
+	KeyStorageConfig struct {
 		Type  KeyStorageType `mapstructure:"KEY_STORAGE_TYPE"`
 		Local *KeyStorageLocal
 		S3    *KeyStorageS3
@@ -68,6 +69,12 @@ type (
 		SecretKey      string `mapstructure:"KEY_STORAGE_S3_SECRET_KEY"`
 		PrivateKeyPath string `mapstructure:"KEY_STORAGE_S3_PRIVATE_KEY_PATH"`
 		Endpoint       string `mapstructure:"KEY_STORAGE_S3_ENDPOINT"`
+	}
+
+	MailgunConfig struct {
+		Domain        string `mapstructure:"EMAIL_MAILGUN_DOMAIN"`
+		PrivateAPIKey string `mapstructure:"EMAIL_MAILGUN_PRIVATE_API_KEY"`
+		Sender        string `mapstructure:"EMAIL_SENDER"`
 	}
 )
 

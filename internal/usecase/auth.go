@@ -23,15 +23,21 @@ type AuthUsecase struct {
 	log     *slog.Logger
 	storage port.AuthStorage
 	ts      *jwtoken.Service
+	mail    port.MailService
 }
 
 // NewAuthUsecase returns a new instance of the AuthUsecase usecase
-func NewAuthUsecase(log *slog.Logger, storage port.AuthStorage, ts *jwtoken.Service,
+func NewAuthUsecase(
+	log *slog.Logger,
+	storage port.AuthStorage,
+	ts *jwtoken.Service,
+	mail port.MailService,
 ) *AuthUsecase {
 	return &AuthUsecase{
 		log:     log,
 		storage: storage,
 		ts:      ts,
+		mail:    mail,
 	}
 }
 
@@ -163,7 +169,6 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 	hash, err := jwt.PasswordHashBcrypt(
 		data.Password,
 		u.ts.PasswordHashCost,
-		// TODO: get salt from database for each app
 		[]byte(u.ts.PasswordHashSalt),
 	)
 	if err != nil {

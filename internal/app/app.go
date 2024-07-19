@@ -5,6 +5,7 @@ import (
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/rshelekhov/sso/internal/lib/logger"
+	"github.com/rshelekhov/sso/internal/service/mail"
 	"github.com/rshelekhov/sso/internal/storage"
 	"github.com/rshelekhov/sso/internal/storage/postgres"
 	"github.com/rshelekhov/sso/internal/usecase"
@@ -34,6 +35,8 @@ func New(log *slog.Logger, cfg *config.ServerSettings) *App {
 
 	log.Debug("key storage initiated")
 
+	mailService := mail.NewService(cfg.MmailService)
+
 	// Initialize token service
 	tokenService := jwtoken.NewService(
 		cfg.JWTAuth.Issuer,
@@ -50,7 +53,7 @@ func New(log *slog.Logger, cfg *config.ServerSettings) *App {
 
 	// Initialize usecases
 	appUsecase := usecase.NewAppUsecase(cfg, log, appStorage, tokenService)
-	authUsecases := usecase.NewAuthUsecase(log, authStorage, tokenService)
+	authUsecases := usecase.NewAuthUsecase(log, authStorage, tokenService, mailService)
 
 	// App
 	grpcApp := grpcapp.New(log, appUsecase, authUsecases, cfg.GRPCServer.Port)
