@@ -35,7 +35,7 @@ func New(log *slog.Logger, cfg *config.ServerSettings) *App {
 
 	log.Debug("key storage initiated")
 
-	mailService := mail.NewService(cfg.MmailService)
+	mailService := mail.NewService(cfg.MailService)
 
 	// Initialize token service
 	tokenService := jwtoken.NewService(
