@@ -75,6 +75,7 @@ type (
 		Domain        string `mapstructure:"EMAIL_MAILGUN_DOMAIN"`
 		PrivateAPIKey string `mapstructure:"EMAIL_MAILGUN_PRIVATE_API_KEY"`
 		Sender        string `mapstructure:"EMAIL_SENDER"`
+		TemplatesPath string `mapstructure:"EMAIL_TEMPLATES_PATH"`
 	}
 )
 
