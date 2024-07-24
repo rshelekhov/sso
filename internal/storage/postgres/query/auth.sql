@@ -18,7 +18,11 @@ WHEN EXISTS(
 ELSE 'not_found' END AS status;
 
 -- name: InsertUser :exec
-INSERT INTO users (id, email, password_hash, app_id, created_at,updated_at)
+INSERT INTO users (id, email, password_hash, app_id, verified, created_at,updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7);
+
+-- name: CreateToken :exec
+INSERT INTO tokens (token, user_id, token_type_id, app_id, created_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: GetUserByEmail :one

@@ -23,6 +23,32 @@ func (q *Queries) CheckAppIDExists(ctx context.Context, id string) (bool, error)
 	return exists, err
 }
 
+const createToken = `-- name: CreateToken :exec
+INSERT INTO tokens (token, user_id, token_type_id, app_id, created_at, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type CreateTokenParams struct {
+	Token       string    `db:"token"`
+	UserID      string    `db:"user_id"`
+	TokenTypeID int32     `db:"token_type_id"`
+	AppID       string    `db:"app_id"`
+	CreatedAt   time.Time `db:"created_at"`
+	ExpiresAt   time.Time `db:"expires_at"`
+}
+
+func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) error {
+	_, err := q.db.Exec(ctx, createToken,
+		arg.Token,
+		arg.UserID,
+		arg.TokenTypeID,
+		arg.AppID,
+		arg.CreatedAt,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const createUserSession = `-- name: CreateUserSession :exec
 INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, last_visited_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -266,17 +292,18 @@ func (q *Queries) GetUserStatus(ctx context.Context, email string) (string, erro
 }
 
 const insertUser = `-- name: InsertUser :exec
-INSERT INTO users (id, email, password_hash, app_id, created_at,updated_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO users (id, email, password_hash, app_id, verified, created_at,updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type InsertUserParams struct {
-	ID           string    `db:"id"`
-	Email        string    `db:"email"`
-	PasswordHash string    `db:"password_hash"`
-	AppID        string    `db:"app_id"`
-	CreatedAt    time.Time `db:"created_at"`
-	UpdatedAt    time.Time `db:"updated_at"`
+	ID           string      `db:"id"`
+	Email        string      `db:"email"`
+	PasswordHash string      `db:"password_hash"`
+	AppID        string      `db:"app_id"`
+	Verified     pgtype.Bool `db:"verified"`
+	CreatedAt    time.Time   `db:"created_at"`
+	UpdatedAt    time.Time   `db:"updated_at"`
 }
 
 func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
@@ -285,6 +312,7 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 		arg.Email,
 		arg.PasswordHash,
 		arg.AppID,
+		arg.Verified,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
