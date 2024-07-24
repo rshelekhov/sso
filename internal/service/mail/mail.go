@@ -10,14 +10,16 @@ import (
 func NewService(cfg config.MailgunConfig) port.MailService {
 	mg := mailgun.NewMailgun(cfg.Domain, cfg.PrivateAPIKey)
 	return &mailService{
-		mailgun: mg,
-		sender:  cfg.Sender,
+		mailgun:       mg,
+		sender:        cfg.Sender,
+		TemplatesPath: cfg.TemplatesPath,
 	}
 }
 
 type mailService struct {
-	mailgun mailgun.Mailgun
-	sender  string
+	mailgun       mailgun.Mailgun
+	sender        string
+	TemplatesPath string
 }
 
 // SendMessage sends email with plain text.
@@ -33,4 +35,8 @@ func (s *mailService) SendHTML(ctx context.Context, subject, html, recipient str
 	message.SetHtml(html)
 	_, _, err := s.mailgun.Send(ctx, message)
 	return err
+}
+
+func (s *mailService) GetTemplatesPath() string {
+	return s.TemplatesPath
 }
