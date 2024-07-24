@@ -10,7 +10,7 @@ import (
 type (
 	AuthUsecase interface {
 		Login(ctx context.Context, data *model.UserRequestData) (model.TokenData, error)
-		RegisterUser(ctx context.Context, data *model.UserRequestData) (model.TokenData, error)
+		RegisterUser(ctx context.Context, data *model.UserRequestData, confirmEmailEndpoint string) (model.TokenData, error)
 		CreateUserSession(ctx context.Context, log *slog.Logger, user model.User, data model.UserDeviceRequestData) (model.TokenData, error)
 		LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID string) error
 		RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (model.TokenData, error)
@@ -24,6 +24,7 @@ type (
 		Transaction(ctx context.Context, fn func(storage AuthStorage) error) error
 		ValidateAppID(ctx context.Context, appID string) error
 		RegisterUser(ctx context.Context, user model.User) error
+		CreateVerifyEmailToken(ctx context.Context, data model.VerifyEmailData) error
 		GetUserByEmail(ctx context.Context, email, appID string) (model.User, error)
 		GetUserByID(ctx context.Context, userID, appID string) (model.User, error)
 		GetUserData(ctx context.Context, userID, appID string) (model.User, error)

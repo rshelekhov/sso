@@ -1,11 +1,15 @@
 package usecase
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/lib/grpc/interceptor/requestid"
@@ -14,8 +18,11 @@ import (
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
+	"html/template"
 	"log/slog"
 	"math/big"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -23,7 +30,7 @@ type AuthUsecase struct {
 	log     *slog.Logger
 	storage port.AuthStorage
 	ts      *jwtoken.Service
-	mail    port.MailService
+	ms      port.MailService
 }
 
 // NewAuthUsecase returns a new instance of the AuthUsecase usecase
@@ -31,13 +38,13 @@ func NewAuthUsecase(
 	log *slog.Logger,
 	storage port.AuthStorage,
 	ts *jwtoken.Service,
-	mail port.MailService,
+	ms port.MailService,
 ) *AuthUsecase {
 	return &AuthUsecase{
 		log:     log,
 		storage: storage,
 		ts:      ts,
-		mail:    mail,
+		ms:      ms,
 	}
 }
 
@@ -144,7 +151,7 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, passw
 // RegisterUser creates new user in the system and returns jwtoken
 //
 // If user with given email already exists, it will return an error
-func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestData) (model.TokenData, error) {
+func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestData, verifyEmailEndpoint string) (model.TokenData, error) {
 	const method = "usecase.AuthUsecase.RegisterUser"
 
 	reqID, err := requestid.FromContext(ctx)
@@ -178,20 +185,37 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	currentTime := time.Now()
-
+	now := time.Now()
 	user := model.User{
 		ID:           ksuid.New().String(),
 		Email:        data.Email,
 		PasswordHash: hash,
 		AppID:        data.AppID,
-		CreatedAt:    currentTime,
-		UpdatedAt:    currentTime,
+		Verified:     false,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 
 	userDevice := model.UserDeviceRequestData{
 		UserAgent: data.UserDevice.UserAgent,
 		IP:        data.UserDevice.IP,
+	}
+
+	emailVerificationToken, err := generateToken()
+	if err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGenerateEmailConfirmationToken.Error(),
+			slog.String(key.Error, err.Error()),
+		)
+		return model.TokenData{}, le.ErrInternalServerError
+	}
+
+	emailVerificationData := model.VerifyEmailData{
+		Token:     emailVerificationToken,
+		UserID:    user.ID,
+		AppID:     data.AppID,
+		Type:      model.TokenTypeVerifyEmail,
+		CreatedAt: now,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
 	tokenData := model.TokenData{}
@@ -216,17 +240,40 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 			return le.ErrInternalServerError
 		}
 
+		if err = u.storage.CreateVerifyEmailToken(ctx, emailVerificationData); err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCreateEmailConfirmationToken.Error(),
+				slog.String(key.Error, err.Error()),
+			)
+			return le.ErrInternalServerError
+		}
+
+		if err = u.sendVerificationEmail(ctx, verifyEmailEndpoint, data.Email, emailVerificationToken); err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToSendConfirmationEmail.Error(),
+				slog.String(key.Error, err.Error()),
+			)
+			return le.ErrInternalServerError
+		}
+
 		return nil
 	}); err != nil {
 		logFailedToCommitTransaction(ctx, u.log, err, user.ID)
 		return model.TokenData{}, err
 	}
 
-	log.Info("user and tokens created",
+	log.Info("user and tokens created, verification email sent",
 		slog.String(key.UserID, user.ID),
 	)
 
 	return tokenData, nil
+}
+
+func generateToken() (string, error) {
+	token := make([]byte, 32)
+	_, err := rand.Read(token)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(token), nil
 }
 
 // TODO: Move sessions from Postgres to Redis
@@ -368,6 +415,36 @@ func (u *AuthUsecase) registerDevice(ctx context.Context, userID, appID string, 
 
 func (u *AuthUsecase) updateLatestVisitedAt(ctx context.Context, deviceID, appID string, lastVisitedAt time.Time) error {
 	return u.storage.UpdateLatestVisitedAt(ctx, deviceID, appID, lastVisitedAt)
+}
+
+func (u *AuthUsecase) sendVerificationEmail(ctx context.Context, endpoint, recipient, token string) error {
+	subject := "Confirmation instructions"
+
+	templatePath := filepath.Join(u.ms.GetTemplatesPath(), model.EmailTemplateTypeVerifyEmail.FileName())
+	templatesBytes, err := os.ReadFile(templatePath)
+	if err != nil {
+		return err
+	}
+
+	tmpl, err := template.New(model.EmailTemplateTypeVerifyEmail.String()).Parse(string(templatesBytes))
+	if err != nil {
+		return err
+	}
+
+	data := struct {
+		Recipient string
+		URL       string
+	}{
+		Recipient: recipient,
+		URL:       fmt.Sprintf("%s%s", endpoint, token),
+	}
+
+	var body bytes.Buffer
+	if err = tmpl.Execute(&body, data); err != nil {
+		return err
+	}
+
+	return u.ms.SendMessage(ctx, subject, body.String(), recipient)
 }
 
 func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID string) error {
