@@ -78,7 +78,7 @@ func TestRegisterApp_GeneratePrivateKeyError(t *testing.T) {
 
 	// Create mocks
 	mockTS := mocks.NewMockTokenService()
-	mockStorage := new(mocks.MockAppStorage)
+	mockStorage := mocks.NewMockAppStorage()
 
 	// Set up the mock to return an error when GeneratePrivateKey is called
 	mockTS.On("GeneratePrivateKey", mock.Anything).Return(errors.New("failed to generate PEM key pair"))
@@ -100,7 +100,7 @@ func TestRegisterApp_GeneratePrivateKeyError(t *testing.T) {
 	// Register app and expect an error
 	err := appUsecase.RegisterApp(ctx, appName)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "internal server error")
+	require.Contains(t, err.Error(), le.ErrInternalServerError.Error())
 
 	// Verify that GeneratePrivateKey was called
 	mockTS.AssertCalled(t, "GeneratePrivateKey", mock.Anything)
@@ -119,7 +119,7 @@ func TestRegisterApp_GeneratePrivateKeyError_DeleteAppError(t *testing.T) {
 
 	// Create mocks
 	mockTS := mocks.NewMockTokenService()
-	mockStorage := new(mocks.MockAppStorage)
+	mockStorage := mocks.NewMockAppStorage()
 
 	// Set up the mock to return an error when GeneratePrivateKey is called
 	mockTS.On("GeneratePrivateKey", mock.Anything).Return(errors.New("failed to generate PEM key pair"))
@@ -141,7 +141,7 @@ func TestRegisterApp_GeneratePrivateKeyError_DeleteAppError(t *testing.T) {
 	// Register app and expect an error
 	err := appUsecase.RegisterApp(ctx, appName)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "internal server error")
+	require.Contains(t, err.Error(), le.ErrInternalServerError.Error())
 
 	// Verify that GeneratePrivateKey was called
 	mockTS.AssertCalled(t, "GeneratePrivateKey", mock.Anything)
