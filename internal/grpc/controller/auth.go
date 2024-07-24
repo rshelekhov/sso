@@ -49,7 +49,13 @@ func (c *controller) RegisterUser(ctx context.Context, req *ssov1.RegisterUserRe
 		return nil, err
 	}
 
-	tokenData, err := c.authUsecase.RegisterUser(ctx, userData)
+	endpoint := req.GetVerifyEmailEndpoint()
+
+	if endpoint == emptyValue {
+		return nil, status.Error(codes.InvalidArgument, le.ErrEmailVerificationEndpointIsRequired.Error())
+	}
+
+	tokenData, err := c.authUsecase.RegisterUser(ctx, userData, endpoint)
 	switch {
 	case errors.Is(err, le.ErrUserAlreadyExists):
 		return nil, status.Error(codes.AlreadyExists, le.ErrUserAlreadyExists.Error())
