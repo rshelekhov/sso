@@ -444,7 +444,7 @@ func (u *AuthUsecase) sendVerificationEmail(ctx context.Context, endpoint, recip
 		return err
 	}
 
-	return u.ms.SendMessage(ctx, subject, body.String(), recipient)
+	return u.ms.SendHTML(ctx, subject, body.String(), recipient)
 }
 
 func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID string) error {
