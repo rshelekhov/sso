@@ -6,7 +6,9 @@ POSTGRESQL_URL ?='postgres://app:p%40ssw0rd@localhost:5432/sso_dev?sslmode=disab
 
 .PHONY: migrate migrate-down db-insert run-server stop-server test test-upd
 
-setup: migrate db-insert run-server
+setup: migrate
+
+setup-local: migrate db-insert
 
 # Run migrations only if not already applied
 migrate:
@@ -55,10 +57,10 @@ stop-server:
     	fi
 
 # Run tests
-test-all-app: setup
+test-all-app: setup-local run-server
 	@echo "Running tests..."
 	@go test -v -json -timeout 60s ./... > test_results.json
 	@echo "Tests completed."
 
-test-api: setup
+test-api: setup-local run-server
 	@go test -v -json -timeout 60s ./api_tests > api_test_results.json

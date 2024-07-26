@@ -116,8 +116,12 @@ func (s *AuthStorage) replaceSoftDeletedUser(ctx context.Context, user model.Use
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
 		AppID:        user.AppID,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
+		Verified: pgtype.Bool{
+			Bool:  user.Verified,
+			Valid: true,
+		},
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to replace soft deleted user: %w", method, err)
 	}
@@ -133,10 +137,30 @@ func (s *AuthStorage) insertUser(ctx context.Context, user model.User) error {
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
 		AppID:        user.AppID,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
+		Verified: pgtype.Bool{
+			Bool:  user.Verified,
+			Valid: true,
+		},
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to insert new user: %w", method, err)
+	}
+	return nil
+}
+
+func (s *AuthStorage) CreateVerifyEmailToken(ctx context.Context, data model.VerifyEmailData) error {
+	const method = "user.storage.CreateVerifyEmailToken"
+
+	if err := s.Queries.CreateToken(ctx, sqlc.CreateTokenParams{
+		Token:       data.Token,
+		UserID:      data.UserID,
+		TokenTypeID: int32(data.Type),
+		AppID:       data.AppID,
+		CreatedAt:   data.CreatedAt,
+		ExpiresAt:   data.ExpiresAt,
+	}); err != nil {
+		return fmt.Errorf("%s: failed to create email confirmation token: %w", method, err)
 	}
 	return nil
 }
@@ -322,6 +346,22 @@ func (s *AuthStorage) DeleteSession(ctx context.Context, userID, deviceID, appID
 	return nil
 }
 
+func (s *AuthStorage) DeleteAllSessions(ctx context.Context, userID, appID string) error {
+	const method = "user.storage.DeleteAllSessions"
+
+	if err := s.Queries.DeleteAllSessions(ctx, sqlc.DeleteAllSessionsParams{
+		UserID: userID,
+		AppID:  appID,
+	}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return le.ErrSessionsNotFound
+		}
+		return fmt.Errorf("%s: failed to delete all sessions: %w", method, err)
+	}
+
+	return nil
+}
+
 func (s *AuthStorage) CheckEmailUniqueness(ctx context.Context, user model.User) error {
 	const method = "user.storage.CheckEmailUniqueness"
 
@@ -397,6 +437,23 @@ func (s *AuthStorage) DeleteUser(ctx context.Context, user model.User) error {
 			return le.ErrUserNotFound
 		}
 		return fmt.Errorf("%s: failed to delete user: %w", method, err)
+	}
+
+	return nil
+}
+
+func (s *AuthStorage) DeleteTokens(ctx context.Context, userID, appID string) error {
+	const method = "user.storage.DeleteTokens"
+
+	err := s.Queries.DeleteTokens(ctx, sqlc.DeleteTokensParams{
+		UserID: userID,
+		AppID:  appID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return le.ErrTokensNotFound
+		}
+		return fmt.Errorf("%s: failed to delete tokens: %w", method, err)
 	}
 
 	return nil

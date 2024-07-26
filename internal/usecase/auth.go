@@ -1,11 +1,15 @@
 package usecase
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/lib/grpc/interceptor/requestid"
@@ -14,8 +18,11 @@ import (
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
+	"html/template"
 	"log/slog"
 	"math/big"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -23,15 +30,21 @@ type AuthUsecase struct {
 	log     *slog.Logger
 	storage port.AuthStorage
 	ts      *jwtoken.Service
+	ms      port.MailService
 }
 
 // NewAuthUsecase returns a new instance of the AuthUsecase usecase
-func NewAuthUsecase(log *slog.Logger, storage port.AuthStorage, ts *jwtoken.Service,
+func NewAuthUsecase(
+	log *slog.Logger,
+	storage port.AuthStorage,
+	ts *jwtoken.Service,
+	ms port.MailService,
 ) *AuthUsecase {
 	return &AuthUsecase{
 		log:     log,
 		storage: storage,
 		ts:      ts,
+		ms:      ms,
 	}
 }
 
@@ -138,7 +151,7 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, passw
 // RegisterUser creates new user in the system and returns jwtoken
 //
 // If user with given email already exists, it will return an error
-func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestData) (model.TokenData, error) {
+func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestData, verifyEmailEndpoint string) (model.TokenData, error) {
 	const method = "usecase.AuthUsecase.RegisterUser"
 
 	reqID, err := requestid.FromContext(ctx)
@@ -163,7 +176,6 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 	hash, err := jwt.PasswordHashBcrypt(
 		data.Password,
 		u.ts.PasswordHashCost,
-		// TODO: get salt from database for each app
 		[]byte(u.ts.PasswordHashSalt),
 	)
 	if err != nil {
@@ -173,20 +185,37 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
-	currentTime := time.Now()
-
+	now := time.Now()
 	user := model.User{
 		ID:           ksuid.New().String(),
 		Email:        data.Email,
 		PasswordHash: hash,
 		AppID:        data.AppID,
-		CreatedAt:    currentTime,
-		UpdatedAt:    currentTime,
+		Verified:     false,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 
 	userDevice := model.UserDeviceRequestData{
 		UserAgent: data.UserDevice.UserAgent,
 		IP:        data.UserDevice.IP,
+	}
+
+	emailVerificationToken, err := generateToken()
+	if err != nil {
+		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGenerateEmailConfirmationToken.Error(),
+			slog.String(key.Error, err.Error()),
+		)
+		return model.TokenData{}, le.ErrInternalServerError
+	}
+
+	emailVerificationData := model.VerifyEmailData{
+		Token:     emailVerificationToken,
+		UserID:    user.ID,
+		AppID:     data.AppID,
+		Type:      model.TokenTypeVerifyEmail,
+		CreatedAt: now,
+		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
 	tokenData := model.TokenData{}
@@ -211,17 +240,40 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 			return le.ErrInternalServerError
 		}
 
+		if err = u.storage.CreateVerifyEmailToken(ctx, emailVerificationData); err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCreateEmailConfirmationToken.Error(),
+				slog.String(key.Error, err.Error()),
+			)
+			return le.ErrInternalServerError
+		}
+
+		if err = u.sendVerificationEmail(ctx, verifyEmailEndpoint, data.Email, emailVerificationToken); err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToSendConfirmationEmail.Error(),
+				slog.String(key.Error, err.Error()),
+			)
+			return le.ErrInternalServerError
+		}
+
 		return nil
 	}); err != nil {
 		logFailedToCommitTransaction(ctx, u.log, err, user.ID)
 		return model.TokenData{}, err
 	}
 
-	log.Info("user and tokens created",
+	log.Info("user and tokens created, verification email sent",
 		slog.String(key.UserID, user.ID),
 	)
 
 	return tokenData, nil
+}
+
+func generateToken() (string, error) {
+	token := make([]byte, 32)
+	_, err := rand.Read(token)
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(token), nil
 }
 
 // TODO: Move sessions from Postgres to Redis
@@ -365,6 +417,36 @@ func (u *AuthUsecase) updateLatestVisitedAt(ctx context.Context, deviceID, appID
 	return u.storage.UpdateLatestVisitedAt(ctx, deviceID, appID, lastVisitedAt)
 }
 
+func (u *AuthUsecase) sendVerificationEmail(ctx context.Context, endpoint, recipient, token string) error {
+	subject := "Confirmation instructions"
+
+	templatePath := filepath.Join(u.ms.GetTemplatesPath(), model.EmailTemplateTypeVerifyEmail.FileName())
+	templatesBytes, err := os.ReadFile(templatePath)
+	if err != nil {
+		return err
+	}
+
+	tmpl, err := template.New(model.EmailTemplateTypeVerifyEmail.String()).Parse(string(templatesBytes))
+	if err != nil {
+		return err
+	}
+
+	data := struct {
+		Recipient string
+		URL       string
+	}{
+		Recipient: recipient,
+		URL:       fmt.Sprintf("%s%s", endpoint, token),
+	}
+
+	var body bytes.Buffer
+	if err = tmpl.Execute(&body, data); err != nil {
+		return err
+	}
+
+	return u.ms.SendHTML(ctx, subject, body.String(), recipient)
+}
+
 func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID string) error {
 	const method = "usecase.AuthUsecase.LogoutUser"
 
@@ -379,8 +461,15 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 		slog.String(key.Method, method),
 	)
 
+	// TODO: move log to a separate function
 	if err = u.storage.ValidateAppID(ctx, appID); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+				slog.Any(key.AppID, appID),
+			)
+			return le.ErrAppIDDoesNotExist
+		}
+		log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
 			slog.Any(key.AppID, appID),
 		)
 		return err
@@ -811,22 +900,20 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 			return le.ErrFailedToDeleteUser
 		}
 
-		deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserDevice.UserAgent)
-		if err != nil {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrUserDeviceNotFound.Error(),
+		if err = u.storage.DeleteAllSessions(ctx, userID, data.AppID); err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteAllSessions.Error(),
 				slog.String(key.Error, err.Error()),
 				slog.String(key.UserID, userID),
 			)
-			return le.ErrUserDeviceNotFound
+			return le.ErrFailedToDeleteAllSessions
 		}
 
-		if err = u.storage.DeleteSession(ctx, userID, deviceID, data.AppID); err != nil {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteSession.Error(),
+		if err = u.storage.DeleteTokens(ctx, userID, data.AppID); err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteTokens.Error(),
 				slog.String(key.Error, err.Error()),
 				slog.String(key.UserID, userID),
-				slog.String(key.DeviceID, deviceID),
 			)
-			return le.ErrFailedToDeleteSession
+			return le.ErrFailedToDeleteTokens
 		}
 
 		return nil
@@ -835,7 +922,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 		return err
 	}
 
-	log.Info("user deleted", slog.String(key.UserID, userID))
+	log.Info("user soft-deleted", slog.String(key.UserID, userID))
 
 	return nil
 }

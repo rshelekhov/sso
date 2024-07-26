@@ -12,6 +12,10 @@ type MockAppStorage struct {
 	mock.Mock
 }
 
+func NewMockAppStorage() *MockAppStorage {
+	return &MockAppStorage{}
+}
+
 func (m *MockAppStorage) RegisterApp(ctx context.Context, data model.AppData) error {
 	args := m.Called(ctx, data)
 	return args.Error(0)
