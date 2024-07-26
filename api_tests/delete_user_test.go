@@ -22,115 +22,81 @@ func TestDeleteUser_HappyPath(t *testing.T) {
 
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-		Email:    email,
-		Password: pass,
-		AppId:    appID,
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
 	})
 	require.NoError(t, err)
-	require.NotEmpty(t, respReg.GetTokenData())
 
-	// Get jwtoken and place it in metadata
 	token := respReg.GetTokenData()
 	require.NotEmpty(t, token)
-	require.NotEmpty(t, token.AccessToken)
 
-	md := metadata.Pairs(jwtoken.AccessTokenKey, token.AccessToken)
+	// Get access token and place it in metadata
+	accessToken := token.GetAccessToken()
+	require.NotEmpty(t, accessToken)
+
+	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Delete user
 	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{
-		AppId: appID,
+		AppId: cfg.AppID,
+	})
+	require.NoError(t, err)
+}
+
+func TestDeleteUser_EmptyAppID(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	// Generate data for requests
+	email := gofakeit.Email()
+	pass := randomFakePassword()
+	userAgent := gofakeit.UserAgent()
+	ip := gofakeit.IPv4Address()
+
+	// Register user
+	resp, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
 	})
 	require.NoError(t, err)
-}
 
-func TestDeleteUser_FailCases(t *testing.T) {
-	ctx, st := suite.New(t)
+	// Get access token and place it in metadata
+	token := resp.GetTokenData()
+	require.NotEmpty(t, token)
 
-	userAgent := gofakeit.UserAgent()
-	ip := gofakeit.IPv4Address()
+	accessToken := token.GetAccessToken()
+	require.NotEmpty(t, accessToken)
 
-	tests := []struct {
-		name         string
-		appID        string
-		userAgentReg string
-		userAgentDel string
-		ipReg        string
-		ipDel        string
-		expectedErr  error
-	}{
-		{
-			name:         "Delete user with empty appID",
-			appID:        emptyAppID,
-			userAgentReg: userAgent,
-			userAgentDel: userAgent,
-			ipReg:        ip,
-			ipDel:        ip,
-			expectedErr:  le.ErrAppIDIsRequired,
-		},
-		{
-			name:         "Delete user with empty userAgent",
-			appID:        appID,
-			userAgentReg: userAgent,
-			userAgentDel: "",
-			ipReg:        ip,
-			ipDel:        ip,
-			expectedErr:  le.ErrUserAgentIsRequired,
-		},
-		{
-			name:         "Delete user with empty ip",
-			appID:        appID,
-			userAgentReg: userAgent,
-			userAgentDel: userAgent,
-			ipReg:        ip,
-			ipDel:        "",
-			expectedErr:  le.ErrIPIsRequired,
-		},
+	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
+
+	// Create context for Delete user request
+	ctx = metadata.NewOutgoingContext(ctx, md)
+	// Delete user
+	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{
+		AppId: emptyValue,
+	})
+	require.Contains(t, err.Error(), le.ErrAppIDIsRequired.Error())
+
+	// Cleanup database after test
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Register user
-			resp, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-				Email:    gofakeit.Email(),
-				Password: randomFakePassword(),
-				AppId:    appID,
-				UserDeviceData: &ssov1.UserDeviceData{
-					UserAgent: tt.userAgentReg,
-					Ip:        tt.ipReg,
-				},
-			})
-			require.NoError(t, err)
-			require.NotEmpty(t, resp.GetTokenData())
-
-			// Get jwtoken and place it in metadata
-			token := resp.GetTokenData()
-			require.NotEmpty(t, token)
-			require.NotEmpty(t, token.AccessToken)
-
-			md := metadata.Pairs(jwtoken.AccessTokenKey, token.AccessToken)
-
-			// Create context for Logout request
-			ctx = metadata.NewOutgoingContext(ctx, md)
-			// Delete user
-			_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{
-				AppId: tt.appID,
-				UserDeviceData: &ssov1.UserDeviceData{
-					UserAgent: tt.userAgentDel,
-					Ip:        tt.ipDel,
-				},
-			})
-			require.Contains(t, err.Error(), tt.expectedErr.Error())
-		})
-	}
+	cleanup(params)
 }

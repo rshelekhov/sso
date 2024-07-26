@@ -29,9 +29,10 @@ func TestLogin_HappyPath(t *testing.T) {
 
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-		Email:    email,
-		Password: pass,
-		AppId:    appID,
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -44,22 +45,20 @@ func TestLogin_HappyPath(t *testing.T) {
 	respLogin, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
 		Email:    email,
 		Password: pass,
-		AppId:    appID,
+		AppId:    cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
 	})
 	require.NoError(t, err)
-	require.NotEmpty(t, respLogin.GetTokenData())
 
-	// Get jwtoken
 	token := respLogin.GetTokenData()
 	require.NotEmpty(t, token)
 
 	// Get JWKS
 	jwks, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{
-		AppId: appID,
+		AppId: cfg.AppID,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, jwks.GetJwks())
@@ -102,14 +101,23 @@ func TestLogin_HappyPath(t *testing.T) {
 	claims, ok := tokenParsed.Claims.(jwt.MapClaims)
 	require.True(t, ok)
 
-	assert.Equal(t, issuer, claims[key.Issuer].(string))
+	assert.Equal(t, cfg.Issuer, claims[key.Issuer].(string))
 	assert.Equal(t, email, claims[key.Email].(string))
-	assert.Equal(t, appID, claims[key.AppID].(string))
+	assert.Equal(t, cfg.AppID, claims[key.AppID].(string))
 
 	const deltaSeconds = 1
 
 	// Check if exp of jwtoken is in correct range, ttl get from st.Cfg.TokenTTL
 	assert.InDelta(t, float64(loginTime.Add(st.Cfg.JWTAuth.AccessTokenTTL).Unix()), claims[key.ExpirationAt].(float64), deltaSeconds)
+
+	// Cleanup database after test
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
+	}
+	cleanup(params)
 }
 
 func getJWKByKid(jwks []*ssov1.JWK, kid string) (*ssov1.JWK, error) {
@@ -124,7 +132,27 @@ func getJWKByKid(jwks []*ssov1.JWK, kid string) (*ssov1.JWK, error) {
 func TestLogin_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
+	// Generate data for requests
 	email := gofakeit.Email()
+	pass := randomFakePassword()
+	userAgent := gofakeit.UserAgent()
+	ip := gofakeit.IPv4Address()
+
+	// Register user
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: userAgent,
+			Ip:        ip,
+		},
+	})
+	require.NoError(t, err)
+
+	token := respReg.GetTokenData()
+	require.NotEmpty(t, token)
 
 	tests := []struct {
 		name        string
@@ -137,101 +165,83 @@ func TestLogin_FailCases(t *testing.T) {
 	}{
 		{
 			name:        "Login with empty email",
-			email:       "",
-			password:    randomFakePassword(),
-			appID:       appID,
-			userAgent:   gofakeit.UserAgent(),
-			ip:          gofakeit.IPv4Address(),
+			email:       emptyValue,
+			password:    pass,
+			appID:       cfg.AppID,
+			userAgent:   userAgent,
+			ip:          ip,
 			expectedErr: le.ErrEmailIsRequired,
 		},
 		{
 			name:        "Login with empty password",
-			email:       gofakeit.Email(),
-			password:    "",
-			appID:       appID,
-			userAgent:   gofakeit.UserAgent(),
-			ip:          gofakeit.IPv4Address(),
+			email:       email,
+			password:    emptyValue,
+			appID:       cfg.AppID,
+			userAgent:   userAgent,
+			ip:          ip,
 			expectedErr: le.ErrPasswordIsRequired,
 		},
 		{
 			name:        "Login with empty appID",
-			email:       gofakeit.Email(),
-			password:    randomFakePassword(),
-			appID:       emptyAppID,
-			userAgent:   gofakeit.UserAgent(),
-			ip:          gofakeit.IPv4Address(),
+			email:       email,
+			password:    pass,
+			appID:       emptyValue,
+			userAgent:   userAgent,
+			ip:          ip,
 			expectedErr: le.ErrAppIDIsRequired,
 		},
 		{
-			name:        "Login with empty userAgentReg",
-			email:       gofakeit.Email(),
-			password:    randomFakePassword(),
-			appID:       appID,
-			userAgent:   "",
-			ip:          gofakeit.IPv4Address(),
+			name:        "Login with empty userAgent",
+			email:       email,
+			password:    pass,
+			appID:       cfg.AppID,
+			userAgent:   emptyValue,
+			ip:          ip,
 			expectedErr: le.ErrUserAgentIsRequired,
 		},
 		{
-			name:        "Login with empty ipReg",
-			email:       gofakeit.Email(),
-			password:    randomFakePassword(),
-			appID:       appID,
-			userAgent:   gofakeit.UserAgent(),
-			ip:          "",
+			name:        "Login with empty IP",
+			email:       email,
+			password:    pass,
+			appID:       cfg.AppID,
+			userAgent:   userAgent,
+			ip:          emptyValue,
 			expectedErr: le.ErrIPIsRequired,
 		},
 		{
 			name:        "Login with both empty email and password",
-			email:       "",
-			password:    "",
-			appID:       appID,
-			userAgent:   gofakeit.UserAgent(),
-			ip:          gofakeit.IPv4Address(),
+			email:       emptyValue,
+			password:    emptyValue,
+			appID:       cfg.AppID,
+			userAgent:   userAgent,
+			ip:          ip,
 			expectedErr: le.ErrEmailIsRequired,
 		},
 		{
 			name:        "User not found",
 			email:       gofakeit.Email(),
-			password:    randomFakePassword(),
-			appID:       appID,
-			userAgent:   gofakeit.UserAgent(),
-			ip:          gofakeit.IPv4Address(),
+			password:    pass,
+			appID:       cfg.AppID,
+			userAgent:   userAgent,
+			ip:          ip,
 			expectedErr: le.ErrUserNotFound,
 		},
 		{
 			name:        "Login with non-matching password",
 			email:       email,
 			password:    randomFakePassword(),
-			appID:       appID,
-			userAgent:   gofakeit.UserAgent(),
-			ip:          gofakeit.Email(),
+			appID:       cfg.AppID,
+			userAgent:   userAgent,
+			ip:          ip,
 			expectedErr: le.ErrInvalidCredentials,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var emailReg string
-			if tt.name == "Login with non-matching password" {
-				emailReg = email
-			} else {
-				emailReg = gofakeit.Email()
-			}
-
-			// Register user
-			_, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-				Email:    emailReg,
-				Password: randomFakePassword(),
-				AppId:    appID,
-				UserDeviceData: &ssov1.UserDeviceData{
-					UserAgent: gofakeit.UserAgent(),
-					Ip:        gofakeit.IPv4Address(),
-				},
-			})
-			require.NoError(t, err)
 
 			// Login user
-			_, err = st.AuthClient.Login(ctx, &ssov1.LoginRequest{
+			_, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
 				Email:    tt.email,
 				Password: tt.password,
 				AppId:    tt.appID,
@@ -244,4 +254,13 @@ func TestLogin_FailCases(t *testing.T) {
 			require.Contains(t, err.Error(), tt.expectedErr.Error())
 		})
 	}
+
+	// Cleanup database after test
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
+	}
+	cleanup(params)
 }

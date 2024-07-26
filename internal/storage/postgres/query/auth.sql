@@ -18,7 +18,11 @@ WHEN EXISTS(
 ELSE 'not_found' END AS status;
 
 -- name: InsertUser :exec
-INSERT INTO users (id, email, password_hash, app_id, created_at,updated_at)
+INSERT INTO users (id, email, password_hash, app_id, verified, created_at,updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7);
+
+-- name: CreateToken :exec
+INSERT INTO tokens (token, user_id, token_type_id, app_id, created_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: GetUserByEmail :one
@@ -78,9 +82,19 @@ WHERE user_id = $1
   AND app_id = $2
   AND device_id = $3;
 
+-- name: DeleteAllSessions :exec
+DELETE FROM refresh_sessions
+WHERE user_id = $1
+  AND app_id = $2;
+
 -- name: DeleteUser :exec
 UPDATE users
 SET deleted_at = $1
 WHERE id = $2
   AND app_id = $3
   AND deleted_at IS NULL;
+
+-- name: DeleteTokens :exec
+DELETE FROM tokens
+WHERE user_id = $1
+  AND app_id = $2;

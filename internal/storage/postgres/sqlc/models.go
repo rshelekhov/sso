@@ -35,11 +35,27 @@ type RefreshSession struct {
 	ExpiresAt     time.Time `db:"expires_at"`
 }
 
+type Token struct {
+	ID          int32     `db:"id"`
+	Token       string    `db:"token"`
+	UserID      string    `db:"user_id"`
+	TokenTypeID int32     `db:"token_type_id"`
+	AppID       string    `db:"app_id"`
+	CreatedAt   time.Time `db:"created_at"`
+	ExpiresAt   time.Time `db:"expires_at"`
+}
+
+type TokenType struct {
+	ID    int32  `db:"id"`
+	Title string `db:"title"`
+}
+
 type User struct {
 	ID           string             `db:"id"`
 	Email        string             `db:"email"`
 	PasswordHash string             `db:"password_hash"`
 	AppID        string             `db:"app_id"`
+	Verified     pgtype.Bool        `db:"verified"`
 	CreatedAt    time.Time          `db:"created_at"`
 	UpdatedAt    time.Time          `db:"updated_at"`
 	DeletedAt    pgtype.Timestamptz `db:"deleted_at"`

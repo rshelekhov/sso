@@ -13,7 +13,7 @@ import (
 func TestLogout_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
-	// Generate data for request
+	// Generate data for requests
 	email := gofakeit.Email()
 	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
@@ -21,34 +21,45 @@ func TestLogout_HappyPath(t *testing.T) {
 
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-		Email:    email,
-		Password: pass,
-		AppId:    appID,
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
 	})
 	require.NoError(t, err)
-	require.NotEmpty(t, respReg.GetTokenData())
 
-	// Get jwtoken and place it in metadata
 	token := respReg.GetTokenData()
 	require.NotEmpty(t, token)
-	require.NotEmpty(t, token.AccessToken)
 
-	md := metadata.Pairs(jwtoken.AccessTokenKey, token.AccessToken)
+	// Get access token and place it in metadata
+	accessToken := token.GetAccessToken()
+	require.NotEmpty(t, accessToken)
+
+	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Logout user
 	_, err = st.AuthClient.Logout(ctx, &ssov1.LogoutRequest{
-		AppId: appID,
+		AppId: cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
 	})
 	require.NoError(t, err)
+
+	// Cleanup database after test
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
+	}
+	cleanup(params)
 }

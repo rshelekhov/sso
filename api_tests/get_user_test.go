@@ -22,90 +22,94 @@ func TestGetUser_HappyPath(t *testing.T) {
 
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-		Email:    email,
-		Password: pass,
-		AppId:    appID,
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
 	})
 	require.NoError(t, err)
-	require.NotEmpty(t, respReg.GetTokenData())
 
-	// Get jwtoken and place it in metadata
 	token := respReg.GetTokenData()
 	require.NotEmpty(t, token)
-	require.NotEmpty(t, token.AccessToken)
 
-	md := metadata.Pairs(jwtoken.AccessTokenKey, token.AccessToken)
+	// Get access and place it in metadata
+	accessToken := token.GetAccessToken()
+	require.NotEmpty(t, accessToken)
+
+	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
 
 	// Create context for the request
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Get user
 	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{
-		AppId: appID,
+		AppId: cfg.AppID,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.GetEmail())
 	require.NotEmpty(t, respGet.GetUpdatedAt())
+
+	// Cleanup database after test
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
+	}
+	cleanup(params)
 }
 
-func TestGetUser_FailCases(t *testing.T) {
+func TestGetUser_EmptyAppID(t *testing.T) {
 	ctx, st := suite.New(t)
 
-	tests := []struct {
-		name        string
-		email       string
-		password    string
-		appID       string
-		userAgent   string
-		ip          string
-		expectedErr error
-	}{
-		{
-			name:        "Get user with empty appID",
-			email:       gofakeit.Email(),
-			password:    randomFakePassword(),
-			appID:       emptyAppID,
-			userAgent:   gofakeit.UserAgent(),
-			ip:          gofakeit.IPv4Address(),
-			expectedErr: le.ErrAppIDIsRequired,
+	// Generate data for requests
+	email := gofakeit.Email()
+	pass := randomFakePassword()
+	userAgent := gofakeit.UserAgent()
+	ip := gofakeit.IPv4Address()
+
+	// Register user
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: userAgent,
+			Ip:        ip,
 		},
+	})
+	require.NoError(t, err)
+
+	token := respReg.GetTokenData()
+	require.NotEmpty(t, token)
+
+	// Get access token and place it in metadata
+	accessToken := token.GetAccessToken()
+	require.NotEmpty(t, accessToken)
+
+	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
+
+	// Create context for the request
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	// Get user
+	_, err = st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{
+		AppId: emptyValue,
+	})
+
+	require.Contains(t, err.Error(), le.ErrAppIDIsRequired.Error())
+
+	// Cleanup database after test
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
 	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// Register user
-			respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-				Email:    tc.email,
-				Password: tc.password,
-				AppId:    appID,
-				UserDeviceData: &ssov1.UserDeviceData{
-					UserAgent: tc.userAgent,
-					Ip:        tc.ip,
-				},
-			})
-			require.NoError(t, err)
-			require.NotEmpty(t, respReg.GetTokenData())
-
-			// Get jwtoken and place it in metadata
-			token := respReg.GetTokenData()
-			require.NotEmpty(t, token)
-			require.NotEmpty(t, token.AccessToken)
-
-			md := metadata.Pairs(jwtoken.AccessTokenKey, token.AccessToken)
-
-			// Create context for the request
-			ctx = metadata.NewOutgoingContext(ctx, md)
-
-			// Get user
-			_, err = st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{
-				AppId: tc.appID,
-			})
-
-			require.Contains(t, err.Error(), tc.expectedErr.Error())
-		})
-	}
+	cleanup(params)
 }

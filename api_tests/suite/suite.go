@@ -18,9 +18,9 @@ type Suite struct {
 }
 
 const (
-	CONFIG_PATH      = "CONFIG_PATH"
-	configLocalTests = "../config/local_tests.env"
-	grpcHost         = "localhost"
+	CONFIG_PATH       = "CONFIG_PATH"
+	defaultConfigPath = "../config/.env"
+	grpcHost          = "localhost"
 )
 
 // New creates new test suite
@@ -57,7 +57,7 @@ func configPath() string {
 		return v
 	}
 
-	return configLocalTests
+	return defaultConfigPath
 }
 
 func grpcAddress(cfg *config.ServerSettings) string {

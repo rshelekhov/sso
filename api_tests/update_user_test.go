@@ -14,7 +14,7 @@ import (
 func TestUpdateUser_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
-	// Generate data for request
+	// Generate data for requests
 	email := gofakeit.Email()
 	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
@@ -22,25 +22,27 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-		Email:    email,
-		Password: pass,
-		AppId:    appID,
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
 	})
 	require.NoError(t, err)
-	require.NotEmpty(t, respReg.GetTokenData())
 
-	// Get jwtoken and place it in metadata
 	token := respReg.GetTokenData()
 	require.NotEmpty(t, token)
-	require.NotEmpty(t, token.AccessToken)
 
-	md := metadata.Pairs(jwtoken.AccessTokenKey, token.AccessToken)
+	// Get access token and place it in metadata
+	accessToken := token.GetAccessToken()
+	require.NotEmpty(t, accessToken)
 
-	// Create context for Logout request
+	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
+
+	// Create context for Update user request
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Update user
@@ -48,17 +50,99 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 		Email:           gofakeit.Email(),
 		CurrentPassword: pass,
 		UpdatedPassword: randomFakePassword(),
-		AppId:           appID,
+		AppId:           cfg.AppID,
 	})
 	require.NoError(t, err)
+
+	// Cleanup database after test
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
+	}
+	cleanup(params)
+}
+
+func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	// Generate data for requests
+	email := gofakeit.Email()
+	emailTaken := gofakeit.Email()
+	pass := randomFakePassword()
+	userAgent := gofakeit.UserAgent()
+	ip := gofakeit.IPv4Address()
+
+	// Register user for taking email
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+		Email:           emailTaken,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: userAgent,
+			Ip:        ip,
+		},
+	})
+	require.NoError(t, err)
+
+	token1 := respReg.GetTokenData()
+	require.NotEmpty(t, token1)
+
+	// Register user
+	resp2Reg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: userAgent,
+			Ip:        ip,
+		},
+	})
+	require.NoError(t, err)
+
+	token2 := resp2Reg.GetTokenData()
+	require.NotEmpty(t, token2)
+
+	// Get access and place it in metadata
+	accessToken := token2.GetAccessToken()
+	require.NotEmpty(t, accessToken)
+
+	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
+
+	// Create context for Update user request
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	// Update user
+	_, err = st.AuthClient.UpdateUser(ctx, &ssov1.UpdateUserRequest{
+		Email:           emailTaken,
+		CurrentPassword: pass,
+		UpdatedPassword: randomFakePassword(),
+		AppId:           cfg.AppID,
+	})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), le.ErrEmailAlreadyTaken.Error())
+
+	// Cleanup database after test
+	tokens := []*ssov1.TokenData{token1, token2}
+	for _, token := range tokens {
+		params := cleanupParams{
+			t:     t,
+			st:    st,
+			appID: cfg.AppID,
+			token: token,
+		}
+		cleanup(params)
+	}
 }
 
 func TestUpdateUser_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
-	// Generate data for register request
+	// Generate data for requests
 	email := gofakeit.Email()
-	emailTaken := gofakeit.Email()
 	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
@@ -78,22 +162,15 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			updEmail:    gofakeit.Email(),
 			curPassword: pass,
 			updPassword: randomFakePassword(),
-			appID:       emptyAppID,
+			appID:       emptyValue,
 			expectedErr: le.ErrAppIDIsRequired,
 		},
 		{
-			name:        "Email already taken",
-			regEmail:    gofakeit.Email(),
-			updEmail:    emailTaken,
-			appID:       appID,
-			expectedErr: le.ErrEmailAlreadyTaken,
-		},
-		{
 			name:        "Current password is incorrect",
-			regEmail:    email,
+			regEmail:    gofakeit.Email(),
 			curPassword: randomFakePassword(),
 			updPassword: randomFakePassword(),
-			appID:       appID,
+			appID:       cfg.AppID,
 			expectedErr: le.ErrCurrentPasswordIsIncorrect,
 		},
 		{
@@ -101,12 +178,12 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			regEmail:    gofakeit.Email(),
 			curPassword: pass,
 			updPassword: pass,
-			appID:       appID,
+			appID:       cfg.AppID,
 			expectedErr: le.ErrNoPasswordChangesDetected,
 		},
 		{
 			name:        "No email changes detected",
-			appID:       appID,
+			appID:       cfg.AppID,
 			expectedErr: le.ErrNoEmailChangesDetected,
 		},
 	}
@@ -121,37 +198,25 @@ func TestUpdateUser_FailCases(t *testing.T) {
 
 			// Register user
 			respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-				Email:    tt.regEmail,
-				Password: pass,
-				AppId:    appID,
+				Email:           tt.regEmail,
+				Password:        pass,
+				AppId:           cfg.AppID,
+				VerificationURL: cfg.VerificationURL,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: userAgent,
 					Ip:        ip,
 				},
 			})
 			require.NoError(t, err)
-			require.NotEmpty(t, respReg.GetTokenData())
 
-			if tt.name == "Email already taken" {
-				_, err = st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-					Email:    emailTaken,
-					Password: pass,
-					AppId:    appID,
-					UserDeviceData: &ssov1.UserDeviceData{
-						UserAgent: userAgent,
-						Ip:        ip,
-					},
-				})
-				require.NoError(t, err)
-				require.NotEmpty(t, respReg.GetTokenData())
-			}
-
-			// Get jwtoken and place it in metadata
 			token := respReg.GetTokenData()
 			require.NotEmpty(t, token)
-			require.NotEmpty(t, token.AccessToken)
 
-			md := metadata.Pairs(jwtoken.AccessTokenKey, token.AccessToken)
+			// Get access and place it in metadata
+			accessToken := token.GetAccessToken()
+			require.NotEmpty(t, accessToken)
+
+			md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
 
 			// Create context for Logout request
 			ctx = metadata.NewOutgoingContext(ctx, md)
@@ -165,6 +230,15 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			})
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tt.expectedErr.Error())
+
+			// Cleanup database after test
+			params := cleanupParams{
+				t:     t,
+				st:    st,
+				appID: cfg.AppID,
+				token: token,
+			}
+			cleanup(params)
 		})
 	}
 }

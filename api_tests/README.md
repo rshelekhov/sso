@@ -10,8 +10,7 @@
     ```
     export POSTGRESQL_URL='postgres://login:password@host:port/db_name?sslmode=disable'
     ```
-4. Setup server - `make setup`. You'll run database migrations, insert test-app into database and then run the server.
-5. If you use S3 for key storage you need to copy `app_test-app-id_private.pem` from the `certs` folder and upload to your S3 bucket.
-6. Run tests — `make test-all-app` or `make test-api`
+4. If you use S3 for key storage you need to copy `app_test-app-id_private.pem` from the `certs` folder and upload to your S3 bucket.
+5. Run tests — `make test-all-app` or `make test-api`. You'll run database migrations, insert test-app into database, run the server and then run tests.
 
 For more details you can check other commands in the `Makefile`.
