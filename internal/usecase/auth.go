@@ -461,8 +461,15 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 		slog.String(key.Method, method),
 	)
 
+	// TODO: move log to a separate function
 	if err = u.storage.ValidateAppID(ctx, appID); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
+				slog.Any(key.AppID, appID),
+			)
+			return le.ErrAppIDDoesNotExist
+		}
+		log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
 			slog.Any(key.AppID, appID),
 		)
 		return err
@@ -893,22 +900,20 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 			return le.ErrFailedToDeleteUser
 		}
 
-		deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserDevice.UserAgent)
-		if err != nil {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrUserDeviceNotFound.Error(),
+		if err = u.storage.DeleteAllSessions(ctx, userID, data.AppID); err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteAllSessions.Error(),
 				slog.String(key.Error, err.Error()),
 				slog.String(key.UserID, userID),
 			)
-			return le.ErrUserDeviceNotFound
+			return le.ErrFailedToDeleteAllSessions
 		}
 
-		if err = u.storage.DeleteSession(ctx, userID, deviceID, data.AppID); err != nil {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteSession.Error(),
+		if err = u.storage.DeleteTokens(ctx, userID, data.AppID); err != nil {
+			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteTokens.Error(),
 				slog.String(key.Error, err.Error()),
 				slog.String(key.UserID, userID),
-				slog.String(key.DeviceID, deviceID),
 			)
-			return le.ErrFailedToDeleteSession
+			return le.ErrFailedToDeleteTokens
 		}
 
 		return nil
@@ -917,7 +922,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 		return err
 	}
 
-	log.Info("user deleted", slog.String(key.UserID, userID))
+	log.Info("user soft-deleted", slog.String(key.UserID, userID))
 
 	return nil
 }

@@ -75,6 +75,22 @@ func (q *Queries) CreateUserSession(ctx context.Context, arg CreateUserSessionPa
 	return err
 }
 
+const deleteAllSessions = `-- name: DeleteAllSessions :exec
+DELETE FROM refresh_sessions
+WHERE user_id = $1
+  AND app_id = $2
+`
+
+type DeleteAllSessionsParams struct {
+	UserID string `db:"user_id"`
+	AppID  string `db:"app_id"`
+}
+
+func (q *Queries) DeleteAllSessions(ctx context.Context, arg DeleteAllSessionsParams) error {
+	_, err := q.db.Exec(ctx, deleteAllSessions, arg.UserID, arg.AppID)
+	return err
+}
+
 const deleteRefreshTokenFromSession = `-- name: DeleteRefreshTokenFromSession :exec
 DELETE FROM refresh_sessions
 WHERE refresh_token = $1
@@ -100,6 +116,22 @@ type DeleteSessionParams struct {
 
 func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) error {
 	_, err := q.db.Exec(ctx, deleteSession, arg.UserID, arg.AppID, arg.DeviceID)
+	return err
+}
+
+const deleteTokens = `-- name: DeleteTokens :exec
+DELETE FROM tokens
+WHERE user_id = $1
+  AND app_id = $2
+`
+
+type DeleteTokensParams struct {
+	UserID string `db:"user_id"`
+	AppID  string `db:"app_id"`
+}
+
+func (q *Queries) DeleteTokens(ctx context.Context, arg DeleteTokensParams) error {
+	_, err := q.db.Exec(ctx, deleteTokens, arg.UserID, arg.AppID)
 	return err
 }
 

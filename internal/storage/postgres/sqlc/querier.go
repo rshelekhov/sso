@@ -12,9 +12,11 @@ type Querier interface {
 	CheckAppIDExists(ctx context.Context, id string) (bool, error)
 	CreateToken(ctx context.Context, arg CreateTokenParams) error
 	CreateUserSession(ctx context.Context, arg CreateUserSessionParams) error
+	DeleteAllSessions(ctx context.Context, arg DeleteAllSessionsParams) error
 	DeleteApp(ctx context.Context, arg DeleteAppParams) error
 	DeleteRefreshTokenFromSession(ctx context.Context, refreshToken string) error
 	DeleteSession(ctx context.Context, arg DeleteSessionParams) error
+	DeleteTokens(ctx context.Context, arg DeleteTokensParams) error
 	DeleteUser(ctx context.Context, arg DeleteUserParams) error
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (GetSessionByRefreshTokenRow, error)
 	GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error)
