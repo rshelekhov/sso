@@ -86,7 +86,7 @@ func TestRegisterApp_GeneratePrivateKeyError(t *testing.T) {
 	mockStorage.On("DeleteApp", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	cfg := &config.ServerSettings{
-		DefaultHashBcrypt: config.HashBcryptConfig{
+		DefaultHashBcrypt: config.HashBcryptSettings{
 			Salt: "salt",
 		},
 	}
@@ -127,7 +127,7 @@ func TestRegisterApp_GeneratePrivateKeyError_DeleteAppError(t *testing.T) {
 	mockStorage.On("DeleteApp", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("failed to delete app"))
 
 	cfg := &config.ServerSettings{
-		DefaultHashBcrypt: config.HashBcryptConfig{
+		DefaultHashBcrypt: config.HashBcryptSettings{
 			Salt: "salt",
 		},
 	}

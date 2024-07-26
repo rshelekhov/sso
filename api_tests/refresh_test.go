@@ -13,7 +13,7 @@ import (
 func TestRefresh_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
-	// Generate data for request
+	// Generate data for requests
 	email := gofakeit.Email()
 	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
@@ -21,25 +21,28 @@ func TestRefresh_HappyPath(t *testing.T) {
 
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-		Email:    email,
-		Password: pass,
-		AppId:    appID,
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
 	})
 	require.NoError(t, err)
-	require.NotEmpty(t, respReg.GetTokenData())
+
+	token := respReg.GetTokenData()
+	require.NotEmpty(t, token)
 
 	// Get refresh jwtoken
-	refreshToken := respReg.GetTokenData().GetRefreshToken()
+	refreshToken := token.GetRefreshToken()
 	require.NotEmpty(t, refreshToken)
 
 	// Refresh tokens
 	respRefresh, err := st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
 		RefreshToken: refreshToken,
-		AppId:        appID,
+		AppId:        cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -47,30 +50,44 @@ func TestRefresh_HappyPath(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, respRefresh.GetTokenData())
+
+	// Cleanup database after test
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
+	}
+	cleanup(params)
 }
 
 func TestRefresh_FailCases(t *testing.T) {
 	ctx, st := suite.New(t)
 
-	// Generate data for request
+	// Generate data for requests
 	email := gofakeit.Email()
-	password := randomFakePassword()
+	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-		Email:    email,
-		Password: password,
-		AppId:    appID,
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
 	})
 	require.NoError(t, err)
-	require.NotEmpty(t, respReg.GetTokenData())
-	require.NotEmpty(t, respReg.GetTokenData().GetRefreshToken())
+
+	token := respReg.GetTokenData()
+	require.NotEmpty(t, token)
+
+	refreshToken := token.GetRefreshToken()
+	require.NotEmpty(t, refreshToken)
 
 	tests := []struct {
 		name         string
@@ -81,16 +98,8 @@ func TestRefresh_FailCases(t *testing.T) {
 		expectedErr  error
 	}{
 		{
-			name:         "Refresh with empty refresh jwtoken",
-			appID:        appID,
-			userAgent:    userAgent,
-			ip:           ip,
-			refreshToken: "",
-			expectedErr:  le.ErrRefreshTokenIsRequired,
-		},
-		{
 			name:         "Refresh with empty appID",
-			appID:        emptyAppID,
+			appID:        emptyValue,
 			userAgent:    userAgent,
 			ip:           ip,
 			refreshToken: respReg.GetTokenData().GetRefreshToken(),
@@ -98,35 +107,35 @@ func TestRefresh_FailCases(t *testing.T) {
 		},
 		{
 			name:         "Refresh with empty user agent",
-			appID:        appID,
-			userAgent:    "",
+			appID:        cfg.AppID,
+			userAgent:    emptyValue,
 			ip:           ip,
-			refreshToken: respReg.GetTokenData().GetRefreshToken(),
+			refreshToken: refreshToken,
 			expectedErr:  le.ErrUserAgentIsRequired,
 		},
 		{
 			name:         "Refresh with empty IP",
-			appID:        appID,
+			appID:        cfg.AppID,
 			userAgent:    userAgent,
-			ip:           "",
-			refreshToken: respReg.GetTokenData().GetRefreshToken(),
+			ip:           emptyValue,
+			refreshToken: refreshToken,
 			expectedErr:  le.ErrIPIsRequired,
 		},
 		{
+			name:         "Refresh with empty refresh jwtoken",
+			appID:        cfg.AppID,
+			userAgent:    userAgent,
+			ip:           ip,
+			refreshToken: emptyValue,
+			expectedErr:  le.ErrRefreshTokenIsRequired,
+		},
+		{
 			name:         "Refresh when session not found",
-			appID:        appID,
+			appID:        cfg.AppID,
 			userAgent:    userAgent,
 			ip:           ip,
 			refreshToken: ksuid.New().String(),
 			expectedErr:  le.ErrSessionNotFound,
-		},
-		{
-			name:         "Refresh when device not found",
-			appID:        appID,
-			userAgent:    gofakeit.UserAgent(),
-			ip:           ip,
-			refreshToken: respReg.GetTokenData().GetRefreshToken(),
-			expectedErr:  le.ErrUserDeviceNotFound,
 		},
 	}
 	for _, tt := range tests {
@@ -142,6 +151,65 @@ func TestRefresh_FailCases(t *testing.T) {
 			})
 
 			require.Contains(t, err.Error(), tt.expectedErr.Error())
+
+			// Cleanup database after test
+			params := cleanupParams{
+				t:     t,
+				st:    st,
+				appID: cfg.AppID,
+				token: token,
+			}
+			cleanup(params)
 		})
 	}
+}
+
+func TestRefresh_DeviceNotFound(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	// Generate data for requests
+	email := gofakeit.Email()
+	pass := randomFakePassword()
+	userAgent := gofakeit.UserAgent()
+	ip := gofakeit.IPv4Address()
+
+	// Register user
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: userAgent,
+			Ip:        ip,
+		},
+	})
+	require.NoError(t, err)
+
+	token := respReg.GetTokenData()
+	require.NotEmpty(t, token)
+
+	refreshToken := token.GetRefreshToken()
+	require.NotEmpty(t, refreshToken)
+
+	// Refresh tokens
+	_, err = st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
+		RefreshToken: refreshToken,
+		AppId:        cfg.AppID,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: gofakeit.UserAgent(),
+			Ip:        ip,
+		},
+	})
+
+	require.Contains(t, err.Error(), le.ErrUserDeviceNotFound.Error())
+
+	// Cleanup database after test
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
+	}
+	cleanup(params)
 }

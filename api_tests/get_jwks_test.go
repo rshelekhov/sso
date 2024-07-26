@@ -12,7 +12,7 @@ func TestGetJWKS_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	resp, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{
-		AppId: appID,
+		AppId: cfg.AppID,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.GetJwks())
@@ -36,7 +36,7 @@ func TestGetJWKS_FailCases(t *testing.T) {
 	}{
 		{
 			name:        "GetJWKS with empty appID",
-			appID:       emptyAppID,
+			appID:       emptyValue,
 			expectedErr: le.ErrAppIDIsRequired,
 		},
 	}
