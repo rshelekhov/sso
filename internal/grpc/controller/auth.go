@@ -49,7 +49,7 @@ func (c *controller) RegisterUser(ctx context.Context, req *ssov1.RegisterUserRe
 		return nil, err
 	}
 
-	endpoint := req.GetVerifyEmailEndpoint()
+	endpoint := req.GetVerificationURL()
 
 	if endpoint == emptyValue {
 		return nil, status.Error(codes.InvalidArgument, le.ErrEmailVerificationEndpointIsRequired.Error())
@@ -223,14 +223,8 @@ func (c *controller) DeleteUser(ctx context.Context, req *ssov1.DeleteUserReques
 
 	err := c.authUsecase.DeleteUser(ctx, request)
 	switch {
-	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
-		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrUserNotFound):
 		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
-	case errors.Is(err, le.ErrUserDeviceNotFound):
-		return nil, status.Error(codes.Internal, le.ErrUserDeviceNotFound.Error())
-	case errors.Is(err, le.ErrFailedToDeleteSession):
-		return nil, status.Error(codes.Internal, le.ErrFailedToDeleteSession.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
