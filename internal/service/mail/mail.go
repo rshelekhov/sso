@@ -2,35 +2,43 @@ package mail
 
 import (
 	"context"
-	"github.com/mailgun/mailgun-go/v4"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/port"
+	"github.com/rshelekhov/sso/internal/service/mail/mailgun"
+	"github.com/rshelekhov/sso/internal/service/mail/mock"
 )
 
-func NewService(cfg config.MailgunConfig) port.MailService {
-	mg := mailgun.NewMailgun(cfg.Domain, cfg.PrivateAPIKey)
-	return &mailService{
-		mailgun: mg,
-		sender:  cfg.Sender,
+const defaultTemplatesPath = "./static/email_templates"
+
+func NewMailService(ess config.EmailServiceSettings) port.MailService {
+	var s port.MailTransport
+
+	switch ess.Type {
+	case config.EmailServiceMailgun:
+		s = mailgun.NewMailTransport(ess.Mailgun)
+	case config.EmailServiceMock:
+		s = mock.NewMailTransport()
+	}
+
+	return &EmailService{
+		service:       s,
+		templatesPath: defaultTemplatesPath,
 	}
 }
 
-type mailService struct {
-	mailgun mailgun.Mailgun
-	sender  string
+type EmailService struct {
+	service       port.MailTransport
+	templatesPath string
 }
 
-// SendMessage sends email with plain text.
-func (s *mailService) SendMessage(ctx context.Context, subject, body, recipient string) error {
-	message := s.mailgun.NewMessage(s.sender, subject, body, recipient)
-	_, _, err := s.mailgun.Send(ctx, message)
-	return err
+func (s *EmailService) SendMessage(ctx context.Context, subject, body, recipient string) error {
+	return s.service.SendMessage(ctx, subject, body, recipient)
 }
 
-// SendHTML sends email with html.
-func (s *mailService) SendHTML(ctx context.Context, subject, html, recipient string) error {
-	message := s.mailgun.NewMessage(s.sender, subject, "", recipient)
-	message.SetHtml(html)
-	_, _, err := s.mailgun.Send(ctx, message)
-	return err
+func (s *EmailService) SendHTML(ctx context.Context, subject, html, recipient string) error {
+	return s.service.SendHTML(ctx, subject, html, recipient)
+}
+
+func (s *EmailService) GetTemplatesPath() string {
+	return s.templatesPath
 }

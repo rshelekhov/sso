@@ -8,6 +8,7 @@ type (
 		Email        string
 		PasswordHash string
 		AppID        string
+		Verified     bool
 		CreatedAt    time.Time
 		UpdatedAt    time.Time
 		DeletedAt    time.Time

@@ -9,7 +9,7 @@ import (
 	"github.com/rshelekhov/sso/internal/storage/s3"
 )
 
-func NewKeyStorage(settings config.KeyStorageConfig) (port.KeyStorage, error) {
+func NewKeyStorage(settings config.KeyStorageSettings) (port.KeyStorage, error) {
 	switch settings.Type {
 	case config.KeyStorageTypeLocal:
 		if settings.Local == nil {
