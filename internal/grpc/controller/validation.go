@@ -167,13 +167,8 @@ func validateDeleteUser(req *ssov1.DeleteUserRequest, data *model.UserRequestDat
 	if err := validateAppID(req.GetAppId()); err != nil {
 		return err
 	}
-	if err := validateUserDeviceData(req.UserDeviceData.GetUserAgent(), req.UserDeviceData.GetIp()); err != nil {
-		return err
-	}
 
 	data.AppID = req.GetAppId()
-	data.UserDevice.UserAgent = req.UserDeviceData.GetUserAgent()
-	data.UserDevice.IP = req.UserDeviceData.GetIp()
 
 	return nil
 }
