@@ -27,8 +27,9 @@ const (
 	ErrAppNameCannotContainSpaces LocalError = "appName cannot contain spaces"
 	ErrFailedToGenerateSecretHash LocalError = "failed to generate secret hash"
 
-	ErrAppAlreadyExists LocalError = "app already exists"
-	ErrAppNotFound      LocalError = "app not found"
+	ErrAppAlreadyExists      LocalError = "app already exists"
+	ErrAppNotFound           LocalError = "app not found"
+	ErrFailedToValidateAppID LocalError = "failed to validate appID"
 
 	// ===========================================================================
 	//	auth errors
@@ -48,9 +49,9 @@ const (
 	ErrEmailAlreadyTaken                      LocalError = "email already taken"
 	ErrFailedToCreateUser                     LocalError = "failed to create user"
 	ErrFailedToGeneratePasswordHash           LocalError = "failed to generate password hash"
-	ErrFailedToGenerateEmailConfirmationToken LocalError = "failed to generate email confirmation token"
-	ErrFailedToCreateEmailConfirmationToken   LocalError = "failed to create email confirmation token"
-	ErrFailedToSendConfirmationEmail          LocalError = "failed to send confirmation email"
+	ErrFailedToGenerateEmailVerificationToken LocalError = "failed to generate email verification token"
+	ErrFailedToCreateEmailVerificationToken   LocalError = "failed to create email verification token"
+	ErrFailedToSendVerificationEmail          LocalError = "failed to send verification email"
 	ErrFailedToGetUserByEmail                 LocalError = "failed to get user by email"
 	ErrFailedToGetUser                        LocalError = "failed to get user"
 	ErrFailedToCheckIfPasswordMatch           LocalError = "failed to check if password match"

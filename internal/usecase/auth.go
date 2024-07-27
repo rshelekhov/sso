@@ -49,15 +49,12 @@ func NewAuthUsecase(
 }
 
 // Login checks if user with given credentials exists in the system
-//
-// Is user exists, but password is incorrect, it will return an error
-// If user doesn't exist, it will return an error
 func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (model.TokenData, error) {
 	const method = "usecase.AuthUsecase.Login"
 
 	reqID, err := requestid.FromContext(ctx)
 	if err != nil {
-		logFailedToGetRequestID(ctx, u.log, err, method)
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.TokenData{}, err
 	}
 
@@ -68,36 +65,30 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 	)
 
 	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
-			slog.Any(key.AppID, data.AppID),
-		)
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
+			return model.TokenData{}, le.ErrAppIDDoesNotExist
+		}
+		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
 		return model.TokenData{}, err
 	}
 
 	user, err := u.storage.GetUserByEmail(ctx, data.Email, data.AppID)
 	if err != nil {
 		if errors.Is(err, le.ErrUserNotFound) {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrUserNotFound.Error(),
-				slog.String(key.Error, err.Error()),
-			)
+			handleError(ctx, log, le.ErrUserNotFound, err)
 			return model.TokenData{}, le.ErrUserNotFound
 		}
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetUserByEmail.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToGetUserByEmail, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
 	if err = u.verifyPassword(ctx, user, data.Password); err != nil {
 		if errors.Is(err, le.ErrInvalidCredentials) {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrInvalidCredentials.Error(),
-				slog.String(key.Error, err.Error()),
-			)
+			handleError(ctx, log, le.ErrInvalidCredentials, err, slog.Any(key.UserID, user.ID))
 			return model.TokenData{}, le.ErrInvalidCredentials
 		}
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCheckIfPasswordMatch.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToCheckIfPasswordMatch, err, slog.Any(key.UserID, user.ID))
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
@@ -111,13 +102,13 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
 		tokenData, err = u.CreateUserSession(ctx, log, user, userDevice)
 		if err != nil {
-			logFailedToCreateUserSession(ctx, u.log, err, user.ID)
+			handleError(ctx, log, le.ErrFailedToCreateUserSession, err, slog.Any(key.UserID, user.ID))
 			return le.ErrInternalServerError
 		}
 
 		return nil
 	}); err != nil {
-		logFailedToCommitTransaction(ctx, u.log, err, user.ID)
+		handleError(ctx, log, le.ErrFailedToCommitTransaction, err, slog.Any(key.UserID, user.ID))
 		return model.TokenData{}, err
 	}
 
@@ -149,14 +140,12 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, passw
 }
 
 // RegisterUser creates new user in the system and returns jwtoken
-//
-// If user with given email already exists, it will return an error
 func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestData, verifyEmailEndpoint string) (model.TokenData, error) {
 	const method = "usecase.AuthUsecase.RegisterUser"
 
 	reqID, err := requestid.FromContext(ctx)
 	if err != nil {
-		logFailedToGetRequestID(ctx, u.log, err, method)
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.TokenData{}, err
 	}
 
@@ -167,9 +156,11 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 	)
 
 	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
-			slog.Any(key.AppID, data.AppID),
-		)
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
+			return model.TokenData{}, le.ErrAppIDDoesNotExist
+		}
+		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
 		return model.TokenData{}, err
 	}
 
@@ -179,9 +170,7 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 		[]byte(u.ts.PasswordHashSalt),
 	)
 	if err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGeneratePasswordHash.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
@@ -203,9 +192,7 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 
 	emailVerificationToken, err := generateToken()
 	if err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGenerateEmailConfirmationToken.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToGenerateEmailVerificationToken, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
@@ -223,40 +210,32 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
 		if err = u.storage.RegisterUser(ctx, user); err != nil {
 			if errors.Is(err, le.ErrUserAlreadyExists) {
-				log.LogAttrs(ctx, slog.LevelError, le.ErrUserAlreadyExists.Error(),
-					slog.String(key.Email, data.Email),
-				)
+				handleError(ctx, log, le.ErrUserAlreadyExists, err, slog.Any(key.Email, data.Email))
 				return le.ErrUserAlreadyExists
 			}
-			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCreateUser.Error(),
-				slog.String(key.Error, err.Error()),
-			)
+			handleError(ctx, log, le.ErrFailedToCreateUser, err)
 			return le.ErrInternalServerError
 		}
 
 		tokenData, err = u.CreateUserSession(ctx, log, user, userDevice)
 		if err != nil {
-			logFailedToCreateUserSession(ctx, u.log, err, user.ID)
+			handleError(ctx, log, le.ErrFailedToCreateUserSession, err, slog.Any(key.UserID, user.ID))
 			return le.ErrInternalServerError
 		}
 
 		if err = u.storage.CreateVerifyEmailToken(ctx, emailVerificationData); err != nil {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCreateEmailConfirmationToken.Error(),
-				slog.String(key.Error, err.Error()),
-			)
+			handleError(ctx, log, le.ErrFailedToCreateEmailVerificationToken, err)
 			return le.ErrInternalServerError
 		}
 
 		if err = u.sendVerificationEmail(ctx, verifyEmailEndpoint, data.Email, emailVerificationToken); err != nil {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToSendConfirmationEmail.Error(),
-				slog.String(key.Error, err.Error()),
-			)
+			handleError(ctx, log, le.ErrFailedToSendVerificationEmail, err)
 			return le.ErrInternalServerError
 		}
 
 		return nil
 	}); err != nil {
-		logFailedToCommitTransaction(ctx, u.log, err, user.ID)
+		handleError(ctx, log, le.ErrFailedToCommitTransaction, err, slog.Any(key.UserID, user.ID))
 		return model.TokenData{}, err
 	}
 
@@ -292,7 +271,7 @@ func (u *AuthUsecase) CreateUserSession(
 
 	reqID, err := requestid.FromContext(ctx)
 	if err != nil {
-		logFailedToGetRequestID(ctx, u.log, err, method)
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.TokenData{}, err
 	}
 
@@ -312,33 +291,25 @@ func (u *AuthUsecase) CreateUserSession(
 
 	deviceID, err := u.getDeviceID(ctx, user.ID, user.AppID, userDeviceRequest)
 	if err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetDeviceID.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToGetDeviceID, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
 	kid, err := u.ts.GetKeyID(user.AppID)
 	if err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetKeyID.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToGetKeyID, err)
 		return model.TokenData{}, err
 	}
 
 	accessToken, err := u.ts.NewAccessToken(user.AppID, kid, additionalClaims)
 	if err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCreateAccessToken.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToCreateAccessToken, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
 	refreshToken, err := u.ts.NewRefreshToken()
 	if err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCreateRefreshToken.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToCreateRefreshToken, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
@@ -355,16 +326,12 @@ func (u *AuthUsecase) CreateUserSession(
 	}
 
 	if err = u.storage.CreateUserSession(ctx, session); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCreateUserSession.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToCreateUserSession, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
 	if err = u.updateLatestVisitedAt(ctx, deviceID, user.AppID, lastVisitedAt); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToUpdateLastVisitedAt.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToUpdateLastVisitedAt, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
@@ -406,7 +373,6 @@ func (u *AuthUsecase) registerDevice(ctx context.Context, userID, appID string, 
 	}
 
 	if err := u.storage.RegisterDevice(ctx, userDevice); err != nil {
-		// TODO: add logging and return a custom error
 		return "", err
 	}
 
@@ -452,7 +418,7 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 
 	reqID, err := requestid.FromContext(ctx)
 	if err != nil {
-		logFailedToGetRequestID(ctx, u.log, err, method)
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -461,23 +427,18 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 		slog.String(key.Method, method),
 	)
 
-	// TODO: move log to a separate function
 	if err = u.storage.ValidateAppID(ctx, appID); err != nil {
 		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
-				slog.Any(key.AppID, appID),
-			)
+			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, appID))
 			return le.ErrAppIDDoesNotExist
 		}
-		log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
-			slog.Any(key.AppID, appID),
-		)
+		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, appID))
 		return err
 	}
 
 	userID, err := u.ts.GetUserID(ctx, appID, key.UserID)
 	if err != nil {
-		logFailedToGetUserID(ctx, u.log, err)
+		handleError(ctx, log, le.ErrFailedToGetUserIDFromToken, err)
 		return le.ErrFailedToGetUserIDFromToken
 	}
 
@@ -485,14 +446,10 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 	deviceID, err := u.storage.GetUserDeviceID(ctx, userID, data.UserAgent)
 	if err != nil {
 		if errors.Is(err, le.ErrUserDeviceNotFound) {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrUserDeviceNotFound.Error(),
-				slog.String(key.Error, err.Error()),
-			)
+			handleError(ctx, log, le.ErrUserDeviceNotFound, err)
 			return le.ErrUserDeviceNotFound
 		}
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetDeviceID.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToGetDeviceID, err)
 		return err
 	}
 
@@ -502,9 +459,7 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 	)
 
 	if err = u.storage.DeleteSession(ctx, userID, deviceID, appID); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteSession.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToDeleteSession, err)
 		return le.ErrFailedToDeleteSession
 	}
 
@@ -516,7 +471,7 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 
 	reqID, err := requestid.FromContext(ctx)
 	if err != nil {
-		logFailedToGetRequestID(ctx, u.log, err, method)
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.TokenData{}, err
 	}
 
@@ -526,46 +481,38 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 	)
 
 	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
-			slog.Any(key.AppID, data.AppID),
-		)
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
+			return model.TokenData{}, le.ErrAppIDDoesNotExist
+		}
+		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
 		return model.TokenData{}, err
 	}
 
 	session, err := u.checkSessionAndDevice(ctx, data.RefreshToken, data.UserDevice)
 	switch {
 	case errors.Is(err, le.ErrSessionNotFound):
-		log.LogAttrs(ctx, slog.LevelError, le.ErrSessionNotFound.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrSessionNotFound, err)
 		return model.TokenData{}, le.ErrSessionNotFound
 	case errors.Is(err, le.ErrSessionExpired):
-		log.LogAttrs(ctx, slog.LevelError, le.ErrSessionExpired.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrSessionExpired, err)
 		return model.TokenData{}, le.ErrSessionExpired
 	case errors.Is(err, le.ErrUserDeviceNotFound):
-		log.LogAttrs(ctx, slog.LevelError, le.ErrUserDeviceNotFound.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrUserDeviceNotFound, err)
 		return model.TokenData{}, le.ErrUserDeviceNotFound
 	case err != nil:
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCheckSessionAndDevice.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToCheckSessionAndDevice, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
 	if err = u.deleteRefreshToken(ctx, data.RefreshToken); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteRefreshToken.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToDeleteRefreshToken, err)
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
 	tokenData, err := u.CreateUserSession(ctx, log, model.User{ID: session.UserID, AppID: session.AppID}, data.UserDevice)
 	if err != nil {
-		logFailedToCreateUserSession(ctx, u.log, err, session.UserID)
+		handleError(ctx, log, le.ErrFailedToCreateUserSession, err, slog.Any(key.UserID, session.UserID))
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
@@ -607,7 +554,7 @@ func (u *AuthUsecase) GetJWKS(ctx context.Context, data *model.JWKSRequestData) 
 
 	reqID, err := requestid.FromContext(ctx)
 	if err != nil {
-		logFailedToGetRequestID(ctx, u.log, err, method)
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.JWKS{}, err
 	}
 
@@ -617,26 +564,24 @@ func (u *AuthUsecase) GetJWKS(ctx context.Context, data *model.JWKSRequestData) 
 	)
 
 	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
-			slog.Any(key.AppID, data.AppID),
-		)
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
+			return model.JWKS{}, le.ErrAppIDDoesNotExist
+		}
+		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
 		return model.JWKS{}, err
 	}
 
 	// Read the public key from the PEM file
 	publicKey, err := u.ts.GetPublicKey(data.AppID)
 	if err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetJWKS.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToGetJWKS, err)
 		return model.JWKS{}, err
 	}
 
 	kid, err := u.ts.GetKeyID(data.AppID)
 	if err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetKeyID.Error(),
-			slog.String(key.Error, err.Error()),
-		)
+		handleError(ctx, log, le.ErrFailedToGetJWKS, err)
 		return model.JWKS{}, err
 	}
 
@@ -682,7 +627,7 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 
 	reqID, err := requestid.FromContext(ctx)
 	if err != nil {
-		logFailedToGetRequestID(ctx, u.log, err, method)
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.User{}, err
 	}
 
@@ -692,30 +637,27 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 	)
 
 	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
-			slog.Any(key.AppID, data.AppID),
-		)
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
+			return model.User{}, le.ErrAppIDDoesNotExist
+		}
+		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
 		return model.User{}, err
 	}
 
 	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {
-		logFailedToGetUserID(ctx, u.log, err)
+		handleError(ctx, log, le.ErrFailedToGetUserIDFromToken, err)
 		return model.User{}, le.ErrFailedToGetUserIDFromToken
 	}
 
 	user, err := u.storage.GetUserByID(ctx, userID, data.AppID)
 	if err != nil {
 		if errors.Is(err, le.ErrUserNotFound) {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrUserNotFound.Error(),
-				slog.String(key.UserID, userID),
-			)
+			handleError(ctx, log, le.ErrUserNotFound, err, slog.Any(key.UserID, userID))
 			return model.User{}, le.ErrUserNotFound
 		}
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetUser.Error(),
-			slog.String(key.Error, err.Error()),
-			slog.String(key.UserID, userID),
-		)
+		handleError(ctx, log, le.ErrFailedToGetUser, err, slog.Any(key.UserID, userID))
 		return model.User{}, le.ErrFailedToGetUser
 	}
 
@@ -729,7 +671,7 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 
 	reqID, err := requestid.FromContext(ctx)
 	if err != nil {
-		logFailedToGetRequestID(ctx, u.log, err, method)
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -739,24 +681,23 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 	)
 
 	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
-			slog.Any(key.AppID, data.AppID),
-		)
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
+			return le.ErrAppIDDoesNotExist
+		}
+		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
 		return err
 	}
 
 	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {
-		logFailedToGetUserID(ctx, u.log, err)
+		handleError(ctx, log, le.ErrFailedToGetUserIDFromToken, err)
 		return le.ErrFailedToGetUserIDFromToken
 	}
 
 	userDataFromDB, err := u.storage.GetUserData(ctx, userID, data.AppID)
 	if err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetUser.Error(),
-			slog.String(key.Error, err.Error()),
-			slog.String(key.UserID, userID),
-		)
+		handleError(ctx, log, le.ErrFailedToGetUser, err, slog.Any(key.UserID, userID))
 		return le.ErrFailedToGetUser
 	}
 
@@ -780,22 +721,15 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 	if data.UpdatedPassword != "" {
 		if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.Password); err != nil {
 			if errors.Is(err, le.ErrPasswordsDoNotMatch) {
-				log.LogAttrs(ctx, slog.LevelError, le.ErrCurrentPasswordIsIncorrect.Error(),
-					slog.String(key.UserID, userDataFromDB.ID),
-				)
+				handleError(ctx, log, le.ErrCurrentPasswordIsIncorrect, err, slog.Any(key.UserID, userDataFromDB.ID))
 				return le.ErrCurrentPasswordIsIncorrect
 			}
-
-			log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
-				slog.String(key.UserID, userDataFromDB.ID),
-			)
+			handleError(ctx, log, le.ErrFailedToCheckIfPasswordMatch, err, slog.Any(key.UserID, userDataFromDB.ID))
 			return le.ErrInternalServerError
 		}
 
 		if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.UpdatedPassword); err == nil {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrNoPasswordChangesDetected.Error(),
-				slog.String(key.UserID, userDataFromDB.ID),
-			)
+			handleError(ctx, log, le.ErrNoPasswordChangesDetected, nil, slog.Any(key.UserID, userDataFromDB.ID))
 			return le.ErrNoPasswordChangesDetected
 		}
 
@@ -806,9 +740,7 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 		)
 
 		if err != nil {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGeneratePasswordHash.Error(),
-				slog.String(key.Error, err.Error()),
-			)
+			handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err, slog.Any(key.UserID, userDataFromDB.ID))
 			return le.ErrInternalServerError
 		}
 
@@ -818,27 +750,18 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 	emailChanged := updatedUser.Email != "" && updatedUser.Email != userDataFromDB.Email
 
 	if !emailChanged {
-		log.LogAttrs(ctx, slog.LevelInfo, le.ErrNoEmailChangesDetected.Error(),
-			slog.String(key.UserID, userDataFromDB.ID),
-		)
-
+		handleError(ctx, log, le.ErrNoEmailChangesDetected, nil, slog.Any(key.UserID, userDataFromDB.ID))
 		return le.ErrNoEmailChangesDetected
 	}
 
 	if err := u.storage.CheckEmailUniqueness(ctx, updatedUser); err != nil {
 		if errors.Is(err, le.ErrEmailAlreadyTaken) {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrEmailAlreadyTaken.Error(),
-				slog.String(key.Error, err.Error()),
-				slog.String(key.UserID, userDataFromDB.ID),
-				slog.String(key.Email, updatedUser.Email),
-			)
+			handleError(ctx, log, le.ErrEmailAlreadyTaken, err,
+				slog.Any(key.UserID, userDataFromDB.ID),
+				slog.String(key.Email, updatedUser.Email))
 			return le.ErrEmailAlreadyTaken
 		}
-
-		log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCheckEmailUniqueness.Error(),
-			slog.String(key.Error, err.Error()),
-			slog.String(key.UserID, userDataFromDB.ID),
-		)
+		handleError(ctx, log, le.ErrFailedToCheckEmailUniqueness, err, slog.Any(key.UserID, userDataFromDB.ID))
 		return err
 	}
 
@@ -863,7 +786,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 
 	reqID, err := requestid.FromContext(ctx)
 	if err != nil {
-		logFailedToGetRequestID(ctx, u.log, err, method)
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -873,15 +796,17 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 	)
 
 	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		log.LogAttrs(ctx, slog.LevelError, le.ErrAppIDDoesNotExist.Error(),
-			slog.Any(key.AppID, data.AppID),
-		)
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
+			return le.ErrAppIDDoesNotExist
+		}
+		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
 		return err
 	}
 
 	userID, err := u.ts.GetUserID(ctx, data.AppID, key.UserID)
 	if err != nil {
-		logFailedToGetUserID(ctx, u.log, err)
+		handleError(ctx, log, le.ErrFailedToGetUserIDFromToken, err)
 		return le.ErrFailedToGetUserIDFromToken
 	}
 
@@ -893,32 +818,23 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
 		if err = u.storage.DeleteUser(ctx, user); err != nil {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteUser.Error(),
-				slog.String(key.Error, err.Error()),
-				slog.String(key.UserID, userID),
-			)
+			handleError(ctx, log, le.ErrFailedToDeleteUser, err, slog.Any(key.UserID, userID))
 			return le.ErrFailedToDeleteUser
 		}
 
 		if err = u.storage.DeleteAllSessions(ctx, userID, data.AppID); err != nil {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteAllSessions.Error(),
-				slog.String(key.Error, err.Error()),
-				slog.String(key.UserID, userID),
-			)
+			handleError(ctx, log, le.ErrFailedToDeleteAllSessions, err, slog.Any(key.UserID, userID))
 			return le.ErrFailedToDeleteAllSessions
 		}
 
 		if err = u.storage.DeleteTokens(ctx, userID, data.AppID); err != nil {
-			log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToDeleteTokens.Error(),
-				slog.String(key.Error, err.Error()),
-				slog.String(key.UserID, userID),
-			)
+			handleError(ctx, log, le.ErrFailedToDeleteTokens, err, slog.Any(key.UserID, userID))
 			return le.ErrFailedToDeleteTokens
 		}
 
 		return nil
 	}); err != nil {
-		logFailedToCommitTransaction(ctx, u.log, err, user.ID)
+		handleError(ctx, log, le.ErrFailedToCommitTransaction, err, slog.Any(key.UserID, user.ID))
 		return err
 	}
 

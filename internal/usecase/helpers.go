@@ -2,37 +2,67 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"log/slog"
+	"runtime"
+	"strings"
 )
 
-func logFailedToGetRequestID(ctx context.Context, log *slog.Logger, err error, method string) {
-	log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetRequestIDFromCtx.Error(),
-		slog.String(key.Error, err.Error()),
-		slog.String(key.Method, method),
-	)
+func handleError(
+	ctx context.Context,
+	log *slog.Logger,
+	err le.LocalError,
+	errDetails error,
+	attrs ...slog.Attr,
+) {
+	_, file, line, ok := getCaller()
+	if !ok {
+		file = "unknown file"
+		line = -1
+	}
+
+	// op := runtime.FuncForPC(pc).Name()
+	location := fmt.Sprintf("%s:%d", file, line)
+
+	errorMessage := "err is nil"
+	if errDetails != nil {
+		errorMessage = errDetails.Error()
+	}
+
+	baseAttrs := []slog.Attr{
+		slog.String(key.Error, errorMessage),
+		slog.String(key.Location, location),
+	}
+
+	allAttrs := append(baseAttrs, attrs...)
+	log.LogAttrs(ctx, slog.LevelError, err.Error(), allAttrs...)
 }
 
-func logFailedToGetUserID(ctx context.Context, log *slog.Logger, err error) {
-	log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToGetUserIDFromToken.Error(),
-		slog.String(key.Error, err.Error()),
-	)
-}
+func getCaller() (pc uintptr, file string, line int, ok bool) {
+	pcs := make([]uintptr, 10)
+	n := runtime.Callers(2, pcs)
+	if n == 0 {
+		return
+	}
 
-func logFailedToCreateUserSession(ctx context.Context, log *slog.Logger, err error, userID string) {
-	log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCreateUserSession.Error(),
-		slog.String(key.Error, err.Error()),
-		slog.String(key.UserID, userID),
-	)
-}
+	frames := runtime.CallersFrames(pcs[:n])
 
-func logFailedToCommitTransaction(ctx context.Context, log *slog.Logger, err error, userID string) {
-	log.LogAttrs(ctx, slog.LevelError, le.ErrFailedToCommitTransaction.Error(),
-		slog.String(key.Error, err.Error()),
-		slog.String(key.UserID, userID),
-	)
-}
+	frame, more := frames.Next()
+	if !more {
+		return
+	}
 
-// TODO: add logError function which will be used in all usecases
-// this function should have an ability to get many arguments
+	for {
+		frame, more = frames.Next()
+		if strings.Contains(frame.Function, "sso") {
+			return frame.PC, frame.File, frame.Line, true
+		}
+		if !more {
+			break
+		}
+	}
+
+	return 0, "unknown file", -1, false
+}
