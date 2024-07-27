@@ -15,4 +15,5 @@ const (
 	CreatedAt    = "updated_at"
 	Issuer       = "iss"
 	Error        = "error"
+	Location     = "location"
 )
