@@ -22,8 +22,20 @@ INSERT INTO users (id, email, password_hash, app_id, verified, created_at,update
 VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: CreateToken :exec
-INSERT INTO tokens (token, user_id, token_type_id, app_id, created_at, expires_at)
-VALUES ($1, $2, $3, $4, $5, $6);
+INSERT INTO tokens (token, user_id, app_id, endpoint, recipient, token_type_id,  created_at, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+
+-- name: GetEmailVerificationData :one
+SELECT token, user_id, app_id, endpoint, recipient, expires_at
+FROM tokens
+WHERE token = $1;
+
+-- name: MarkEmailVerified :exec
+UPDATE users
+SET verified = TRUE
+WHERE id = $1
+  AND app_id = $2
+  AND deleted_at IS NULL;
 
 -- name: GetUserByEmail :one
 SELECT id, email, app_id, updated_at
@@ -33,7 +45,7 @@ WHERE email = $1
   AND deleted_at IS NULL;
 
 -- name: GetUserByID :one
-SELECT id, email, app_id, updated_at
+SELECT id, email, app_id, verified, updated_at
 FROM users
 WHERE id = $1
   AND app_id = $2
@@ -98,3 +110,7 @@ WHERE id = $2
 DELETE FROM tokens
 WHERE user_id = $1
   AND app_id = $2;
+
+-- name: DeleteVerificationToken :exec
+DELETE FROM tokens
+WHERE token = $1;

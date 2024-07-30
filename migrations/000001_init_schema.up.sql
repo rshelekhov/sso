@@ -23,8 +23,10 @@ CREATE TABLE IF NOT EXISTS tokens
     id            SERIAL PRIMARY KEY,
     token         character varying NOT NULL,
     user_id       character varying NOT NULL,
-    token_type_id int NOT NULL,
     app_id        character varying NOT NULL,
+    endpoint      character varying NOT NULL,
+    recipient     character varying NOT NULL,
+    token_type_id int NOT NULL,
     created_at    timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     expires_at    timestamp WITH TIME ZONE NOT NULL,
     UNIQUE (token, user_id, token_type_id, app_id)

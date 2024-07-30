@@ -190,21 +190,6 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 		IP:        data.UserDevice.IP,
 	}
 
-	emailVerificationToken, err := generateToken()
-	if err != nil {
-		handleError(ctx, log, le.ErrFailedToGenerateEmailVerificationToken, err)
-		return model.TokenData{}, le.ErrInternalServerError
-	}
-
-	emailVerificationData := model.VerifyEmailData{
-		Token:     emailVerificationToken,
-		UserID:    user.ID,
-		AppID:     data.AppID,
-		Type:      model.TokenTypeVerifyEmail,
-		CreatedAt: now,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
-	}
-
 	tokenData := model.TokenData{}
 
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
@@ -223,12 +208,13 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 			return le.ErrInternalServerError
 		}
 
-		if err = u.storage.CreateVerifyEmailToken(ctx, emailVerificationData); err != nil {
+		verificationToken, err := u.createEmailVerificationToken(ctx, u.log, user.ID, user.AppID, user.Email, verifyEmailEndpoint)
+		if err != nil {
 			handleError(ctx, log, le.ErrFailedToCreateEmailVerificationToken, err)
 			return le.ErrInternalServerError
 		}
 
-		if err = u.sendVerificationEmail(ctx, verifyEmailEndpoint, data.Email, emailVerificationToken); err != nil {
+		if err = u.sendVerificationEmail(ctx, verifyEmailEndpoint, data.Email, verificationToken); err != nil {
 			handleError(ctx, log, le.ErrFailedToSendVerificationEmail, err)
 			return le.ErrInternalServerError
 		}
@@ -383,6 +369,30 @@ func (u *AuthUsecase) updateLatestVisitedAt(ctx context.Context, deviceID, appID
 	return u.storage.UpdateLatestVisitedAt(ctx, deviceID, appID, lastVisitedAt)
 }
 
+func (u *AuthUsecase) createEmailVerificationToken(ctx context.Context, log *slog.Logger, userID, appID, email, verifyEmailEndpoint string) (string, error) {
+	token, err := generateToken()
+	if err != nil {
+		handleError(ctx, log, le.ErrFailedToGenerateEmailVerificationToken, err)
+		return "", le.ErrInternalServerError
+	}
+
+	data := model.EmailVerificationData{
+		VerificationToken: token,
+		UserID:            userID,
+		AppID:             appID,
+		Endpoint:          verifyEmailEndpoint,
+		Email:             email,
+		Type:              model.TokenTypeVerifyEmail,
+		CreatedAt:         time.Now(),
+		ExpiresAt:         time.Now().Add(24 * time.Hour),
+	}
+
+	if err = u.storage.CreateEmailVerificationToken(ctx, data); err != nil {
+		return "", err
+	}
+	return token, nil
+}
+
 func (u *AuthUsecase) sendVerificationEmail(ctx context.Context, endpoint, recipient, token string) error {
 	subject := "Confirmation instructions"
 
@@ -411,6 +421,73 @@ func (u *AuthUsecase) sendVerificationEmail(ctx context.Context, endpoint, recip
 	}
 
 	return u.ms.SendHTML(ctx, subject, body.String(), recipient)
+}
+
+func (u *AuthUsecase) VerifyEmail(ctx context.Context, verificationToken string) error {
+	const method = "usecase.AuthUsecase.VerifyEmail"
+
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
+		return err
+	}
+
+	log := u.log.With(
+		slog.String(key.RequestID, reqID),
+		slog.String(key.Method, method),
+	)
+
+	var data model.EmailVerificationData
+
+	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
+		data, err = u.storage.GetEmailVerificationData(ctx, verificationToken)
+		if err != nil {
+			if errors.Is(err, le.ErrEmailVerificationTokenNotFound) {
+				handleError(ctx, log, le.ErrEmailVerificationTokenNotFound, err, slog.Any(key.VerificationToken, verificationToken))
+				return le.ErrEmailVerificationTokenNotFound
+			}
+			handleError(ctx, log, le.ErrFailedToGetEmailVerificationToken, err, slog.Any(key.VerificationToken, verificationToken))
+			return le.ErrInternalServerError
+		}
+
+		if data.ExpiresAt.Before(time.Now()) {
+			log.Info("verification token expired", slog.Any(key.UserID, data.UserID), slog.Any(key.VerificationToken, verificationToken))
+
+			if err = u.storage.DeleteEmailVerificationToken(ctx, verificationToken); err != nil {
+				handleError(ctx, log, le.ErrFailedToDeleteVerificationToken, err, slog.Any(key.VerificationToken, verificationToken))
+				return le.ErrInternalServerError
+			}
+
+			newToken, err := u.createEmailVerificationToken(ctx, u.log, data.UserID, data.AppID, data.Email, data.Endpoint)
+			if err != nil {
+				handleError(ctx, log, le.ErrFailedToCreateEmailVerificationToken, err)
+				return le.ErrInternalServerError
+			}
+
+			err = u.sendVerificationEmail(ctx, data.Endpoint, data.Email, newToken)
+			if err != nil {
+				handleError(ctx, log, le.ErrFailedToSendVerificationEmail, err, slog.Any(key.VerificationToken, verificationToken))
+				return le.ErrInternalServerError
+			}
+			return le.ErrVerificationTokenExpiredWithEmailResent
+		} else {
+			if err = u.storage.MarkEmailVerified(ctx, data); err != nil {
+				handleError(ctx, log, le.ErrFailedToMarkEmailVerified, err, slog.Any(key.VerificationToken, verificationToken))
+				return le.ErrInternalServerError
+			}
+		}
+
+		return nil
+	}); err != nil {
+		handleError(ctx, log, le.ErrFailedToCommitTransaction, err)
+		return err
+	}
+
+	log.Info("email verified",
+		slog.String(key.UserID, data.UserID),
+	)
+
+	return nil
 }
 
 func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID string) error {

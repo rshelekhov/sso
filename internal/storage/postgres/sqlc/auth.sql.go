@@ -24,15 +24,17 @@ func (q *Queries) CheckAppIDExists(ctx context.Context, id string) (bool, error)
 }
 
 const createToken = `-- name: CreateToken :exec
-INSERT INTO tokens (token, user_id, token_type_id, app_id, created_at, expires_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO tokens (token, user_id, app_id, endpoint, recipient, token_type_id,  created_at, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type CreateTokenParams struct {
 	Token       string    `db:"token"`
 	UserID      string    `db:"user_id"`
-	TokenTypeID int32     `db:"token_type_id"`
 	AppID       string    `db:"app_id"`
+	Endpoint    string    `db:"endpoint"`
+	Recipient   string    `db:"recipient"`
+	TokenTypeID int32     `db:"token_type_id"`
 	CreatedAt   time.Time `db:"created_at"`
 	ExpiresAt   time.Time `db:"expires_at"`
 }
@@ -41,8 +43,10 @@ func (q *Queries) CreateToken(ctx context.Context, arg CreateTokenParams) error 
 	_, err := q.db.Exec(ctx, createToken,
 		arg.Token,
 		arg.UserID,
-		arg.TokenTypeID,
 		arg.AppID,
+		arg.Endpoint,
+		arg.Recipient,
+		arg.TokenTypeID,
 		arg.CreatedAt,
 		arg.ExpiresAt,
 	)
@@ -154,6 +158,45 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
 	return err
 }
 
+const deleteVerificationToken = `-- name: DeleteVerificationToken :exec
+DELETE FROM tokens
+WHERE token = $1
+`
+
+func (q *Queries) DeleteVerificationToken(ctx context.Context, token string) error {
+	_, err := q.db.Exec(ctx, deleteVerificationToken, token)
+	return err
+}
+
+const getEmailVerificationData = `-- name: GetEmailVerificationData :one
+SELECT token, user_id, app_id, endpoint, recipient, expires_at
+FROM tokens
+WHERE token = $1
+`
+
+type GetEmailVerificationDataRow struct {
+	Token     string    `db:"token"`
+	UserID    string    `db:"user_id"`
+	AppID     string    `db:"app_id"`
+	Endpoint  string    `db:"endpoint"`
+	Recipient string    `db:"recipient"`
+	ExpiresAt time.Time `db:"expires_at"`
+}
+
+func (q *Queries) GetEmailVerificationData(ctx context.Context, token string) (GetEmailVerificationDataRow, error) {
+	row := q.db.QueryRow(ctx, getEmailVerificationData, token)
+	var i GetEmailVerificationDataRow
+	err := row.Scan(
+		&i.Token,
+		&i.UserID,
+		&i.AppID,
+		&i.Endpoint,
+		&i.Recipient,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
 SELECT user_id, app_id, device_id, last_visited_at, expires_at
 FROM refresh_sessions
@@ -214,7 +257,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) 
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, app_id, updated_at
+SELECT id, email, app_id, verified, updated_at
 FROM users
 WHERE id = $1
   AND app_id = $2
@@ -227,10 +270,11 @@ type GetUserByIDParams struct {
 }
 
 type GetUserByIDRow struct {
-	ID        string    `db:"id"`
-	Email     string    `db:"email"`
-	AppID     string    `db:"app_id"`
-	UpdatedAt time.Time `db:"updated_at"`
+	ID        string      `db:"id"`
+	Email     string      `db:"email"`
+	AppID     string      `db:"app_id"`
+	Verified  pgtype.Bool `db:"verified"`
+	UpdatedAt time.Time   `db:"updated_at"`
 }
 
 func (q *Queries) GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUserByIDRow, error) {
@@ -240,6 +284,7 @@ func (q *Queries) GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUs
 		&i.ID,
 		&i.Email,
 		&i.AppID,
+		&i.Verified,
 		&i.UpdatedAt,
 	)
 	return i, err
@@ -348,6 +393,24 @@ func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
+	return err
+}
+
+const markEmailVerified = `-- name: MarkEmailVerified :exec
+UPDATE users
+SET verified = TRUE
+WHERE id = $1
+  AND app_id = $2
+  AND deleted_at IS NULL
+`
+
+type MarkEmailVerifiedParams struct {
+	ID    string `db:"id"`
+	AppID string `db:"app_id"`
+}
+
+func (q *Queries) MarkEmailVerified(ctx context.Context, arg MarkEmailVerifiedParams) error {
+	_, err := q.db.Exec(ctx, markEmailVerified, arg.ID, arg.AppID)
 	return err
 }
 
