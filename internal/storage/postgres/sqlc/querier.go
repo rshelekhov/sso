@@ -18,6 +18,8 @@ type Querier interface {
 	DeleteSession(ctx context.Context, arg DeleteSessionParams) error
 	DeleteTokens(ctx context.Context, arg DeleteTokensParams) error
 	DeleteUser(ctx context.Context, arg DeleteUserParams) error
+	DeleteVerificationToken(ctx context.Context, token string) error
+	GetEmailVerificationData(ctx context.Context, token string) (GetEmailVerificationDataRow, error)
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (GetSessionByRefreshTokenRow, error)
 	GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUserByIDRow, error)
@@ -26,6 +28,7 @@ type Querier interface {
 	GetUserStatus(ctx context.Context, email string) (string, error)
 	InsertApp(ctx context.Context, arg InsertAppParams) error
 	InsertUser(ctx context.Context, arg InsertUserParams) error
+	MarkEmailVerified(ctx context.Context, arg MarkEmailVerifiedParams) error
 	RegisterDevice(ctx context.Context, arg RegisterDeviceParams) error
 	UpdateLatestLoginAt(ctx context.Context, arg UpdateLatestLoginAtParams) error
 }

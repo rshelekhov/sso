@@ -39,8 +39,10 @@ type Token struct {
 	ID          int32     `db:"id"`
 	Token       string    `db:"token"`
 	UserID      string    `db:"user_id"`
-	TokenTypeID int32     `db:"token_type_id"`
 	AppID       string    `db:"app_id"`
+	Endpoint    string    `db:"endpoint"`
+	Recipient   string    `db:"recipient"`
+	TokenTypeID int32     `db:"token_type_id"`
 	CreatedAt   time.Time `db:"created_at"`
 	ExpiresAt   time.Time `db:"expires_at"`
 }

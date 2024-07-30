@@ -78,6 +78,25 @@ func (c *controller) RegisterUser(ctx context.Context, req *ssov1.RegisterUserRe
 	return &ssov1.RegisterUserResponse{TokenData: tokenDataResponse}, nil
 }
 
+func (c *controller) VerifyEmail(ctx context.Context, req *ssov1.VerifyEmailRequest) (*ssov1.Empty, error) {
+	request := &model.EmailVerificationRequestData{}
+	if err := validateEmailVerificationData(req, request); err != nil {
+		return nil, err
+	}
+
+	err := c.authUsecase.VerifyEmail(ctx, request.VerificationToken)
+	switch {
+	case errors.Is(err, le.ErrVerificationTokenExpiredWithEmailResent):
+		return nil, status.Error(codes.FailedPrecondition, le.ErrVerificationTokenExpiredWithEmailResent.Error())
+	case errors.Is(err, le.ErrEmailVerificationTokenNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrEmailVerificationTokenNotFound.Error())
+	case err != nil:
+		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	}
+
+	return &ssov1.Empty{}, nil
+}
+
 func (c *controller) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.Empty, error) {
 	request := &model.UserRequestData{}
 	if err := validateLogout(req, request); err != nil {
@@ -182,6 +201,7 @@ func (c *controller) GetUser(ctx context.Context, req *ssov1.GetUserRequest) (*s
 
 	return &ssov1.GetUserResponse{
 		Email:     user.Email,
+		Verified:  user.Verified,
 		UpdatedAt: timestamppb.New(user.UpdatedAt),
 	}, nil
 }

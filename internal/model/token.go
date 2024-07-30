@@ -26,12 +26,18 @@ type (
 		UserDevice   UserDeviceRequestData
 	}
 
-	VerifyEmailData struct {
-		Token     string
-		UserID    string
-		AppID     string
-		Type      TokenType
-		CreatedAt time.Time
-		ExpiresAt time.Time
+	EmailVerificationData struct {
+		VerificationToken string
+		UserID            string
+		AppID             string
+		Endpoint          string
+		Email             string
+		Type              TokenType
+		CreatedAt         time.Time
+		ExpiresAt         time.Time
+	}
+
+	EmailVerificationRequestData struct {
+		VerificationToken string
 	}
 )
