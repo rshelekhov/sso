@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 	"testing"
+	"time"
 )
 
 func TestVerifyEmail_HappyPath(t *testing.T) {
@@ -62,4 +63,48 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.GetVerified())
 	require.True(t, respGet.GetVerified())
+}
+
+// TODO: add test when token expired and regenerate
+
+func TestVerifyEmail_TokenExpired(t *testing.T) {
+	ctx, st := suite.New(t)
+
+	// Generate data for requests
+	email := gofakeit.Email()
+	pass := randomFakePassword()
+	userAgent := gofakeit.UserAgent()
+	ip := gofakeit.IPv4Address()
+
+	// Register user
+	_, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+		Email:           email,
+		Password:        pass,
+		AppId:           cfg.AppID,
+		VerificationURL: cfg.VerificationURL,
+		UserDeviceData: &ssov1.UserDeviceData{
+			UserAgent: userAgent,
+			Ip:        ip,
+		},
+	})
+	require.NoError(t, err)
+
+	// Set verification token expired for test
+	err = st.Storage.SetVerificationTokenExpired(ctx, email)
+	require.NoError(t, err)
+
+	// Get email verification token from storage to place it in request
+	verificationToken, err := st.Storage.GetVerificationToken(ctx, email)
+	require.NoError(t, err)
+
+	// Try to verify email (a new email with verification token should be sent)
+	_, err = st.AuthClient.VerifyEmail(ctx, &ssov1.VerifyEmailRequest{
+		VerificationToken: verificationToken,
+	})
+	require.Error(t, err)
+
+	// Check that token expiration time more than current time
+	tokenExp, err := st.Storage.GetVerificationTokenExpiresAt(ctx, email)
+	require.NoError(t, err)
+	require.True(t, tokenExp.After(time.Now()), "token expiration time should be after the current time")
 }
