@@ -51,6 +51,15 @@ func validateRegisterAppData(req *ssov1.RegisterAppRequest) error {
 	return nil
 }
 
+func validateEmailVerificationData(req *ssov1.VerifyEmailRequest, data *model.EmailVerificationRequestData) error {
+	if req.GetVerificationToken() == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrVerificationTokenIsRequired.Error())
+	}
+
+	data.VerificationToken = req.GetVerificationToken()
+	return nil
+}
+
 func validateLoginData(req *ssov1.LoginRequest, data *model.UserRequestData) error {
 	if err := validateUserCredentials(req.GetEmail(), req.GetPassword()); err != nil {
 		return err
