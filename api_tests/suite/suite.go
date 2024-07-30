@@ -3,6 +3,7 @@ package suite
 import (
 	"context"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	"github.com/rshelekhov/sso/api_tests/suite/storage/postgres"
 	"github.com/rshelekhov/sso/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -15,6 +16,7 @@ type Suite struct {
 	*testing.T
 	Cfg        *config.ServerSettings
 	AuthClient ssov1.AuthClient
+	Storage    *postgres.TestStorage
 }
 
 const (
@@ -45,10 +47,16 @@ func New(t *testing.T) (context.Context, *Suite) {
 		t.Fatal("grpc server connection failed: ", err)
 	}
 
+	storage, err := postgres.NewTestStorage(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	return ctx, &Suite{
 		T:          t,
 		Cfg:        cfg,
 		AuthClient: ssov1.NewAuthClient(cc),
+		Storage:    storage,
 	}
 }
 
