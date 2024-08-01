@@ -63,9 +63,16 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.GetVerified())
 	require.True(t, respGet.GetVerified())
-}
 
-// TODO: add test when token expired and regenerate
+	// Cleanup database after test
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
+	}
+	cleanup(params)
+}
 
 func TestVerifyEmail_TokenExpired(t *testing.T) {
 	ctx, st := suite.New(t)
@@ -77,7 +84,7 @@ func TestVerifyEmail_TokenExpired(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Register user
-	_, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		AppId:           cfg.AppID,
@@ -107,4 +114,16 @@ func TestVerifyEmail_TokenExpired(t *testing.T) {
 	tokenExp, err := st.Storage.GetVerificationTokenExpiresAt(ctx, email)
 	require.NoError(t, err)
 	require.True(t, tokenExp.After(time.Now()), "token expiration time should be after the current time")
+
+	// Cleanup database after test
+	token := respReg.GetTokenData()
+	require.NotEmpty(t, token)
+
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
+	}
+	cleanup(params)
 }
