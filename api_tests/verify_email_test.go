@@ -5,6 +5,7 @@ import (
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
+	"github.com/rshelekhov/sso/internal/model"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 	"testing"
@@ -34,7 +35,7 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 
 	// Get email verification token from storage to place it in request
-	verificationToken, err := st.Storage.GetVerificationToken(ctx, email)
+	verificationToken, err := st.Storage.GetToken(ctx, email, model.TokenTypeVerifyEmail)
 	require.NoError(t, err)
 
 	// Verify email
@@ -97,11 +98,11 @@ func TestVerifyEmail_TokenExpired(t *testing.T) {
 	require.NoError(t, err)
 
 	// Set verification token expired for test
-	err = st.Storage.SetVerificationTokenExpired(ctx, email)
+	err = st.Storage.SetTokenExpired(ctx, email, model.TokenTypeVerifyEmail)
 	require.NoError(t, err)
 
 	// Get email verification token from storage to place it in request
-	verificationToken, err := st.Storage.GetVerificationToken(ctx, email)
+	verificationToken, err := st.Storage.GetToken(ctx, email, model.TokenTypeVerifyEmail)
 	require.NoError(t, err)
 
 	// Try to verify email (a new email with verification token should be sent)
@@ -111,7 +112,7 @@ func TestVerifyEmail_TokenExpired(t *testing.T) {
 	require.Error(t, err)
 
 	// Check that token expiration time more than current time
-	tokenExp, err := st.Storage.GetVerificationTokenExpiresAt(ctx, email)
+	tokenExp, err := st.Storage.GetTokenExpiresAt(ctx, email, model.TokenTypeVerifyEmail)
 	require.NoError(t, err)
 	require.True(t, tokenExp.After(time.Now()), "token expiration time should be after the current time")
 
