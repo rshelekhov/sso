@@ -168,7 +168,7 @@ func (q *Queries) DeleteVerificationToken(ctx context.Context, token string) err
 	return err
 }
 
-const getEmailVerificationData = `-- name: GetEmailVerificationData :one
+const getEmailVerificationData = `-- name: GetVerifyEmailData :one
 SELECT token, user_id, app_id, endpoint, recipient, expires_at
 FROM tokens
 WHERE token = $1

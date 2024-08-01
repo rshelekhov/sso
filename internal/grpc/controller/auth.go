@@ -50,7 +50,6 @@ func (c *controller) RegisterUser(ctx context.Context, req *ssov1.RegisterUserRe
 	}
 
 	endpoint := req.GetVerificationURL()
-
 	if endpoint == emptyValue {
 		return nil, status.Error(codes.InvalidArgument, le.ErrEmailVerificationEndpointIsRequired.Error())
 	}
@@ -79,8 +78,8 @@ func (c *controller) RegisterUser(ctx context.Context, req *ssov1.RegisterUserRe
 }
 
 func (c *controller) VerifyEmail(ctx context.Context, req *ssov1.VerifyEmailRequest) (*ssov1.Empty, error) {
-	request := &model.EmailVerificationRequestData{}
-	if err := validateEmailVerificationData(req, request); err != nil {
+	request := &model.VerifyEmailRequestData{}
+	if err := validateVerifyEmailData(req, request); err != nil {
 		return nil, err
 	}
 
@@ -90,6 +89,47 @@ func (c *controller) VerifyEmail(ctx context.Context, req *ssov1.VerifyEmailRequ
 		return nil, status.Error(codes.FailedPrecondition, le.ErrVerificationTokenExpiredWithEmailResent.Error())
 	case errors.Is(err, le.ErrEmailVerificationTokenNotFound):
 		return nil, status.Error(codes.NotFound, le.ErrEmailVerificationTokenNotFound.Error())
+	case err != nil:
+		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	}
+
+	return &ssov1.Empty{}, nil
+}
+
+func (c *controller) ResetPassword(ctx context.Context, req *ssov1.ResetPasswordRequest) (*ssov1.Empty, error) {
+	request := &model.ResetPasswordRequestData{}
+	if err := validateResetPasswordData(req, request); err != nil {
+		return nil, err
+	}
+
+	endpoint := req.GetConfirmChangePasswordURL()
+	if endpoint == emptyValue {
+		return nil, status.Error(codes.InvalidArgument, le.ErrConfirmChangePasswordEndpointIsRequired.Error())
+	}
+
+	err := c.authUsecase.ResetPassword(ctx, request, endpoint)
+	switch {
+	case errors.Is(err, le.ErrUserNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
+	case err != nil:
+		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	}
+
+	return &ssov1.Empty{}, nil
+}
+
+func (c *controller) ChangePassword(ctx context.Context, req *ssov1.ChangePasswordRequest) (*ssov1.Empty, error) {
+	request := &model.ChangePasswordRequestData{}
+	if err := validateChangePasswordData(req, request); err != nil {
+		return nil, err
+	}
+
+	err := c.authUsecase.ChangePassword(ctx, request)
+	switch {
+	case errors.Is(err, le.ErrUserNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
+	case errors.Is(err, le.ErrResetPasswordTokenNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrResetPasswordTokenNotFound.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
@@ -119,7 +159,7 @@ func (c *controller) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*sso
 }
 
 func (c *controller) Refresh(ctx context.Context, req *ssov1.RefreshRequest) (*ssov1.RefreshResponse, error) {
-	request := &model.RefreshRequestData{}
+	request := &model.RefreshTokenRequestData{}
 	if err := validateRefresh(req, request); err != nil {
 		return nil, err
 	}

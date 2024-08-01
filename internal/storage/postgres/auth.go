@@ -149,11 +149,11 @@ func (s *AuthStorage) insertUser(ctx context.Context, user model.User) error {
 	return nil
 }
 
-func (s *AuthStorage) CreateEmailVerificationToken(ctx context.Context, data model.EmailVerificationData) error {
-	const method = "user.storage.CreateEmailVerificationToken"
+func (s *AuthStorage) CreateToken(ctx context.Context, data model.TokenData) error {
+	const method = "user.storage.CreateToken"
 
 	if err := s.Queries.CreateToken(ctx, sqlc.CreateTokenParams{
-		Token:       data.VerificationToken,
+		Token:       data.Token,
 		UserID:      data.UserID,
 		AppID:       data.AppID,
 		Endpoint:    data.Endpoint,
@@ -167,29 +167,29 @@ func (s *AuthStorage) CreateEmailVerificationToken(ctx context.Context, data mod
 	return nil
 }
 
-func (s *AuthStorage) GetEmailVerificationData(ctx context.Context, verificationToken string) (model.EmailVerificationData, error) {
-	const method = "user.storage.GetEmailVerificationData"
+func (s *AuthStorage) GetVerifyEmailData(ctx context.Context, verificationToken string) (model.TokenData, error) {
+	const method = "user.storage.GetVerifyEmailData"
 
 	data, err := s.Queries.GetEmailVerificationData(ctx, verificationToken)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return model.EmailVerificationData{}, le.ErrEmailVerificationTokenNotFound
+			return model.TokenData{}, le.ErrEmailVerificationTokenNotFound
 		}
-		return model.EmailVerificationData{}, fmt.Errorf("%s: failed to get email verification data: %w", method, err)
+		return model.TokenData{}, fmt.Errorf("%s: failed to get email verification data: %w", method, err)
 	}
 
-	return model.EmailVerificationData{
-		VerificationToken: data.Token,
-		UserID:            data.UserID,
-		AppID:             data.AppID,
-		Endpoint:          data.Endpoint,
-		Email:             data.Recipient,
-		ExpiresAt:         data.ExpiresAt,
+	return model.TokenData{
+		Token:     data.Token,
+		UserID:    data.UserID,
+		AppID:     data.AppID,
+		Endpoint:  data.Endpoint,
+		Email:     data.Recipient,
+		ExpiresAt: data.ExpiresAt,
 	}, nil
 }
 
-func (s *AuthStorage) DeleteEmailVerificationToken(ctx context.Context, verificationToken string) error {
-	const method = "user.storage.DeleteEmailVerificationToken"
+func (s *AuthStorage) DeleteVerifyEmailToken(ctx context.Context, verificationToken string) error {
+	const method = "user.storage.DeleteVerifyEmailToken"
 
 	if err := s.Queries.DeleteVerificationToken(ctx, verificationToken); err != nil {
 		return fmt.Errorf("%s: failed to delete email verification token: %w", method, err)
@@ -198,12 +198,12 @@ func (s *AuthStorage) DeleteEmailVerificationToken(ctx context.Context, verifica
 	return nil
 }
 
-func (s *AuthStorage) MarkEmailVerified(ctx context.Context, data model.EmailVerificationData) error {
+func (s *AuthStorage) MarkEmailVerified(ctx context.Context, userID, appID string) error {
 	const method = "user.storage.MarkEmailVerified"
 
 	if err := s.Queries.MarkEmailVerified(ctx, sqlc.MarkEmailVerifiedParams{
-		ID:    data.UserID,
-		AppID: data.AppID,
+		ID:    userID,
+		AppID: appID,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to mark email as verified: %w", method, err)
 	}
