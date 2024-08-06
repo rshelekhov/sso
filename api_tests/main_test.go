@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	Issuer          string `mapstructure:"TEST_ISSUER" envDefault:"sso.reframedapp.com"`
-	AppID           string `mapstructure:"TEST_APP_ID" envDefault:"test-app-id"`
-	VerificationURL string `mapstructure:"TEST_VERIFICATION_URL" envDefault:"reframedapp.com/confirm?token="`
+	Issuer                   string `mapstructure:"TEST_ISSUER" envDefault:"sso.reframedapp.com"`
+	AppID                    string `mapstructure:"TEST_APP_ID" envDefault:"test-app-id"`
+	VerificationURL          string `mapstructure:"TEST_VERIFICATION_URL" envDefault:"reframedapp.com/confirm?token="`
+	ConfirmChangePasswordURL string `mapstructure:"TEST_CONFIRM_CHANGE_PASSWORD_URL" envDefault:"reframedapp.com/password/change?token="`
 
 	// Test user data for testing Mailgun email service
 	User1Email     string `mapstructure:"TEST_USER_1_EMAIL" envDefault:"test-user-1@reframedapp.com"`
