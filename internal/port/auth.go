@@ -28,8 +28,9 @@ type (
 		ValidateAppID(ctx context.Context, appID string) error
 		RegisterUser(ctx context.Context, user model.User) error
 		CreateToken(ctx context.Context, data model.TokenData) error
-		GetVerifyEmailData(ctx context.Context, verificationToken string) (model.TokenData, error)
-		DeleteVerifyEmailToken(ctx context.Context, verificationToken string) error
+		GetTokenData(ctx context.Context, verificationToken string) (model.TokenData, error)
+		GetUserIDByToken(ctx context.Context, token string) (string, error)
+		DeleteToken(ctx context.Context, verificationToken string) error
 		MarkEmailVerified(ctx context.Context, userID, appID string) error
 		GetUserByEmail(ctx context.Context, email, appID string) (model.User, error)
 		GetUserByID(ctx context.Context, userID, appID string) (model.User, error)
@@ -45,6 +46,6 @@ type (
 		CheckEmailUniqueness(ctx context.Context, user model.User) error
 		UpdateUser(ctx context.Context, user model.User) error
 		DeleteUser(ctx context.Context, user model.User) error
-		DeleteTokens(ctx context.Context, userID, appID string) error
+		DeleteAllTokens(ctx context.Context, userID, appID string) error
 	}
 )

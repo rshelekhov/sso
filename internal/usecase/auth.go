@@ -10,6 +10,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"html/template"
+	"log/slog"
+	"math/big"
+	"os"
+	"path/filepath"
+	"time"
+
 	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/lib/grpc/interceptor/requestid"
@@ -18,12 +25,6 @@ import (
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
-	"html/template"
-	"log/slog"
-	"math/big"
-	"os"
-	"path/filepath"
-	"time"
 )
 
 type AuthUsecase struct {
@@ -216,13 +217,13 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 			Type:     model.TokenTypeVerifyEmail,
 		}
 
-		token, err := u.createToken(ctx, verifyEmailData, u.storage.CreateToken)
+		tokenData, err := u.createToken(ctx, verifyEmailData, u.storage.CreateToken)
 		if err != nil {
-			handleError(ctx, log, le.ErrFailedToCreateEmailVerificationToken, err)
+			handleError(ctx, log, le.ErrFailedToCreateToken, err)
 			return le.ErrInternalServerError
 		}
 
-		if err = u.sendEmailWithToken(ctx, verifyEmailEndpoint, data.Email, token, model.EmailTemplateTypeVerifyEmail); err != nil {
+		if err = u.sendEmailWithToken(ctx, tokenData, model.EmailTemplateTypeVerifyEmail); err != nil {
 			handleError(ctx, log, le.ErrFailedToSendVerificationEmail, err)
 			return le.ErrInternalServerError
 		}
@@ -377,24 +378,23 @@ func (u *AuthUsecase) updateLatestVisitedAt(ctx context.Context, deviceID, appID
 	return u.storage.UpdateLatestVisitedAt(ctx, deviceID, appID, lastVisitedAt)
 }
 
-func (u *AuthUsecase) createToken(ctx context.Context, data model.TokenData, createTokenFunc func(ctx context.Context, data model.TokenData) error) (string, error) {
+func (u *AuthUsecase) createToken(ctx context.Context, data model.TokenData, createTokenFunc func(ctx context.Context, data model.TokenData) error) (model.TokenData, error) {
 	token, err := generateToken()
 	if err != nil {
-		return "", le.ErrFailedToGenerateToken
+		return model.TokenData{}, le.ErrFailedToGenerateToken
 	}
 
-	data.Token = token
 	data.Token = token
 	data.CreatedAt = time.Now()
 	data.ExpiresAt = time.Now().Add(24 * time.Hour)
 
 	if err = createTokenFunc(ctx, data); err != nil {
-		return "", err
+		return model.TokenData{}, err
 	}
-	return token, nil
+	return data, nil
 }
 
-func (u *AuthUsecase) sendEmailWithToken(ctx context.Context, endpoint, recipient, token string, templateType model.EmailTemplateType) error {
+func (u *AuthUsecase) sendEmailWithToken(ctx context.Context, tokenData model.TokenData, templateType model.EmailTemplateType) error {
 	subject := templateType.Subject()
 
 	templatePath := filepath.Join(u.ms.GetTemplatesPath(), templateType.FileName())
@@ -412,8 +412,8 @@ func (u *AuthUsecase) sendEmailWithToken(ctx context.Context, endpoint, recipien
 		Recipient string
 		URL       string
 	}{
-		Recipient: recipient,
-		URL:       fmt.Sprintf("%s%s", endpoint, token),
+		Recipient: tokenData.Email,
+		URL:       fmt.Sprintf("%s%s", tokenData.Endpoint, tokenData.Token),
 	}
 
 	var body bytes.Buffer
@@ -421,7 +421,7 @@ func (u *AuthUsecase) sendEmailWithToken(ctx context.Context, endpoint, recipien
 		return err
 	}
 
-	return u.ms.SendHTML(ctx, subject, body.String(), recipient)
+	return u.ms.SendHTML(ctx, subject, body.String(), tokenData.Email)
 }
 
 func (u *AuthUsecase) VerifyEmail(ctx context.Context, verificationToken string) error {
@@ -438,44 +438,20 @@ func (u *AuthUsecase) VerifyEmail(ctx context.Context, verificationToken string)
 		slog.String(key.Method, method),
 	)
 
-	var data model.TokenData
-
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
-		data, err = u.storage.GetVerifyEmailData(ctx, verificationToken)
+		tokenData, err := u.handleTokenProcessing(ctx, log, verificationToken, model.EmailTemplateTypeVerifyEmail)
 		if err != nil {
-			if errors.Is(err, le.ErrEmailVerificationTokenNotFound) {
-				handleError(ctx, log, le.ErrEmailVerificationTokenNotFound, err, slog.Any(key.VerificationToken, verificationToken))
-				return le.ErrEmailVerificationTokenNotFound
-			}
-			handleError(ctx, log, le.ErrFailedToGetEmailVerificationToken, err, slog.Any(key.VerificationToken, verificationToken))
-			return le.ErrInternalServerError
+			return err
 		}
 
-		if data.ExpiresAt.Before(time.Now()) {
-			log.Info("verification token expired", slog.Any(key.UserID, data.UserID), slog.Any(key.VerificationToken, verificationToken))
-
-			if err = u.storage.DeleteVerifyEmailToken(ctx, verificationToken); err != nil {
-				handleError(ctx, log, le.ErrFailedToDeleteVerificationToken, err, slog.Any(key.VerificationToken, verificationToken))
+		if tokenData.Token == verificationToken {
+			// It means that verification token was not expired and not generated new token with email resent
+			if err = u.storage.MarkEmailVerified(ctx, tokenData.UserID, tokenData.AppID); err != nil {
+				handleError(ctx, log, le.ErrFailedToMarkEmailVerified, err, slog.Any(key.Token, verificationToken))
 				return le.ErrInternalServerError
 			}
-
-			newToken, err := u.createToken(ctx, data, u.storage.CreateToken)
-			if err != nil {
-				handleError(ctx, log, le.ErrFailedToCreateEmailVerificationToken, err)
-				return le.ErrInternalServerError
-			}
-
-			if err = u.sendEmailWithToken(ctx, data.Endpoint, data.Email, newToken, model.EmailTemplateTypeVerifyEmail); err != nil {
-				handleError(ctx, log, le.ErrFailedToSendVerificationEmail, err)
-				return le.ErrInternalServerError
-			}
-
-			return le.ErrVerificationTokenExpiredWithEmailResent
-		} else {
-			if err = u.storage.MarkEmailVerified(ctx, data.UserID, data.AppID); err != nil {
-				handleError(ctx, log, le.ErrFailedToMarkEmailVerified, err, slog.Any(key.VerificationToken, verificationToken))
-				return le.ErrInternalServerError
-			}
+			log.Info("email verified", slog.String(key.UserID, tokenData.UserID))
+			return nil
 		}
 
 		return nil
@@ -484,11 +460,49 @@ func (u *AuthUsecase) VerifyEmail(ctx context.Context, verificationToken string)
 		return err
 	}
 
-	log.Info("email verified",
-		slog.String(key.UserID, data.UserID),
-	)
-
 	return nil
+}
+
+func (u *AuthUsecase) handleTokenProcessing(
+	ctx context.Context,
+	log *slog.Logger,
+	token string,
+	emailTemplateType model.EmailTemplateType,
+) (model.TokenData, error) {
+	tokenData, err := u.storage.GetTokenData(ctx, token)
+	if err != nil {
+		if errors.Is(err, le.ErrTokenNotFound) {
+			handleError(ctx, log, le.ErrTokenNotFound, err, slog.Any(key.Token, token))
+			return model.TokenData{}, le.ErrTokenNotFound
+		}
+		handleError(ctx, log, le.ErrFailedToGetTokenData, err, slog.Any(key.Token, token))
+		return model.TokenData{}, le.ErrInternalServerError
+	}
+
+	if tokenData.ExpiresAt.Before(time.Now()) {
+		log.Info("token expired", slog.Any(key.UserID, tokenData.UserID), slog.Any(key.Token, tokenData.Token))
+
+		if err = u.storage.DeleteToken(ctx, tokenData.Token); err != nil {
+			handleError(ctx, log, le.ErrFailedToDeleteToken, err, slog.Any(key.Token, tokenData.Token))
+			return model.TokenData{}, le.ErrInternalServerError
+		}
+
+		tokenData, err = u.createToken(ctx, tokenData, u.storage.CreateToken)
+		if err != nil {
+			handleError(ctx, log, le.ErrFailedToCreateToken, err)
+			return model.TokenData{}, le.ErrInternalServerError
+		}
+
+		if err = u.sendEmailWithToken(ctx, tokenData, emailTemplateType); err != nil {
+			handleError(ctx, log, le.ErrFailedToSendEmail, err)
+			return model.TokenData{}, le.ErrInternalServerError
+		}
+
+		handleError(ctx, log, le.ErrTokenExpiredWithEmailResent, nil, slog.Any(key.UserID, tokenData.UserID))
+		return tokenData, le.ErrTokenExpiredWithEmailResent
+	}
+
+	return tokenData, nil
 }
 
 func (u *AuthUsecase) ResetPassword(ctx context.Context, data *model.ResetPasswordRequestData, changePasswordEndpoint string) error {
@@ -507,26 +521,30 @@ func (u *AuthUsecase) ResetPassword(ctx context.Context, data *model.ResetPasswo
 
 	user, err := u.storage.GetUserByEmail(ctx, data.Email, data.AppID)
 	if err != nil {
+		if errors.Is(err, le.ErrUserNotFound) {
+			handleError(ctx, log, le.ErrUserNotFound, err, slog.Any(key.Email, data.Email))
+			return le.ErrUserNotFound
+		}
 		handleError(ctx, u.log, le.ErrFailedToGetUserByEmail, err, slog.Any(key.Email, data.Email))
 		return err
 	}
 
 	resetPasswordData := model.TokenData{
 		UserID:   user.ID,
-		AppID:    data.AppID,
+		AppID:    user.AppID,
 		Endpoint: changePasswordEndpoint,
-		Email:    data.Email,
+		Email:    user.Email,
 		Type:     model.TokenTypeResetPassword,
 	}
 
-	token, err := u.createToken(ctx, resetPasswordData, u.storage.CreateToken)
+	tokenData, err := u.createToken(ctx, resetPasswordData, u.storage.CreateToken)
 	if err != nil {
 		handleError(ctx, log, le.ErrFailedToCreateResetPasswordToken, err)
 		return le.ErrInternalServerError
 	}
 
-	if err = u.sendEmailWithToken(ctx, changePasswordEndpoint, data.Email, token, model.EmailTemplateTypeResetPassword); err != nil {
-		handleError(ctx, log, le.ErrFailedToSendResetPasswordEmail, err)
+	if err = u.sendEmailWithToken(ctx, tokenData, model.EmailTemplateTypeResetPassword); err != nil {
+		handleError(ctx, log, le.ErrFailedToSendEmail, err)
 		return le.ErrInternalServerError
 	}
 
@@ -539,7 +557,87 @@ func (u *AuthUsecase) ResetPassword(ctx context.Context, data *model.ResetPasswo
 }
 
 func (u *AuthUsecase) ChangePassword(ctx context.Context, data *model.ChangePasswordRequestData) error {
-	// TODO: implement
+	const method = "usecase.AuthUsecase.ChangePassword"
+
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
+		return err
+	}
+
+	log := u.log.With(
+		slog.String(key.RequestID, reqID),
+		slog.String(key.Method, method),
+	)
+
+	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
+			return le.ErrAppIDDoesNotExist
+		}
+		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
+		return err
+	}
+
+	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
+		tokenData, err := u.handleTokenProcessing(ctx, log, data.ResetPasswordToken, model.EmailTemplateTypeResetPassword)
+		if err != nil {
+			return err
+		}
+
+		if tokenData.Token == data.ResetPasswordToken {
+			// It means that reset password token was not expired and not generated new token with email resent
+			userDataFromDB, err := u.storage.GetUserData(ctx, tokenData.UserID, data.AppID)
+			if err != nil {
+				handleError(ctx, log, le.ErrFailedToGetUser, err, slog.Any(key.UserID, tokenData.UserID))
+				return le.ErrInternalServerError
+			}
+
+			if err = u.checkPasswordHashAndUpdate(ctx, log, userDataFromDB, data); err != nil {
+				return err
+			}
+
+			log.Info("password changed", slog.String(key.UserID, userDataFromDB.ID))
+			return nil
+		}
+
+		return nil
+	}); err != nil {
+		handleError(ctx, log, le.ErrFailedToCommitTransaction, err)
+		return err
+	}
+
+	return nil
+}
+
+func (u *AuthUsecase) checkPasswordHashAndUpdate(ctx context.Context, log *slog.Logger, userData model.User, reqData *model.ChangePasswordRequestData) error {
+	err := u.checkPasswordHashMatch(userData.PasswordHash, reqData.UpdatedPassword)
+	if err != nil && !errors.Is(err, le.ErrPasswordsDoNotMatch) {
+		handleError(ctx, log, le.ErrFailedToCheckIfPasswordMatch, err, slog.Any(key.UserID, userData.ID))
+		return le.ErrInternalServerError
+	}
+	if err == nil {
+		handleError(ctx, log, le.ErrUpdatedPasswordMustNotMatchTheCurrent, nil, slog.Any(key.UserID, userData.ID))
+		return le.ErrUpdatedPasswordMustNotMatchTheCurrent
+	}
+
+	updatedPassHash, err := jwt.PasswordHashBcrypt(reqData.UpdatedPassword, u.ts.PasswordHashCost, []byte(u.ts.PasswordHashSalt))
+	if err != nil {
+		handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err, slog.Any(key.UserID, userData.ID))
+		return le.ErrInternalServerError
+	}
+
+	updatedUser := model.User{
+		ID:           userData.ID,
+		PasswordHash: updatedPassHash,
+		AppID:        reqData.AppID,
+		UpdatedAt:    time.Now(),
+	}
+
+	if err = u.storage.UpdateUser(ctx, updatedUser); err != nil {
+		handleError(ctx, log, le.ErrFailedToUpdateUser, err, slog.Any(key.UserID, userData.ID))
+		return le.ErrInternalServerError
+	}
 
 	return nil
 }
@@ -850,6 +948,7 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 	}
 
 	if data.UpdatedPassword != "" {
+		// Check current password
 		if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.Password); err != nil {
 			if errors.Is(err, le.ErrPasswordsDoNotMatch) {
 				handleError(ctx, log, le.ErrCurrentPasswordIsIncorrect, err, slog.Any(key.UserID, userDataFromDB.ID))
@@ -859,6 +958,7 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 			return le.ErrInternalServerError
 		}
 
+		// Check new password
 		if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.UpdatedPassword); err == nil {
 			handleError(ctx, log, le.ErrNoPasswordChangesDetected, nil, slog.Any(key.UserID, userDataFromDB.ID))
 			return le.ErrNoPasswordChangesDetected
@@ -869,7 +969,6 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 			u.ts.PasswordHashCost,
 			[]byte(u.ts.PasswordHashSalt),
 		)
-
 		if err != nil {
 			handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err, slog.Any(key.UserID, userDataFromDB.ID))
 			return le.ErrInternalServerError
@@ -893,10 +992,16 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 			return le.ErrEmailAlreadyTaken
 		}
 		handleError(ctx, log, le.ErrFailedToCheckEmailUniqueness, err, slog.Any(key.UserID, userDataFromDB.ID))
-		return err
+		return le.ErrInternalServerError
 	}
 
-	return u.storage.UpdateUser(ctx, updatedUser)
+	err := u.storage.UpdateUser(ctx, updatedUser)
+	if err != nil {
+		handleError(ctx, log, le.ErrFailedToUpdateUser, err, slog.Any(key.UserID, userDataFromDB.ID))
+		return le.ErrInternalServerError
+	}
+
+	return nil
 }
 
 func (u *AuthUsecase) checkPasswordHashMatch(hash string, password string) error {
@@ -958,7 +1063,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 			return le.ErrFailedToDeleteAllSessions
 		}
 
-		if err = u.storage.DeleteTokens(ctx, userID, data.AppID); err != nil {
+		if err = u.storage.DeleteAllTokens(ctx, userID, data.AppID); err != nil {
 			handleError(ctx, log, le.ErrFailedToDeleteTokens, err, slog.Any(key.UserID, userID))
 			return le.ErrFailedToDeleteTokens
 		}

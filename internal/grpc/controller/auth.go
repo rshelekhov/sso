@@ -20,12 +20,12 @@ func (c *controller) Login(ctx context.Context, req *ssov1.LoginRequest) (*ssov1
 
 	tokenData, err := c.authUsecase.Login(ctx, userData)
 	switch {
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
 	case errors.Is(err, le.ErrUserNotFound):
 		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
 	case errors.Is(err, le.ErrInvalidCredentials):
 		return nil, status.Error(codes.Unauthenticated, le.ErrInvalidCredentials.Error())
-	case errors.Is(err, le.ErrAppIDDoesNotExist):
-		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
@@ -56,10 +56,10 @@ func (c *controller) RegisterUser(ctx context.Context, req *ssov1.RegisterUserRe
 
 	tokenData, err := c.authUsecase.RegisterUser(ctx, userData, endpoint)
 	switch {
-	case errors.Is(err, le.ErrUserAlreadyExists):
-		return nil, status.Error(codes.AlreadyExists, le.ErrUserAlreadyExists.Error())
 	case errors.Is(err, le.ErrAppIDDoesNotExist):
 		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
+	case errors.Is(err, le.ErrUserAlreadyExists):
+		return nil, status.Error(codes.AlreadyExists, le.ErrUserAlreadyExists.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
@@ -85,10 +85,10 @@ func (c *controller) VerifyEmail(ctx context.Context, req *ssov1.VerifyEmailRequ
 
 	err := c.authUsecase.VerifyEmail(ctx, request.VerificationToken)
 	switch {
-	case errors.Is(err, le.ErrVerificationTokenExpiredWithEmailResent):
-		return nil, status.Error(codes.FailedPrecondition, le.ErrVerificationTokenExpiredWithEmailResent.Error())
-	case errors.Is(err, le.ErrEmailVerificationTokenNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrEmailVerificationTokenNotFound.Error())
+	case errors.Is(err, le.ErrTokenExpiredWithEmailResent):
+		return nil, status.Error(codes.FailedPrecondition, le.ErrTokenExpiredWithEmailResent.Error())
+	case errors.Is(err, le.ErrTokenNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrTokenNotFound.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
@@ -109,6 +109,8 @@ func (c *controller) ResetPassword(ctx context.Context, req *ssov1.ResetPassword
 
 	err := c.authUsecase.ResetPassword(ctx, request, endpoint)
 	switch {
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
 	case errors.Is(err, le.ErrUserNotFound):
 		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
 	case err != nil:
@@ -126,10 +128,16 @@ func (c *controller) ChangePassword(ctx context.Context, req *ssov1.ChangePasswo
 
 	err := c.authUsecase.ChangePassword(ctx, request)
 	switch {
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
+	case errors.Is(err, le.ErrTokenExpiredWithEmailResent):
+		return nil, status.Error(codes.FailedPrecondition, le.ErrTokenExpiredWithEmailResent.Error())
 	case errors.Is(err, le.ErrUserNotFound):
 		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
-	case errors.Is(err, le.ErrResetPasswordTokenNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrResetPasswordTokenNotFound.Error())
+	case errors.Is(err, le.ErrTokenNotFound):
+		return nil, status.Error(codes.NotFound, le.ErrTokenNotFound.Error())
+	case errors.Is(err, le.ErrUpdatedPasswordMustNotMatchTheCurrent):
+		return nil, status.Error(codes.InvalidArgument, le.ErrUpdatedPasswordMustNotMatchTheCurrent.Error())
 	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
@@ -145,6 +153,8 @@ func (c *controller) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*sso
 
 	err := c.authUsecase.LogoutUser(ctx, request.UserDevice, request.AppID)
 	switch {
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
 	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrUserDeviceNotFound):
@@ -166,6 +176,8 @@ func (c *controller) Refresh(ctx context.Context, req *ssov1.RefreshRequest) (*s
 
 	tokenData, err := c.authUsecase.RefreshTokens(ctx, request)
 	switch {
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
 	case errors.Is(err, le.ErrSessionNotFound):
 		return nil, status.Error(codes.Unauthenticated, le.ErrSessionNotFound.Error())
 	case errors.Is(err, le.ErrSessionExpired):
@@ -196,10 +208,12 @@ func (c *controller) GetJWKS(ctx context.Context, req *ssov1.GetJWKSRequest) (*s
 	}
 
 	jwks, err := c.authUsecase.GetJWKS(ctx, request)
-	if err != nil {
-		if errors.Is(err, le.ErrFailedToGetJWKS) {
-			return nil, status.Error(codes.Internal, le.ErrFailedToGetJWKS.Error())
-		}
+	switch {
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
+	case errors.Is(err, le.ErrFailedToGetJWKS):
+		return nil, status.Error(codes.Internal, le.ErrFailedToGetJWKS.Error())
+	case err != nil:
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
@@ -231,6 +245,8 @@ func (c *controller) GetUser(ctx context.Context, req *ssov1.GetUserRequest) (*s
 
 	user, err := c.authUsecase.GetUserByID(ctx, request)
 	switch {
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
 	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrUserNotFound):
@@ -254,6 +270,8 @@ func (c *controller) UpdateUser(ctx context.Context, req *ssov1.UpdateUserReques
 
 	err := c.authUsecase.UpdateUser(ctx, request)
 	switch {
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
 	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrUserNotFound):
@@ -283,6 +301,8 @@ func (c *controller) DeleteUser(ctx context.Context, req *ssov1.DeleteUserReques
 
 	err := c.authUsecase.DeleteUser(ctx, request)
 	switch {
+	case errors.Is(err, le.ErrAppIDDoesNotExist):
+		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
 	case errors.Is(err, le.ErrUserNotFound):
 		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
 	case err != nil:
