@@ -10,6 +10,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"html/template"
+	"log/slog"
+	"math/big"
+	"os"
+	"path/filepath"
+	"time"
+
 	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/lib/grpc/interceptor/requestid"
@@ -18,12 +25,6 @@ import (
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
-	"html/template"
-	"log/slog"
-	"math/big"
-	"os"
-	"path/filepath"
-	"time"
 )
 
 type AuthUsecase struct {
@@ -49,13 +50,12 @@ func NewAuthUsecase(
 }
 
 // Login checks if user with given credentials exists in the system
-func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (model.TokenData, error) {
+func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (model.AuthTokenData, error) {
 	const method = "usecase.AuthUsecase.Login"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
-		return model.TokenData{}, err
+		return model.AuthTokenData{}, err
 	}
 
 	log := u.log.With(
@@ -64,32 +64,27 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 		slog.String(key.Email, data.Email),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return model.TokenData{}, le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
-		return model.TokenData{}, err
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
+		return model.AuthTokenData{}, err
 	}
 
 	user, err := u.storage.GetUserByEmail(ctx, data.Email, data.AppID)
 	if err != nil {
 		if errors.Is(err, le.ErrUserNotFound) {
 			handleError(ctx, log, le.ErrUserNotFound, err)
-			return model.TokenData{}, le.ErrUserNotFound
+			return model.AuthTokenData{}, le.ErrUserNotFound
 		}
 		handleError(ctx, log, le.ErrFailedToGetUserByEmail, err)
-		return model.TokenData{}, le.ErrInternalServerError
+		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
 
 	if err = u.verifyPassword(ctx, user, data.Password); err != nil {
 		if errors.Is(err, le.ErrInvalidCredentials) {
 			handleError(ctx, log, le.ErrInvalidCredentials, err, slog.Any(key.UserID, user.ID))
-			return model.TokenData{}, le.ErrInvalidCredentials
+			return model.AuthTokenData{}, le.ErrInvalidCredentials
 		}
 		handleError(ctx, log, le.ErrFailedToCheckIfPasswordMatch, err, slog.Any(key.UserID, user.ID))
-		return model.TokenData{}, le.ErrInternalServerError
+		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
 
 	userDevice := model.UserDeviceRequestData{
@@ -97,7 +92,7 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 		IP:        data.UserDevice.IP,
 	}
 
-	tokenData := model.TokenData{}
+	tokenData := model.AuthTokenData{}
 
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
 		tokenData, err = u.CreateUserSession(ctx, log, user, userDevice)
@@ -109,7 +104,7 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 		return nil
 	}); err != nil {
 		handleError(ctx, log, le.ErrFailedToCommitTransaction, err, slog.Any(key.UserID, user.ID))
-		return model.TokenData{}, err
+		return model.AuthTokenData{}, err
 	}
 
 	log.Info("user authenticated, tokens created",
@@ -140,13 +135,12 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, passw
 }
 
 // RegisterUser creates new user in the system and returns jwtoken
-func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestData, verifyEmailEndpoint string) (model.TokenData, error) {
+func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestData, verifyEmailEndpoint string) (model.AuthTokenData, error) {
 	const method = "usecase.AuthUsecase.RegisterUser"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
-		return model.TokenData{}, err
+		return model.AuthTokenData{}, err
 	}
 
 	log := u.log.With(
@@ -155,13 +149,8 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 		slog.String(key.Email, data.Email),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return model.TokenData{}, le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
-		return model.TokenData{}, err
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
+		return model.AuthTokenData{}, err
 	}
 
 	hash, err := jwt.PasswordHashBcrypt(
@@ -171,7 +160,7 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 	)
 	if err != nil {
 		handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err)
-		return model.TokenData{}, le.ErrInternalServerError
+		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
 
 	now := time.Now()
@@ -190,7 +179,7 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 		IP:        data.UserDevice.IP,
 	}
 
-	tokenData := model.TokenData{}
+	authTokenData := model.AuthTokenData{}
 
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
 		if err = u.storage.RegisterUser(ctx, user); err != nil {
@@ -202,19 +191,27 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 			return le.ErrInternalServerError
 		}
 
-		tokenData, err = u.CreateUserSession(ctx, log, user, userDevice)
+		authTokenData, err = u.CreateUserSession(ctx, log, user, userDevice)
 		if err != nil {
 			handleError(ctx, log, le.ErrFailedToCreateUserSession, err, slog.Any(key.UserID, user.ID))
 			return le.ErrInternalServerError
 		}
 
-		verificationToken, err := u.createEmailVerificationToken(ctx, u.log, user.ID, user.AppID, user.Email, verifyEmailEndpoint)
+		verifyEmailData := model.TokenData{
+			UserID:   user.ID,
+			AppID:    data.AppID,
+			Endpoint: verifyEmailEndpoint,
+			Email:    data.Email,
+			Type:     model.TokenTypeVerifyEmail,
+		}
+
+		tokenData, err := u.createToken(ctx, verifyEmailData, u.storage.CreateToken)
 		if err != nil {
-			handleError(ctx, log, le.ErrFailedToCreateEmailVerificationToken, err)
+			handleError(ctx, log, le.ErrFailedToCreateToken, err)
 			return le.ErrInternalServerError
 		}
 
-		if err = u.sendVerificationEmail(ctx, verifyEmailEndpoint, data.Email, verificationToken); err != nil {
+		if err = u.sendEmailWithToken(ctx, tokenData, model.EmailTemplateTypeVerifyEmail); err != nil {
 			handleError(ctx, log, le.ErrFailedToSendVerificationEmail, err)
 			return le.ErrInternalServerError
 		}
@@ -222,14 +219,14 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 		return nil
 	}); err != nil {
 		handleError(ctx, log, le.ErrFailedToCommitTransaction, err, slog.Any(key.UserID, user.ID))
-		return model.TokenData{}, err
+		return model.AuthTokenData{}, err
 	}
 
 	log.Info("user and tokens created, verification email sent",
 		slog.String(key.UserID, user.ID),
 	)
 
-	return tokenData, nil
+	return authTokenData, nil
 }
 
 func generateToken() (string, error) {
@@ -250,15 +247,14 @@ func (u *AuthUsecase) CreateUserSession(
 	user model.User,
 	userDeviceRequest model.UserDeviceRequestData,
 ) (
-	model.TokenData,
+	model.AuthTokenData,
 	error,
 ) {
 	const method = "usecase.AuthUsecase.CreateUserSession"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
-		return model.TokenData{}, err
+		return model.AuthTokenData{}, err
 	}
 
 	log = log.With(
@@ -278,25 +274,25 @@ func (u *AuthUsecase) CreateUserSession(
 	deviceID, err := u.getDeviceID(ctx, user.ID, user.AppID, userDeviceRequest)
 	if err != nil {
 		handleError(ctx, log, le.ErrFailedToGetDeviceID, err)
-		return model.TokenData{}, le.ErrInternalServerError
+		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
 
 	kid, err := u.ts.GetKeyID(user.AppID)
 	if err != nil {
 		handleError(ctx, log, le.ErrFailedToGetKeyID, err)
-		return model.TokenData{}, err
+		return model.AuthTokenData{}, err
 	}
 
 	accessToken, err := u.ts.NewAccessToken(user.AppID, kid, additionalClaims)
 	if err != nil {
 		handleError(ctx, log, le.ErrFailedToCreateAccessToken, err)
-		return model.TokenData{}, le.ErrInternalServerError
+		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
 
 	refreshToken, err := u.ts.NewRefreshToken()
 	if err != nil {
 		handleError(ctx, log, le.ErrFailedToCreateRefreshToken, err)
-		return model.TokenData{}, le.ErrInternalServerError
+		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
 
 	lastVisitedAt := time.Now()
@@ -313,15 +309,15 @@ func (u *AuthUsecase) CreateUserSession(
 
 	if err = u.storage.CreateUserSession(ctx, session); err != nil {
 		handleError(ctx, log, le.ErrFailedToCreateUserSession, err)
-		return model.TokenData{}, le.ErrInternalServerError
+		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
 
 	if err = u.updateLatestVisitedAt(ctx, deviceID, user.AppID, lastVisitedAt); err != nil {
 		handleError(ctx, log, le.ErrFailedToUpdateLastVisitedAt, err)
-		return model.TokenData{}, le.ErrInternalServerError
+		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
 
-	tokenData := model.TokenData{
+	tokenData := model.AuthTokenData{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		Domain:       u.ts.RefreshTokenCookieDomain,
@@ -369,40 +365,32 @@ func (u *AuthUsecase) updateLatestVisitedAt(ctx context.Context, deviceID, appID
 	return u.storage.UpdateLatestVisitedAt(ctx, deviceID, appID, lastVisitedAt)
 }
 
-func (u *AuthUsecase) createEmailVerificationToken(ctx context.Context, log *slog.Logger, userID, appID, email, verifyEmailEndpoint string) (string, error) {
+func (u *AuthUsecase) createToken(ctx context.Context, data model.TokenData, createTokenFunc func(ctx context.Context, data model.TokenData) error) (model.TokenData, error) {
 	token, err := generateToken()
 	if err != nil {
-		handleError(ctx, log, le.ErrFailedToGenerateEmailVerificationToken, err)
-		return "", le.ErrInternalServerError
+		return model.TokenData{}, le.ErrFailedToGenerateToken
 	}
 
-	data := model.EmailVerificationData{
-		VerificationToken: token,
-		UserID:            userID,
-		AppID:             appID,
-		Endpoint:          verifyEmailEndpoint,
-		Email:             email,
-		Type:              model.TokenTypeVerifyEmail,
-		CreatedAt:         time.Now(),
-		ExpiresAt:         time.Now().Add(24 * time.Hour),
-	}
+	data.Token = token
+	data.CreatedAt = time.Now()
+	data.ExpiresAt = time.Now().Add(24 * time.Hour)
 
-	if err = u.storage.CreateEmailVerificationToken(ctx, data); err != nil {
-		return "", err
+	if err = createTokenFunc(ctx, data); err != nil {
+		return model.TokenData{}, err
 	}
-	return token, nil
+	return data, nil
 }
 
-func (u *AuthUsecase) sendVerificationEmail(ctx context.Context, endpoint, recipient, token string) error {
-	subject := "Confirmation instructions"
+func (u *AuthUsecase) sendEmailWithToken(ctx context.Context, tokenData model.TokenData, templateType model.EmailTemplateType) error {
+	subject := templateType.Subject()
 
-	templatePath := filepath.Join(u.ms.GetTemplatesPath(), model.EmailTemplateTypeVerifyEmail.FileName())
+	templatePath := filepath.Join(u.ms.GetTemplatesPath(), templateType.FileName())
 	templatesBytes, err := os.ReadFile(templatePath)
 	if err != nil {
 		return err
 	}
 
-	tmpl, err := template.New(model.EmailTemplateTypeVerifyEmail.String()).Parse(string(templatesBytes))
+	tmpl, err := template.New(templateType.String()).Parse(string(templatesBytes))
 	if err != nil {
 		return err
 	}
@@ -411,8 +399,8 @@ func (u *AuthUsecase) sendVerificationEmail(ctx context.Context, endpoint, recip
 		Recipient string
 		URL       string
 	}{
-		Recipient: recipient,
-		URL:       fmt.Sprintf("%s%s", endpoint, token),
+		Recipient: tokenData.Email,
+		URL:       fmt.Sprintf("%s%s", tokenData.Endpoint, tokenData.Token),
 	}
 
 	var body bytes.Buffer
@@ -420,15 +408,14 @@ func (u *AuthUsecase) sendVerificationEmail(ctx context.Context, endpoint, recip
 		return err
 	}
 
-	return u.ms.SendHTML(ctx, subject, body.String(), recipient)
+	return u.ms.SendHTML(ctx, subject, body.String(), tokenData.Email)
 }
 
 func (u *AuthUsecase) VerifyEmail(ctx context.Context, verificationToken string) error {
 	const method = "usecase.AuthUsecase.VerifyEmail"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -437,44 +424,20 @@ func (u *AuthUsecase) VerifyEmail(ctx context.Context, verificationToken string)
 		slog.String(key.Method, method),
 	)
 
-	var data model.EmailVerificationData
-
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
-		data, err = u.storage.GetEmailVerificationData(ctx, verificationToken)
+		tokenData, err := u.handleTokenProcessing(ctx, log, verificationToken, model.EmailTemplateTypeVerifyEmail)
 		if err != nil {
-			if errors.Is(err, le.ErrEmailVerificationTokenNotFound) {
-				handleError(ctx, log, le.ErrEmailVerificationTokenNotFound, err, slog.Any(key.VerificationToken, verificationToken))
-				return le.ErrEmailVerificationTokenNotFound
-			}
-			handleError(ctx, log, le.ErrFailedToGetEmailVerificationToken, err, slog.Any(key.VerificationToken, verificationToken))
-			return le.ErrInternalServerError
+			return err
 		}
 
-		if data.ExpiresAt.Before(time.Now()) {
-			log.Info("verification token expired", slog.Any(key.UserID, data.UserID), slog.Any(key.VerificationToken, verificationToken))
-
-			if err = u.storage.DeleteEmailVerificationToken(ctx, verificationToken); err != nil {
-				handleError(ctx, log, le.ErrFailedToDeleteVerificationToken, err, slog.Any(key.VerificationToken, verificationToken))
+		if tokenData.Token == verificationToken {
+			// It means that verification token was not expired and not generated new token with email resent
+			if err = u.storage.MarkEmailVerified(ctx, tokenData.UserID, tokenData.AppID); err != nil {
+				handleError(ctx, log, le.ErrFailedToMarkEmailVerified, err, slog.Any(key.Token, verificationToken))
 				return le.ErrInternalServerError
 			}
-
-			newToken, err := u.createEmailVerificationToken(ctx, u.log, data.UserID, data.AppID, data.Email, data.Endpoint)
-			if err != nil {
-				handleError(ctx, log, le.ErrFailedToCreateEmailVerificationToken, err)
-				return le.ErrInternalServerError
-			}
-
-			err = u.sendVerificationEmail(ctx, data.Endpoint, data.Email, newToken)
-			if err != nil {
-				handleError(ctx, log, le.ErrFailedToSendVerificationEmail, err, slog.Any(key.VerificationToken, verificationToken))
-				return le.ErrInternalServerError
-			}
-			return le.ErrVerificationTokenExpiredWithEmailResent
-		} else {
-			if err = u.storage.MarkEmailVerified(ctx, data); err != nil {
-				handleError(ctx, log, le.ErrFailedToMarkEmailVerified, err, slog.Any(key.VerificationToken, verificationToken))
-				return le.ErrInternalServerError
-			}
+			log.Info("email verified", slog.String(key.UserID, tokenData.UserID))
+			return nil
 		}
 
 		return nil
@@ -483,19 +446,56 @@ func (u *AuthUsecase) VerifyEmail(ctx context.Context, verificationToken string)
 		return err
 	}
 
-	log.Info("email verified",
-		slog.String(key.UserID, data.UserID),
-	)
-
 	return nil
 }
 
-func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID string) error {
-	const method = "usecase.AuthUsecase.LogoutUser"
-
-	reqID, err := requestid.FromContext(ctx)
+func (u *AuthUsecase) handleTokenProcessing(
+	ctx context.Context,
+	log *slog.Logger,
+	token string,
+	emailTemplateType model.EmailTemplateType,
+) (model.TokenData, error) {
+	tokenData, err := u.storage.GetTokenData(ctx, token)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
+		if errors.Is(err, le.ErrTokenNotFound) {
+			handleError(ctx, log, le.ErrTokenNotFound, err, slog.Any(key.Token, token))
+			return model.TokenData{}, le.ErrTokenNotFound
+		}
+		handleError(ctx, log, le.ErrFailedToGetTokenData, err, slog.Any(key.Token, token))
+		return model.TokenData{}, le.ErrInternalServerError
+	}
+
+	if tokenData.ExpiresAt.Before(time.Now()) {
+		log.Info("token expired", slog.Any(key.UserID, tokenData.UserID), slog.Any(key.Token, tokenData.Token))
+
+		if err = u.storage.DeleteToken(ctx, tokenData.Token); err != nil {
+			handleError(ctx, log, le.ErrFailedToDeleteToken, err, slog.Any(key.Token, tokenData.Token))
+			return model.TokenData{}, le.ErrInternalServerError
+		}
+
+		tokenData, err = u.createToken(ctx, tokenData, u.storage.CreateToken)
+		if err != nil {
+			handleError(ctx, log, le.ErrFailedToCreateToken, err)
+			return model.TokenData{}, le.ErrInternalServerError
+		}
+
+		if err = u.sendEmailWithToken(ctx, tokenData, emailTemplateType); err != nil {
+			handleError(ctx, log, le.ErrFailedToSendEmail, err)
+			return model.TokenData{}, le.ErrInternalServerError
+		}
+
+		handleError(ctx, log, le.ErrTokenExpiredWithEmailResent, nil, slog.Any(key.UserID, tokenData.UserID))
+		return tokenData, le.ErrTokenExpiredWithEmailResent
+	}
+
+	return tokenData, nil
+}
+
+func (u *AuthUsecase) ResetPassword(ctx context.Context, data *model.ResetPasswordRequestData, changePasswordEndpoint string) error {
+	const method = "usecase.AuthUsecase.ResetPassword"
+
+	reqID, err := u.getReqID(ctx, method)
+	if err != nil {
 		return err
 	}
 
@@ -504,12 +504,137 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 		slog.String(key.Method, method),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, appID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, appID))
-			return le.ErrAppIDDoesNotExist
+	user, err := u.storage.GetUserByEmail(ctx, data.Email, data.AppID)
+	if err != nil {
+		if errors.Is(err, le.ErrUserNotFound) {
+			handleError(ctx, log, le.ErrUserNotFound, err, slog.Any(key.Email, data.Email))
+			return le.ErrUserNotFound
 		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, appID))
+		handleError(ctx, u.log, le.ErrFailedToGetUserByEmail, err, slog.Any(key.Email, data.Email))
+		return err
+	}
+
+	resetPasswordData := model.TokenData{
+		UserID:   user.ID,
+		AppID:    user.AppID,
+		Endpoint: changePasswordEndpoint,
+		Email:    user.Email,
+		Type:     model.TokenTypeResetPassword,
+	}
+
+	tokenData, err := u.createToken(ctx, resetPasswordData, u.storage.CreateToken)
+	if err != nil {
+		handleError(ctx, log, le.ErrFailedToCreateResetPasswordToken, err)
+		return le.ErrInternalServerError
+	}
+
+	if err = u.sendEmailWithToken(ctx, tokenData, model.EmailTemplateTypeResetPassword); err != nil {
+		handleError(ctx, log, le.ErrFailedToSendEmail, err)
+		return le.ErrInternalServerError
+	}
+
+	log.Info("reset password email sent",
+		slog.String(key.UserID, user.ID),
+		slog.String(key.Email, data.Email),
+	)
+
+	return nil
+}
+
+func (u *AuthUsecase) ChangePassword(ctx context.Context, data *model.ChangePasswordRequestData) error {
+	const method = "usecase.AuthUsecase.ChangePassword"
+
+	reqID, err := u.getReqID(ctx, method)
+	if err != nil {
+		return err
+	}
+
+	log := u.log.With(
+		slog.String(key.RequestID, reqID),
+		slog.String(key.Method, method),
+	)
+
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
+		return err
+	}
+
+	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
+		tokenData, err := u.handleTokenProcessing(ctx, log, data.ResetPasswordToken, model.EmailTemplateTypeResetPassword)
+		if err != nil {
+			return err
+		}
+
+		if tokenData.Token == data.ResetPasswordToken {
+			// It means that reset password token was not expired and not generated new token with email resent
+			userDataFromDB, err := u.storage.GetUserData(ctx, tokenData.UserID, data.AppID)
+			if err != nil {
+				handleError(ctx, log, le.ErrFailedToGetUser, err, slog.Any(key.UserID, tokenData.UserID))
+				return le.ErrInternalServerError
+			}
+
+			if err = u.checkPasswordHashAndUpdate(ctx, log, userDataFromDB, data); err != nil {
+				return err
+			}
+
+			log.Info("password changed", slog.String(key.UserID, userDataFromDB.ID))
+			return nil
+		}
+
+		return nil
+	}); err != nil {
+		handleError(ctx, log, le.ErrFailedToCommitTransaction, err)
+		return err
+	}
+
+	return nil
+}
+
+func (u *AuthUsecase) checkPasswordHashAndUpdate(ctx context.Context, log *slog.Logger, userData model.User, reqData *model.ChangePasswordRequestData) error {
+	err := u.checkPasswordHashMatch(userData.PasswordHash, reqData.UpdatedPassword)
+	if err != nil && !errors.Is(err, le.ErrPasswordsDoNotMatch) {
+		handleError(ctx, log, le.ErrFailedToCheckIfPasswordMatch, err, slog.Any(key.UserID, userData.ID))
+		return le.ErrInternalServerError
+	}
+	if err == nil {
+		handleError(ctx, log, le.ErrUpdatedPasswordMustNotMatchTheCurrent, nil, slog.Any(key.UserID, userData.ID))
+		return le.ErrUpdatedPasswordMustNotMatchTheCurrent
+	}
+
+	updatedPassHash, err := jwt.PasswordHashBcrypt(reqData.UpdatedPassword, u.ts.PasswordHashCost, []byte(u.ts.PasswordHashSalt))
+	if err != nil {
+		handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err, slog.Any(key.UserID, userData.ID))
+		return le.ErrInternalServerError
+	}
+
+	updatedUser := model.User{
+		ID:           userData.ID,
+		PasswordHash: updatedPassHash,
+		AppID:        reqData.AppID,
+		UpdatedAt:    time.Now(),
+	}
+
+	if err = u.storage.UpdateUser(ctx, updatedUser); err != nil {
+		handleError(ctx, log, le.ErrFailedToUpdateUser, err, slog.Any(key.UserID, userData.ID))
+		return le.ErrInternalServerError
+	}
+
+	return nil
+}
+
+func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID string) error {
+	const method = "usecase.AuthUsecase.LogoutUser"
+
+	reqID, err := u.getReqID(ctx, method)
+	if err != nil {
+		return err
+	}
+
+	log := u.log.With(
+		slog.String(key.RequestID, reqID),
+		slog.String(key.Method, method),
+	)
+
+	if err = u.validateAppID(ctx, log, appID); err != nil {
 		return err
 	}
 
@@ -543,13 +668,12 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 	return nil
 }
 
-func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequestData) (model.TokenData, error) {
+func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshTokenRequestData) (model.AuthTokenData, error) {
 	const method = "usecase.AuthUsecase.RefreshTokens"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
-		return model.TokenData{}, err
+		return model.AuthTokenData{}, err
 	}
 
 	log := u.log.With(
@@ -557,40 +681,35 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshRequ
 		slog.String(key.Method, method),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return model.TokenData{}, le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
-		return model.TokenData{}, err
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
+		return model.AuthTokenData{}, err
 	}
 
 	session, err := u.checkSessionAndDevice(ctx, data.RefreshToken, data.UserDevice)
 	switch {
 	case errors.Is(err, le.ErrSessionNotFound):
 		handleError(ctx, log, le.ErrSessionNotFound, err)
-		return model.TokenData{}, le.ErrSessionNotFound
+		return model.AuthTokenData{}, le.ErrSessionNotFound
 	case errors.Is(err, le.ErrSessionExpired):
 		handleError(ctx, log, le.ErrSessionExpired, err)
-		return model.TokenData{}, le.ErrSessionExpired
+		return model.AuthTokenData{}, le.ErrSessionExpired
 	case errors.Is(err, le.ErrUserDeviceNotFound):
 		handleError(ctx, log, le.ErrUserDeviceNotFound, err)
-		return model.TokenData{}, le.ErrUserDeviceNotFound
+		return model.AuthTokenData{}, le.ErrUserDeviceNotFound
 	case err != nil:
 		handleError(ctx, log, le.ErrFailedToCheckSessionAndDevice, err)
-		return model.TokenData{}, le.ErrInternalServerError
+		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
 
 	if err = u.deleteRefreshToken(ctx, data.RefreshToken); err != nil {
 		handleError(ctx, log, le.ErrFailedToDeleteRefreshToken, err)
-		return model.TokenData{}, le.ErrInternalServerError
+		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
 
 	tokenData, err := u.CreateUserSession(ctx, log, model.User{ID: session.UserID, AppID: session.AppID}, data.UserDevice)
 	if err != nil {
 		handleError(ctx, log, le.ErrFailedToCreateUserSession, err, slog.Any(key.UserID, session.UserID))
-		return model.TokenData{}, le.ErrInternalServerError
+		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
 
 	log.Info("tokens created", slog.Any(key.UserID, session.UserID))
@@ -629,9 +748,8 @@ func (u *AuthUsecase) deleteRefreshToken(ctx context.Context, refreshToken strin
 func (u *AuthUsecase) GetJWKS(ctx context.Context, data *model.JWKSRequestData) (model.JWKS, error) {
 	const method = "usecase.AuthUsecase.GetJWKS"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.JWKS{}, err
 	}
 
@@ -702,9 +820,8 @@ func (u *AuthUsecase) constructJWKS(jwks ...model.JWK) model.JWKS {
 func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error) {
 	const method = "usecase.AuthUsecase.GetUser"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.User{}, err
 	}
 
@@ -713,12 +830,7 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 		slog.String(key.Method, method),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return model.User{}, le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
 		return model.User{}, err
 	}
 
@@ -746,9 +858,8 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestData) error {
 	const method = "usecase.AuthUsecase.UpdateUser"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -757,12 +868,7 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 		slog.String(key.Method, method),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
 		return err
 	}
 
@@ -796,6 +902,7 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 	}
 
 	if data.UpdatedPassword != "" {
+		// Check current password
 		if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.Password); err != nil {
 			if errors.Is(err, le.ErrPasswordsDoNotMatch) {
 				handleError(ctx, log, le.ErrCurrentPasswordIsIncorrect, err, slog.Any(key.UserID, userDataFromDB.ID))
@@ -805,6 +912,7 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 			return le.ErrInternalServerError
 		}
 
+		// Check new password
 		if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.UpdatedPassword); err == nil {
 			handleError(ctx, log, le.ErrNoPasswordChangesDetected, nil, slog.Any(key.UserID, userDataFromDB.ID))
 			return le.ErrNoPasswordChangesDetected
@@ -815,7 +923,6 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 			u.ts.PasswordHashCost,
 			[]byte(u.ts.PasswordHashSalt),
 		)
-
 		if err != nil {
 			handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err, slog.Any(key.UserID, userDataFromDB.ID))
 			return le.ErrInternalServerError
@@ -839,10 +946,16 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 			return le.ErrEmailAlreadyTaken
 		}
 		handleError(ctx, log, le.ErrFailedToCheckEmailUniqueness, err, slog.Any(key.UserID, userDataFromDB.ID))
-		return err
+		return le.ErrInternalServerError
 	}
 
-	return u.storage.UpdateUser(ctx, updatedUser)
+	err := u.storage.UpdateUser(ctx, updatedUser)
+	if err != nil {
+		handleError(ctx, log, le.ErrFailedToUpdateUser, err, slog.Any(key.UserID, userDataFromDB.ID))
+		return le.ErrInternalServerError
+	}
+
+	return nil
 }
 
 func (u *AuthUsecase) checkPasswordHashMatch(hash string, password string) error {
@@ -861,9 +974,8 @@ func (u *AuthUsecase) checkPasswordHashMatch(hash string, password string) error
 func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestData) error {
 	const method = "usecase.AuthUsecase.DeleteUser"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -872,12 +984,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 		slog.String(key.Method, method),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
 		return err
 	}
 
@@ -904,7 +1011,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 			return le.ErrFailedToDeleteAllSessions
 		}
 
-		if err = u.storage.DeleteTokens(ctx, userID, data.AppID); err != nil {
+		if err = u.storage.DeleteAllTokens(ctx, userID, data.AppID); err != nil {
 			handleError(ctx, log, le.ErrFailedToDeleteTokens, err, slog.Any(key.UserID, userID))
 			return le.ErrFailedToDeleteTokens
 		}
@@ -917,5 +1024,28 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 
 	log.Info("user soft-deleted", slog.String(key.UserID, userID))
 
+	return nil
+}
+
+// getReqID returns request ID from context
+func (u *AuthUsecase) getReqID(ctx context.Context, method string) (string, error) {
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
+		return "", err
+	}
+	return reqID, nil
+}
+
+// validateAppID checks if appID exists in DB
+func (u *AuthUsecase) validateAppID(ctx context.Context, log *slog.Logger, appID string) error {
+	if err := u.storage.ValidateAppID(ctx, appID); err != nil {
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, appID))
+			return le.ErrAppIDDoesNotExist
+		}
+		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, appID))
+		return err
+	}
 	return nil
 }
