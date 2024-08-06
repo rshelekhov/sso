@@ -51,7 +51,7 @@ func validateRegisterAppData(req *ssov1.RegisterAppRequest) error {
 	return nil
 }
 
-func validateEmailVerificationData(req *ssov1.VerifyEmailRequest, data *model.EmailVerificationRequestData) error {
+func validateVerifyEmailData(req *ssov1.VerifyEmailRequest, data *model.VerifyEmailRequestData) error {
 	if req.GetVerificationToken() == emptyValue {
 		return status.Error(codes.InvalidArgument, le.ErrVerificationTokenIsRequired.Error())
 	}
@@ -115,7 +115,40 @@ func validateLogout(req *ssov1.LogoutRequest, data *model.UserRequestData) error
 	return nil
 }
 
-func validateRefresh(req *ssov1.RefreshRequest, data *model.RefreshRequestData) error {
+func validateResetPasswordData(req *ssov1.ResetPasswordRequest, data *model.ResetPasswordRequestData) error {
+	if req.GetEmail() == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrEmailIsRequired.Error())
+	}
+	if err := validateAppID(req.GetAppId()); err != nil {
+		return err
+	}
+
+	data.Email = req.GetEmail()
+	data.AppID = req.GetAppId()
+
+	return nil
+}
+
+func validateChangePasswordData(req *ssov1.ChangePasswordRequest, data *model.ChangePasswordRequestData) error {
+	if req.GetResetPasswordToken() == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrResetPasswordTokenIsRequired.Error())
+	}
+	if req.GetUpdatedPassword() == emptyValue {
+		return status.Error(codes.InvalidArgument, le.ErrPasswordIsRequired.Error())
+	}
+	if err := validateAppID(req.GetAppId()); err != nil {
+		return err
+	}
+
+	data.ResetPasswordToken = req.GetResetPasswordToken()
+	data.UpdatedPassword = req.GetUpdatedPassword()
+	data.AppID = req.GetAppId()
+
+	return nil
+
+}
+
+func validateRefresh(req *ssov1.RefreshRequest, data *model.RefreshTokenRequestData) error {
 	if req.GetRefreshToken() == emptyValue {
 		return status.Error(codes.InvalidArgument, le.ErrRefreshTokenIsRequired.Error())
 	}

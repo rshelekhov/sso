@@ -13,18 +13,19 @@ type Querier interface {
 	CreateToken(ctx context.Context, arg CreateTokenParams) error
 	CreateUserSession(ctx context.Context, arg CreateUserSessionParams) error
 	DeleteAllSessions(ctx context.Context, arg DeleteAllSessionsParams) error
+	DeleteAllTokens(ctx context.Context, arg DeleteAllTokensParams) error
 	DeleteApp(ctx context.Context, arg DeleteAppParams) error
 	DeleteRefreshTokenFromSession(ctx context.Context, refreshToken string) error
 	DeleteSession(ctx context.Context, arg DeleteSessionParams) error
-	DeleteTokens(ctx context.Context, arg DeleteTokensParams) error
+	DeleteToken(ctx context.Context, token string) error
 	DeleteUser(ctx context.Context, arg DeleteUserParams) error
-	DeleteVerificationToken(ctx context.Context, token string) error
-	GetEmailVerificationData(ctx context.Context, token string) (GetEmailVerificationDataRow, error)
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (GetSessionByRefreshTokenRow, error)
+	GetTokenData(ctx context.Context, token string) (GetTokenDataRow, error)
 	GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUserByIDRow, error)
 	GetUserData(ctx context.Context, arg GetUserDataParams) (GetUserDataRow, error)
 	GetUserDeviceID(ctx context.Context, arg GetUserDeviceIDParams) (string, error)
+	GetUserIDByToken(ctx context.Context, token string) (string, error)
 	GetUserStatus(ctx context.Context, email string) (string, error)
 	InsertApp(ctx context.Context, arg InsertAppParams) error
 	InsertUser(ctx context.Context, arg InsertUserParams) error

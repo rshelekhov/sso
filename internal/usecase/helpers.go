@@ -3,11 +3,12 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/lib/constant/key"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"log/slog"
 	"runtime"
 	"strings"
+
+	"github.com/rshelekhov/sso/internal/lib/constant/key"
+	"github.com/rshelekhov/sso/internal/lib/constant/le"
 )
 
 func handleError(

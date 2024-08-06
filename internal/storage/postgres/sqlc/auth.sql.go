@@ -95,6 +95,22 @@ func (q *Queries) DeleteAllSessions(ctx context.Context, arg DeleteAllSessionsPa
 	return err
 }
 
+const deleteAllTokens = `-- name: DeleteAllTokens :exec
+DELETE FROM tokens
+WHERE user_id = $1
+  AND app_id = $2
+`
+
+type DeleteAllTokensParams struct {
+	UserID string `db:"user_id"`
+	AppID  string `db:"app_id"`
+}
+
+func (q *Queries) DeleteAllTokens(ctx context.Context, arg DeleteAllTokensParams) error {
+	_, err := q.db.Exec(ctx, deleteAllTokens, arg.UserID, arg.AppID)
+	return err
+}
+
 const deleteRefreshTokenFromSession = `-- name: DeleteRefreshTokenFromSession :exec
 DELETE FROM refresh_sessions
 WHERE refresh_token = $1
@@ -123,19 +139,13 @@ func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) er
 	return err
 }
 
-const deleteTokens = `-- name: DeleteTokens :exec
+const deleteToken = `-- name: DeleteToken :exec
 DELETE FROM tokens
-WHERE user_id = $1
-  AND app_id = $2
+WHERE token = $1
 `
 
-type DeleteTokensParams struct {
-	UserID string `db:"user_id"`
-	AppID  string `db:"app_id"`
-}
-
-func (q *Queries) DeleteTokens(ctx context.Context, arg DeleteTokensParams) error {
-	_, err := q.db.Exec(ctx, deleteTokens, arg.UserID, arg.AppID)
+func (q *Queries) DeleteToken(ctx context.Context, token string) error {
+	_, err := q.db.Exec(ctx, deleteToken, token)
 	return err
 }
 
@@ -156,45 +166,6 @@ type DeleteUserParams struct {
 func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
 	_, err := q.db.Exec(ctx, deleteUser, arg.DeletedAt, arg.ID, arg.AppID)
 	return err
-}
-
-const deleteVerificationToken = `-- name: DeleteVerificationToken :exec
-DELETE FROM tokens
-WHERE token = $1
-`
-
-func (q *Queries) DeleteVerificationToken(ctx context.Context, token string) error {
-	_, err := q.db.Exec(ctx, deleteVerificationToken, token)
-	return err
-}
-
-const getEmailVerificationData = `-- name: GetEmailVerificationData :one
-SELECT token, user_id, app_id, endpoint, recipient, expires_at
-FROM tokens
-WHERE token = $1
-`
-
-type GetEmailVerificationDataRow struct {
-	Token     string    `db:"token"`
-	UserID    string    `db:"user_id"`
-	AppID     string    `db:"app_id"`
-	Endpoint  string    `db:"endpoint"`
-	Recipient string    `db:"recipient"`
-	ExpiresAt time.Time `db:"expires_at"`
-}
-
-func (q *Queries) GetEmailVerificationData(ctx context.Context, token string) (GetEmailVerificationDataRow, error) {
-	row := q.db.QueryRow(ctx, getEmailVerificationData, token)
-	var i GetEmailVerificationDataRow
-	err := row.Scan(
-		&i.Token,
-		&i.UserID,
-		&i.AppID,
-		&i.Endpoint,
-		&i.Recipient,
-		&i.ExpiresAt,
-	)
-	return i, err
 }
 
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
@@ -219,6 +190,37 @@ func (q *Queries) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 		&i.AppID,
 		&i.DeviceID,
 		&i.LastVisitedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const getTokenData = `-- name: GetTokenData :one
+SELECT token, user_id, app_id, endpoint, token_type_id, recipient, expires_at
+FROM tokens
+WHERE token = $1
+`
+
+type GetTokenDataRow struct {
+	Token       string    `db:"token"`
+	UserID      string    `db:"user_id"`
+	AppID       string    `db:"app_id"`
+	Endpoint    string    `db:"endpoint"`
+	TokenTypeID int32     `db:"token_type_id"`
+	Recipient   string    `db:"recipient"`
+	ExpiresAt   time.Time `db:"expires_at"`
+}
+
+func (q *Queries) GetTokenData(ctx context.Context, token string) (GetTokenDataRow, error) {
+	row := q.db.QueryRow(ctx, getTokenData, token)
+	var i GetTokenDataRow
+	err := row.Scan(
+		&i.Token,
+		&i.UserID,
+		&i.AppID,
+		&i.Endpoint,
+		&i.TokenTypeID,
+		&i.Recipient,
 		&i.ExpiresAt,
 	)
 	return i, err
@@ -342,6 +344,19 @@ func (q *Queries) GetUserDeviceID(ctx context.Context, arg GetUserDeviceIDParams
 	var id string
 	err := row.Scan(&id)
 	return id, err
+}
+
+const getUserIDByToken = `-- name: GetUserIDByToken :one
+SELECT user_id
+FROM tokens
+WHERE token = $1
+`
+
+func (q *Queries) GetUserIDByToken(ctx context.Context, token string) (string, error) {
+	row := q.db.QueryRow(ctx, getUserIDByToken, token)
+	var user_id string
+	err := row.Scan(&user_id)
+	return user_id, err
 }
 
 const getUserStatus = `-- name: GetUserStatus :one

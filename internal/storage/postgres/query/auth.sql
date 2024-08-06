@@ -25,8 +25,13 @@ VALUES ($1, $2, $3, $4, $5, $6, $7);
 INSERT INTO tokens (token, user_id, app_id, endpoint, recipient, token_type_id,  created_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
--- name: GetEmailVerificationData :one
-SELECT token, user_id, app_id, endpoint, recipient, expires_at
+-- name: GetTokenData :one
+SELECT token, user_id, app_id, endpoint, token_type_id, recipient, expires_at
+FROM tokens
+WHERE token = $1;
+
+-- name: GetUserIDByToken :one
+SELECT user_id
 FROM tokens
 WHERE token = $1;
 
@@ -106,11 +111,11 @@ WHERE id = $2
   AND app_id = $3
   AND deleted_at IS NULL;
 
--- name: DeleteTokens :exec
+-- name: DeleteAllTokens :exec
 DELETE FROM tokens
 WHERE user_id = $1
   AND app_id = $2;
 
--- name: DeleteVerificationToken :exec
+-- name: DeleteToken :exec
 DELETE FROM tokens
 WHERE token = $1;
