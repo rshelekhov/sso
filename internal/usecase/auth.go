@@ -53,9 +53,8 @@ func NewAuthUsecase(
 func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (model.AuthTokenData, error) {
 	const method = "usecase.AuthUsecase.Login"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.AuthTokenData{}, err
 	}
 
@@ -65,12 +64,7 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 		slog.String(key.Email, data.Email),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return model.AuthTokenData{}, le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
 		return model.AuthTokenData{}, err
 	}
 
@@ -144,9 +138,8 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, passw
 func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestData, verifyEmailEndpoint string) (model.AuthTokenData, error) {
 	const method = "usecase.AuthUsecase.RegisterUser"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.AuthTokenData{}, err
 	}
 
@@ -156,12 +149,7 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 		slog.String(key.Email, data.Email),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return model.AuthTokenData{}, le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
 		return model.AuthTokenData{}, err
 	}
 
@@ -264,9 +252,8 @@ func (u *AuthUsecase) CreateUserSession(
 ) {
 	const method = "usecase.AuthUsecase.CreateUserSession"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.AuthTokenData{}, err
 	}
 
@@ -427,9 +414,8 @@ func (u *AuthUsecase) sendEmailWithToken(ctx context.Context, tokenData model.To
 func (u *AuthUsecase) VerifyEmail(ctx context.Context, verificationToken string) error {
 	const method = "usecase.AuthUsecase.VerifyEmail"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -508,9 +494,8 @@ func (u *AuthUsecase) handleTokenProcessing(
 func (u *AuthUsecase) ResetPassword(ctx context.Context, data *model.ResetPasswordRequestData, changePasswordEndpoint string) error {
 	const method = "usecase.AuthUsecase.ResetPassword"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -559,9 +544,8 @@ func (u *AuthUsecase) ResetPassword(ctx context.Context, data *model.ResetPasswo
 func (u *AuthUsecase) ChangePassword(ctx context.Context, data *model.ChangePasswordRequestData) error {
 	const method = "usecase.AuthUsecase.ChangePassword"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -570,12 +554,7 @@ func (u *AuthUsecase) ChangePassword(ctx context.Context, data *model.ChangePass
 		slog.String(key.Method, method),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
 		return err
 	}
 
@@ -645,9 +624,8 @@ func (u *AuthUsecase) checkPasswordHashAndUpdate(ctx context.Context, log *slog.
 func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceRequestData, appID string) error {
 	const method = "usecase.AuthUsecase.LogoutUser"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -656,12 +634,7 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 		slog.String(key.Method, method),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, appID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, appID))
-			return le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, appID))
+	if err = u.validateAppID(ctx, log, appID); err != nil {
 		return err
 	}
 
@@ -698,9 +671,8 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshTokenRequestData) (model.AuthTokenData, error) {
 	const method = "usecase.AuthUsecase.RefreshTokens"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.AuthTokenData{}, err
 	}
 
@@ -709,12 +681,7 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshToke
 		slog.String(key.Method, method),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return model.AuthTokenData{}, le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
 		return model.AuthTokenData{}, err
 	}
 
@@ -781,9 +748,8 @@ func (u *AuthUsecase) deleteRefreshToken(ctx context.Context, refreshToken strin
 func (u *AuthUsecase) GetJWKS(ctx context.Context, data *model.JWKSRequestData) (model.JWKS, error) {
 	const method = "usecase.AuthUsecase.GetJWKS"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.JWKS{}, err
 	}
 
@@ -854,9 +820,8 @@ func (u *AuthUsecase) constructJWKS(jwks ...model.JWK) model.JWKS {
 func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestData) (model.User, error) {
 	const method = "usecase.AuthUsecase.GetUser"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return model.User{}, err
 	}
 
@@ -865,12 +830,7 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 		slog.String(key.Method, method),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return model.User{}, le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
 		return model.User{}, err
 	}
 
@@ -898,9 +858,8 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestData) error {
 	const method = "usecase.AuthUsecase.UpdateUser"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -909,12 +868,7 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 		slog.String(key.Method, method),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
 		return err
 	}
 
@@ -1020,9 +974,8 @@ func (u *AuthUsecase) checkPasswordHashMatch(hash string, password string) error
 func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestData) error {
 	const method = "usecase.AuthUsecase.DeleteUser"
 
-	reqID, err := requestid.FromContext(ctx)
+	reqID, err := u.getReqID(ctx, method)
 	if err != nil {
-		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
 		return err
 	}
 
@@ -1031,12 +984,7 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 		slog.String(key.Method, method),
 	)
 
-	if err = u.storage.ValidateAppID(ctx, data.AppID); err != nil {
-		if errors.Is(err, le.ErrAppIDDoesNotExist) {
-			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
-			return le.ErrAppIDDoesNotExist
-		}
-		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
+	if err = u.validateAppID(ctx, log, data.AppID); err != nil {
 		return err
 	}
 
@@ -1076,5 +1024,28 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 
 	log.Info("user soft-deleted", slog.String(key.UserID, userID))
 
+	return nil
+}
+
+// getReqID returns request ID from context
+func (u *AuthUsecase) getReqID(ctx context.Context, method string) (string, error) {
+	reqID, err := requestid.FromContext(ctx)
+	if err != nil {
+		handleError(ctx, u.log, le.ErrFailedToGetRequestIDFromCtx, err, slog.Any(key.Method, method))
+		return "", err
+	}
+	return reqID, nil
+}
+
+// validateAppID checks if appID exists in DB
+func (u *AuthUsecase) validateAppID(ctx context.Context, log *slog.Logger, appID string) error {
+	if err := u.storage.ValidateAppID(ctx, appID); err != nil {
+		if errors.Is(err, le.ErrAppIDDoesNotExist) {
+			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, appID))
+			return le.ErrAppIDDoesNotExist
+		}
+		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, appID))
+		return err
+	}
 	return nil
 }
