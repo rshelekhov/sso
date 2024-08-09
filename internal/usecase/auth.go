@@ -182,13 +182,26 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 	authTokenData := model.AuthTokenData{}
 
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
-		if err = u.storage.RegisterUser(ctx, user); err != nil {
-			if errors.Is(err, le.ErrUserAlreadyExists) {
-				handleError(ctx, log, le.ErrUserAlreadyExists, err, slog.Any(key.Email, data.Email))
-				return le.ErrUserAlreadyExists
+		userStatus, err := u.storage.GetUserStatus(ctx, user.Email)
+		if err != nil {
+			return err
+		}
+
+		switch userStatus {
+		case "active":
+			return le.ErrUserAlreadyExists
+		case "soft_deleted":
+			if err = u.storage.ReplaceSoftDeletedUser(ctx, user); err != nil {
+				handleError(ctx, log, le.ErrFailedToCreateUser, err)
+				return le.ErrInternalServerError
 			}
-			handleError(ctx, log, le.ErrFailedToCreateUser, err)
-			return le.ErrInternalServerError
+		case "not_found":
+			if err = u.storage.RegisterUser(ctx, user); err != nil {
+				handleError(ctx, log, le.ErrFailedToCreateUser, err)
+				return le.ErrInternalServerError
+			}
+		default:
+			return fmt.Errorf("%s: unknown user status: %s", method, userStatus)
 		}
 
 		authTokenData, err = u.CreateUserSession(ctx, log, user, userDevice)
@@ -1002,6 +1015,10 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
 		if err = u.storage.DeleteUser(ctx, user); err != nil {
+			if errors.Is(err, le.ErrUserNotFound) {
+				handleError(ctx, log, le.ErrUserNotFound, err, slog.Any(key.UserID, userID))
+				return le.ErrUserNotFound
+			}
 			handleError(ctx, log, le.ErrFailedToDeleteUser, err, slog.Any(key.UserID, userID))
 			return le.ErrFailedToDeleteUser
 		}

@@ -69,35 +69,9 @@ func (s *AuthStorage) ValidateAppID(ctx context.Context, appID string) error {
 	return nil
 }
 
-func (s *AuthStorage) RegisterUser(ctx context.Context, user model.User) error {
-	const method = "storage.storage.RegisterUser"
-
-	userStatus, err := s.getUserStatus(ctx, user.Email)
-	if err != nil {
-		return err
-	}
-
-	switch userStatus {
-	case "active":
-		return le.ErrUserAlreadyExists
-	case "soft_deleted":
-		if err = s.replaceSoftDeletedUser(ctx, user); err != nil {
-			return err
-		}
-	case "not_found":
-		if err = s.insertUser(ctx, user); err != nil {
-			return err
-		}
-	default:
-		return fmt.Errorf("%s: unknown user status: %s", method, userStatus)
-	}
-
-	return nil
-}
-
-// getUserStatus returns the status of the user with the given email
-func (s *AuthStorage) getUserStatus(ctx context.Context, email string) (string, error) {
-	const method = "user.storage.getUserStatus"
+// GetUserStatus returns the status of the user with the given email
+func (s *AuthStorage) GetUserStatus(ctx context.Context, email string) (string, error) {
+	const method = "user.storage.GetUserStatus"
 
 	status, err := s.Queries.GetUserStatus(ctx, email)
 	if err != nil {
@@ -107,11 +81,11 @@ func (s *AuthStorage) getUserStatus(ctx context.Context, email string) (string, 
 	return status, nil
 }
 
-// replaceSoftDeletedUser replaces a soft deleted user with the given user
-func (s *AuthStorage) replaceSoftDeletedUser(ctx context.Context, user model.User) error {
-	const method = "user.storage.replaceSoftDeletedUser"
+// ReplaceSoftDeletedUser replaces a soft deleted user with the given user
+func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user model.User) error {
+	const method = "user.storage.ReplaceSoftDeletedUser"
 
-	if err := s.Queries.InsertUser(ctx, sqlc.InsertUserParams{
+	if err := s.Queries.RegisterUser(ctx, sqlc.RegisterUserParams{
 		ID:           user.ID,
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
@@ -128,11 +102,11 @@ func (s *AuthStorage) replaceSoftDeletedUser(ctx context.Context, user model.Use
 	return nil
 }
 
-// insertUser inserts a new user
-func (s *AuthStorage) insertUser(ctx context.Context, user model.User) error {
+// RegisterUser creates a new user
+func (s *AuthStorage) RegisterUser(ctx context.Context, user model.User) error {
 	const method = "user.storage.insertNewUser"
 
-	if err := s.Queries.InsertUser(ctx, sqlc.InsertUserParams{
+	if err := s.Queries.RegisterUser(ctx, sqlc.RegisterUserParams{
 		ID:           user.ID,
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,

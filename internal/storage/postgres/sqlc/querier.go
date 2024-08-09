@@ -28,9 +28,9 @@ type Querier interface {
 	GetUserIDByToken(ctx context.Context, token string) (string, error)
 	GetUserStatus(ctx context.Context, email string) (string, error)
 	InsertApp(ctx context.Context, arg InsertAppParams) error
-	InsertUser(ctx context.Context, arg InsertUserParams) error
 	MarkEmailVerified(ctx context.Context, arg MarkEmailVerifiedParams) error
 	RegisterDevice(ctx context.Context, arg RegisterDeviceParams) error
+	RegisterUser(ctx context.Context, arg RegisterUserParams) error
 	UpdateLatestLoginAt(ctx context.Context, arg UpdateLatestLoginAtParams) error
 }
 

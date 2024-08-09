@@ -17,7 +17,7 @@ WHEN EXISTS(
     ) THEN 'soft_deleted'
 ELSE 'not_found' END AS status;
 
--- name: InsertUser :exec
+-- name: RegisterUser :exec
 INSERT INTO users (id, email, password_hash, app_id, verified, created_at,updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7);
 

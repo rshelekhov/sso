@@ -383,34 +383,6 @@ func (q *Queries) GetUserStatus(ctx context.Context, email string) (string, erro
 	return status, err
 }
 
-const insertUser = `-- name: InsertUser :exec
-INSERT INTO users (id, email, password_hash, app_id, verified, created_at,updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-`
-
-type InsertUserParams struct {
-	ID           string      `db:"id"`
-	Email        string      `db:"email"`
-	PasswordHash string      `db:"password_hash"`
-	AppID        string      `db:"app_id"`
-	Verified     pgtype.Bool `db:"verified"`
-	CreatedAt    time.Time   `db:"created_at"`
-	UpdatedAt    time.Time   `db:"updated_at"`
-}
-
-func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) error {
-	_, err := q.db.Exec(ctx, insertUser,
-		arg.ID,
-		arg.Email,
-		arg.PasswordHash,
-		arg.AppID,
-		arg.Verified,
-		arg.CreatedAt,
-		arg.UpdatedAt,
-	)
-	return err
-}
-
 const markEmailVerified = `-- name: MarkEmailVerified :exec
 UPDATE users
 SET verified = TRUE
@@ -453,6 +425,34 @@ func (q *Queries) RegisterDevice(ctx context.Context, arg RegisterDeviceParams) 
 		arg.Ip,
 		arg.Detached,
 		arg.LastVisitedAt,
+	)
+	return err
+}
+
+const registerUser = `-- name: RegisterUser :exec
+INSERT INTO users (id, email, password_hash, app_id, verified, created_at,updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+`
+
+type RegisterUserParams struct {
+	ID           string      `db:"id"`
+	Email        string      `db:"email"`
+	PasswordHash string      `db:"password_hash"`
+	AppID        string      `db:"app_id"`
+	Verified     pgtype.Bool `db:"verified"`
+	CreatedAt    time.Time   `db:"created_at"`
+	UpdatedAt    time.Time   `db:"updated_at"`
+}
+
+func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) error {
+	_, err := q.db.Exec(ctx, registerUser,
+		arg.ID,
+		arg.Email,
+		arg.PasswordHash,
+		arg.AppID,
+		arg.Verified,
+		arg.CreatedAt,
+		arg.UpdatedAt,
 	)
 	return err
 }
