@@ -2,12 +2,12 @@ package model
 
 import "time"
 
-type statusType int
+type appStatusType int
 
 const (
-	StatusInactive statusType = iota
-	StatusActive
-	StatusDeleted
+	AppStatusInactive appStatusType = iota
+	AppStatusActive
+	AppStatusDeleted
 )
 
 type (
@@ -15,7 +15,7 @@ type (
 		ID        string
 		Name      string
 		Secret    string
-		Status    statusType
+		Status    appStatusType
 		CreatedAt time.Time
 		UpdatedAt time.Time
 		DeletedAt time.Time

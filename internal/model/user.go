@@ -2,6 +2,18 @@ package model
 
 import "time"
 
+type userStatusType string
+
+const (
+	UserStatusActive      userStatusType = "active"
+	UserStatusSoftDeleted userStatusType = "soft_deleted"
+	UserStatusNotFound    userStatusType = "not_found"
+)
+
+func (u userStatusType) String() string {
+	return string(u)
+}
+
 type (
 	User struct {
 		ID           string

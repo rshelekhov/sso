@@ -26,11 +26,12 @@ type Querier interface {
 	GetUserData(ctx context.Context, arg GetUserDataParams) (GetUserDataRow, error)
 	GetUserDeviceID(ctx context.Context, arg GetUserDeviceIDParams) (string, error)
 	GetUserIDByToken(ctx context.Context, token string) (string, error)
-	GetUserStatus(ctx context.Context, email string) (string, error)
+	GetUserStatusByEmail(ctx context.Context, email string) (string, error)
+	GetUserStatusByID(ctx context.Context, id string) (string, error)
 	InsertApp(ctx context.Context, arg InsertAppParams) error
-	InsertUser(ctx context.Context, arg InsertUserParams) error
 	MarkEmailVerified(ctx context.Context, arg MarkEmailVerifiedParams) error
 	RegisterDevice(ctx context.Context, arg RegisterDeviceParams) error
+	RegisterUser(ctx context.Context, arg RegisterUserParams) error
 	UpdateLatestLoginAt(ctx context.Context, arg UpdateLatestLoginAtParams) error
 }
 

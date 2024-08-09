@@ -1,23 +1,39 @@
 -- name: CheckAppIDExists :one
 SELECT EXISTS(SELECT 1 FROM apps WHERE id = $1);
 
--- name: GetUserStatus :one
+-- name: GetUserStatusByEmail :one
 SELECT CASE
 WHEN EXISTS(
     SELECT 1
     FROM users
     WHERE users.email = $1
-      AND deleted_at IS NULL FOR UPDATE
+      AND deleted_at IS NULL
     ) THEN 'active'
     WHEN EXISTS(
     SELECT 1
     FROM users
     WHERE users.email = $1
-      AND deleted_at IS NOT NULL FOR UPDATE
+      AND deleted_at IS NOT NULL
     ) THEN 'soft_deleted'
 ELSE 'not_found' END AS status;
 
--- name: InsertUser :exec
+-- name: GetUserStatusByID :one
+SELECT CASE
+WHEN EXISTS(
+    SELECT 1
+    FROM users
+    WHERE users.id = $1
+        AND deleted_at IS NULL
+        ) THEN 'active'
+    WHEN EXISTS(
+    SELECT 1
+    FROM users
+    WHERE users.id = $1
+        AND deleted_at IS NOT NULL
+    ) THEN 'soft_deleted'
+ELSE 'not_found' END AS status;
+
+-- name: RegisterUser :exec
 INSERT INTO users (id, email, password_hash, app_id, verified, created_at,updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7);
 
