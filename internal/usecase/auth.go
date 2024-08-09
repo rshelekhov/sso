@@ -182,7 +182,7 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 	authTokenData := model.AuthTokenData{}
 
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
-		userStatus, err := u.storage.GetUserStatus(ctx, user.Email)
+		userStatus, err := u.storage.GetUserStatusByEmail(ctx, user.Email)
 		if err != nil {
 			return err
 		}
@@ -1014,32 +1014,49 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 	}
 
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
-		if err = u.storage.DeleteUser(ctx, user); err != nil {
-			if errors.Is(err, le.ErrUserNotFound) {
-				handleError(ctx, log, le.ErrUserNotFound, err, slog.Any(key.UserID, userID))
-				return le.ErrUserNotFound
+		userStatus, err := u.storage.GetUserStatusByID(ctx, user.ID)
+		if err != nil {
+			return err
+		}
+
+		log.Debug("user status", slog.String("status", userStatus))
+
+		switch userStatus {
+		case "active":
+			if err := u.cleanupUserData(ctx, log, user); err != nil {
+				return err
 			}
-			handleError(ctx, log, le.ErrFailedToDeleteUser, err, slog.Any(key.UserID, userID))
-			return le.ErrFailedToDeleteUser
+			return nil
+		case "soft_deleted", "not_found":
+			return le.ErrUserNotFound
+		default:
+			return fmt.Errorf("%s: unknown user status: %s", method, userStatus)
 		}
-
-		if err = u.storage.DeleteAllSessions(ctx, userID, data.AppID); err != nil {
-			handleError(ctx, log, le.ErrFailedToDeleteAllSessions, err, slog.Any(key.UserID, userID))
-			return le.ErrFailedToDeleteAllSessions
-		}
-
-		if err = u.storage.DeleteAllTokens(ctx, userID, data.AppID); err != nil {
-			handleError(ctx, log, le.ErrFailedToDeleteTokens, err, slog.Any(key.UserID, userID))
-			return le.ErrFailedToDeleteTokens
-		}
-
-		return nil
 	}); err != nil {
 		handleError(ctx, log, le.ErrFailedToCommitTransaction, err, slog.Any(key.UserID, user.ID))
 		return err
 	}
 
-	log.Info("user soft-deleted", slog.String(key.UserID, userID))
+	log.Info("user soft-deleted", slog.String(key.UserID, user.ID))
+
+	return nil
+}
+
+func (u *AuthUsecase) cleanupUserData(ctx context.Context, log *slog.Logger, user model.User) error {
+	if err := u.storage.DeleteUser(ctx, user); err != nil {
+		handleError(ctx, log, le.ErrFailedToDeleteUser, err, slog.Any(key.UserID, user.ID))
+		return le.ErrFailedToDeleteUser
+	}
+
+	if err := u.storage.DeleteAllSessions(ctx, user.ID, user.AppID); err != nil {
+		handleError(ctx, log, le.ErrFailedToDeleteAllSessions, err, slog.Any(key.UserID, user.ID))
+		return le.ErrFailedToDeleteAllSessions
+	}
+
+	if err := u.storage.DeleteAllTokens(ctx, user.ID, user.AppID); err != nil {
+		handleError(ctx, log, le.ErrFailedToDeleteTokens, err, slog.Any(key.UserID, user.ID))
+		return le.ErrFailedToDeleteTokens
+	}
 
 	return nil
 }

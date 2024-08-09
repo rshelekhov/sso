@@ -26,7 +26,8 @@ type (
 	AuthStorage interface {
 		Transaction(ctx context.Context, fn func(storage AuthStorage) error) error
 		ValidateAppID(ctx context.Context, appID string) error
-		GetUserStatus(ctx context.Context, email string) (string, error)
+		GetUserStatusByEmail(ctx context.Context, email string) (string, error)
+		GetUserStatusByID(ctx context.Context, userID string) (string, error)
 		ReplaceSoftDeletedUser(ctx context.Context, user model.User) error
 		RegisterUser(ctx context.Context, user model.User) error
 		CreateToken(ctx context.Context, data model.TokenData) error

@@ -359,25 +359,49 @@ func (q *Queries) GetUserIDByToken(ctx context.Context, token string) (string, e
 	return user_id, err
 }
 
-const getUserStatus = `-- name: GetUserStatus :one
+const getUserStatusByEmail = `-- name: GetUserStatusByEmail :one
 SELECT CASE
 WHEN EXISTS(
     SELECT 1
     FROM users
     WHERE users.email = $1
-      AND deleted_at IS NULL FOR UPDATE
+      AND deleted_at IS NULL
     ) THEN 'active'
     WHEN EXISTS(
     SELECT 1
     FROM users
     WHERE users.email = $1
-      AND deleted_at IS NOT NULL FOR UPDATE
+      AND deleted_at IS NOT NULL
     ) THEN 'soft_deleted'
 ELSE 'not_found' END AS status
 `
 
-func (q *Queries) GetUserStatus(ctx context.Context, email string) (string, error) {
-	row := q.db.QueryRow(ctx, getUserStatus, email)
+func (q *Queries) GetUserStatusByEmail(ctx context.Context, email string) (string, error) {
+	row := q.db.QueryRow(ctx, getUserStatusByEmail, email)
+	var status string
+	err := row.Scan(&status)
+	return status, err
+}
+
+const getUserStatusByID = `-- name: GetUserStatusByID :one
+SELECT CASE
+WHEN EXISTS(
+    SELECT 1
+    FROM users
+    WHERE users.id = $1
+        AND deleted_at IS NULL
+        ) THEN 'active'
+    WHEN EXISTS(
+    SELECT 1
+    FROM users
+    WHERE users.id = $1
+        AND deleted_at IS NOT NULL
+    ) THEN 'soft_deleted'
+ELSE 'not_found' END AS status
+`
+
+func (q *Queries) GetUserStatusByID(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRow(ctx, getUserStatusByID, id)
 	var status string
 	err := row.Scan(&status)
 	return status, err

@@ -69,11 +69,23 @@ func (s *AuthStorage) ValidateAppID(ctx context.Context, appID string) error {
 	return nil
 }
 
-// GetUserStatus returns the status of the user with the given email
-func (s *AuthStorage) GetUserStatus(ctx context.Context, email string) (string, error) {
-	const method = "user.storage.GetUserStatus"
+// GetUserStatusByEmail returns the status of the user with the given email
+func (s *AuthStorage) GetUserStatusByEmail(ctx context.Context, email string) (string, error) {
+	const method = "user.storage.GetUserStatusByEmail"
 
-	status, err := s.Queries.GetUserStatus(ctx, email)
+	status, err := s.Queries.GetUserStatusByEmail(ctx, email)
+	if err != nil {
+		return "", fmt.Errorf("%s: failed to check if user exists: %w", method, err)
+	}
+
+	return status, nil
+}
+
+// GetUserStatusByID returns the status of the user with the given userID
+func (s *AuthStorage) GetUserStatusByID(ctx context.Context, userID string) (string, error) {
+	const method = "user.storage.GetUserStatusByID"
+
+	status, err := s.Queries.GetUserStatusByID(ctx, userID)
 	if err != nil {
 		return "", fmt.Errorf("%s: failed to check if user exists: %w", method, err)
 	}
