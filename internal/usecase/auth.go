@@ -188,14 +188,14 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 		}
 
 		switch userStatus {
-		case "active":
+		case model.UserStatusActive.String():
 			return le.ErrUserAlreadyExists
-		case "soft_deleted":
+		case model.UserStatusSoftDeleted.String():
 			if err = u.storage.ReplaceSoftDeletedUser(ctx, user); err != nil {
 				handleError(ctx, log, le.ErrFailedToCreateUser, err)
 				return le.ErrInternalServerError
 			}
-		case "not_found":
+		case model.UserStatusNotFound.String():
 			if err = u.storage.RegisterUser(ctx, user); err != nil {
 				handleError(ctx, log, le.ErrFailedToCreateUser, err)
 				return le.ErrInternalServerError
@@ -1019,15 +1019,13 @@ func (u *AuthUsecase) DeleteUser(ctx context.Context, data *model.UserRequestDat
 			return err
 		}
 
-		log.Debug("user status", slog.String("status", userStatus))
-
 		switch userStatus {
-		case "active":
+		case model.UserStatusActive.String():
 			if err := u.cleanupUserData(ctx, log, user); err != nil {
 				return err
 			}
 			return nil
-		case "soft_deleted", "not_found":
+		case model.UserStatusSoftDeleted.String(), model.UserStatusNotFound.String():
 			return le.ErrUserNotFound
 		default:
 			return fmt.Errorf("%s: unknown user status: %s", method, userStatus)
