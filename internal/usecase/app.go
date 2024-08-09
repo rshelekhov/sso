@@ -60,7 +60,7 @@ func (u *AppUsecase) RegisterApp(ctx context.Context, appName string) error {
 		ID:        appID,
 		Name:      appName,
 		Secret:    secretHash,
-		Status:    model.StatusActive,
+		Status:    model.AppStatusActive,
 		CreatedAt: currentTime,
 		UpdatedAt: currentTime,
 	}
