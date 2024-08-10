@@ -16,9 +16,9 @@ jobs:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: testdb
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: p@ssw0rd
+          POSTGRES_DB: sso_dev
         ports:
           - 5432:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
@@ -44,6 +44,12 @@ jobs:
 
       - name: Install dependencies
         run: go mod download
+
+      - name: Create /config directory
+        run: mkdir -p /config
+
+      - name: Create .env file
+        run: echo "${{ secrets.ENV_CONFIG }}" > /config/.env
 
       - name: Run tests
         run: go test -v ./...
