@@ -49,7 +49,7 @@ jobs:
         run: mkdir -p ./config
 
       - name: Create .env file
-        run: echo "${{ secrets.ENV_CONFIG }}" > /config/.env
+        run: echo "${{ secrets.ENV_CONFIG }}" > ./config/.env
 
       - name: Run tests
         run: go test -v ./...
