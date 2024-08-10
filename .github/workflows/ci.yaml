@@ -31,15 +31,8 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Build migration tool
-        run: |
-          cd cmd/migrate
-          go build
-
       - name: Set up PostgreSQL and run migrations
-        run: |
-          cd cmd/migrate
-          ./migrate -database postgres://postgres:password@localhost:5432/testdb -path migrations up
+        run: migrate -database ${{ env.DATABASE_URL }} -path migrations up
         env:
           DATABASE_URL: postgres://postgres:password@localhost:5432/testdb
 
