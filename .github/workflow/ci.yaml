@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.21'
+
+      - name: Build migration tool
+        run: |
+          cd cmd/migrate
+          go build
+
+      - name: Set up PostgreSQL and run migrations
+        run: |
+          cd cmd/migrate
+          ./migrate -database postgres://postgres:password@localhost:5432/testdb -path migrations up
+        env:
+          DATABASE_URL: postgres://postgres:password@localhost:5432/testdb
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Notify results
+        run: echo "Tests completed!"
