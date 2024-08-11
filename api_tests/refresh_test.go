@@ -151,17 +151,17 @@ func TestRefresh_FailCases(t *testing.T) {
 			})
 
 			require.Contains(t, err.Error(), tt.expectedErr.Error())
-
-			// Cleanup database after test
-			params := cleanupParams{
-				t:     t,
-				st:    st,
-				appID: cfg.AppID,
-				token: token,
-			}
-			cleanup(params)
 		})
 	}
+
+	// Cleanup database after test
+	params := cleanupParams{
+		t:     t,
+		st:    st,
+		appID: cfg.AppID,
+		token: token,
+	}
+	cleanup(params)
 }
 
 func TestRefresh_DeviceNotFound(t *testing.T) {
