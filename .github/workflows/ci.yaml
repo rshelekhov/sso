@@ -17,11 +17,15 @@ jobs:
         image: postgres:latest
         env:
           POSTGRES_USER: app
-          POSTGRES_PASSWORD: p@ssw0rd
+          POSTGRES_PASSWORD: password
           POSTGRES_DB: sso_dev
         ports:
           - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v2
@@ -40,7 +44,7 @@ jobs:
       - name: Run migrations
         run: make migrate
         env:
-          POSTGRESQL_URL: postgres://app:p@ssw0rd@localhost:5432/sso_dev
+          POSTGRESQL_URL: postgres://app:password@localhost:5432/sso_dev?sslmode=disable
 
       - name: Install dependencies
         run: go mod download
@@ -51,13 +55,10 @@ jobs:
       - name: Create .env file
         run: echo "${{ secrets.ENV_CONFIG }}" > ./config/.env
 
-      - name: Run server
-        run: make run-server
-        env:
-          CONFIG_PATH: ./config/.env
-
       - name: Run tests
         run: make test-all-app
+        env:
+          CONFIG_PATH: ./config/.env
 
       - name: Notify results
         run: echo "Tests completed!"
