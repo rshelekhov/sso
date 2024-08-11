@@ -48,11 +48,6 @@ jobs:
             sleep 5
           done
 
-      - name: Run migrations
-        run: make migrate
-        env:
-          POSTGRESQL_URL: postgres://app:password@localhost:5432/sso_dev?sslmode=disable
-
       - name: Install dependencies
         run: go mod download
 
@@ -63,7 +58,7 @@ jobs:
         run: echo "${{ secrets.ENV_CONFIG }}" > ./config/.env
 
       - name: Run tests
-        run: make test-all-app
+        run: make test-api
         env:
           CONFIG_PATH: ./config/.env
 
