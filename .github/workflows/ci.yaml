@@ -51,8 +51,13 @@ jobs:
       - name: Create .env file
         run: echo "${{ secrets.ENV_CONFIG }}" > ./config/.env
 
+      - name: Run server
+        run: make run-server
+        env:
+          CONFIG_PATH: ./config/.env
+
       - name: Run tests
-        run: go test -v ./...
+        run: make test-all-app
 
       - name: Notify results
         run: echo "Tests completed!"
