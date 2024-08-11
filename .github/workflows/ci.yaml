@@ -58,9 +58,7 @@ jobs:
         run: echo "${{ secrets.ENV_CONFIG }}" > ./config/.env
 
       - name: Run tests
-        run: make test-api
-        env:
-          CONFIG_PATH: ./config/.env
+        run: make test-all-app
 
       - name: Notify results
         run: echo "Tests completed!"
