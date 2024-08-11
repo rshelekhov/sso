@@ -43,6 +43,10 @@ run-server: stop-server
 	@echo "Running the server..."
 	@CONFIG_PATH=$(CONFIG_PATH) go run github.com/rshelekhov/sso/cmd/sso &
 	@sleep 5 # Wait for the server to start
+	@while ! nc -z localhost $(SERVER_PORT); do \
+		echo "Waiting for server to be ready..."; \
+		sleep 1; \
+	done
 	@echo "Server is running with PID $$(lsof -t -i :$(SERVER_PORT))."
 
 # Stop server
