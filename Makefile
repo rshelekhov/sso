@@ -63,8 +63,10 @@ stop-server:
 # Run tests
 test-all-app: setup-local run-server
 	@echo "Running tests..."
-	@go test -v -json -timeout 60s ./...
+	@go test -v -timeout 60s ./...
 	@echo "Tests completed."
 
 test-api: setup-local run-server
-	@go test -v -json -timeout 60s ./api_tests
+	@echo "Running tests..."
+	@go test -v -timeout 60s ./api_tests
+	@echo "Tests completed."
