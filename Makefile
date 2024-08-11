@@ -2,7 +2,7 @@ CONFIG_PATH ?= ./config/.env
 SERVER_PORT ?= 44044
 
 # Don't forget to set POSTGRESQL_URL with your credentials
-POSTGRESQL_URL ?='postgres://app:p%40ssw0rd@localhost:5432/sso_dev?sslmode=disable'
+POSTGRESQL_URL ?='postgres://app:password@localhost:5432/sso_dev?sslmode=disable'
 
 .PHONY: migrate migrate-down db-insert run-server stop-server test test-upd
 
