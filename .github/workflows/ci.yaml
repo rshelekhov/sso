@@ -51,6 +51,8 @@ jobs:
       - name: Test Database Connection
         run: |
           psql -h localhost -p 5432 -U app -d sso_dev -c '\l'
+        env:
+          PGPASSWORD: password
 
       - name: Install dependencies
         run: go mod download
