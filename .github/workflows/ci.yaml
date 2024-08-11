@@ -50,6 +50,15 @@ jobs:
       - name: Create .env file
         run: echo "${{ secrets.ENV_CONFIG }}" > ./config/.env
 
+      - name: Display .env file
+        run: cat ./config/.env
+
+      - name: Wait for PostgreSQL to be ready
+        run: sleep 10
+
+      - name: Check PostgreSQL connection
+        run: pg_isready -h localhost -p 5432
+
       - name: Run tests
         run: make test-all-app
 
