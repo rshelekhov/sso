@@ -50,14 +50,17 @@ jobs:
       - name: Display individual secrets
         run: |
           echo "DB_CONN_URL=${{ secrets.DB_CONN_URL }}"
-          echo "APP_ENV=${{ secrets.APP_ENV }}"
-          echo "GRPC_SERVER_PORT=${{ secrets.GRPC_SERVER_PORT }}"
 
       - name: Create .env file
         run: |
           set -x
           echo "${{ secrets.ENV_CONFIG }}" > ./config/.env
           cat ./config/.env
+
+      - name: Pass DB_CONN_URL into .env
+        run: |
+          set -x
+          echo "DB_CONN_URL=${{ secrets.DB_CONN_URL }}" >> ./config/.env
 
       - name: Display .env file
         run: cat ./config/.env
