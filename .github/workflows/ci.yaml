@@ -47,20 +47,11 @@ jobs:
       - name: Create /config directory
         run: mkdir -p ./config
 
-      - name: Display individual secrets
-        run: |
-          echo "DB_CONN_URL=${{ secrets.DB_CONN_URL }}"
-
       - name: Create .env file
         run: |
           set -x
           echo "${{ secrets.ENV_CONFIG }}" > ./config/.env
           cat ./config/.env
-
-      - name: Pass DB_CONN_URL into .env
-        run: |
-          set -x
-          echo "DB_CONN_URL=${{ secrets.DB_CONN_URL }}" >> ./config/.env
 
       - name: Display .env file
         run: cat ./config/.env
