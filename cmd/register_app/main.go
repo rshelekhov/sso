@@ -33,7 +33,7 @@ func main() {
 
 	pg, err := postgres.NewStorage(cfg)
 	if err != nil {
-		log.Error("failed to init storage: ", err)
+		log.Error("failed to init storage", logger.Err(err))
 	}
 
 	appStorage := postgres.NewAppStorage(pg)

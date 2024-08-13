@@ -16,12 +16,16 @@ jobs:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_USER: postgres
+          POSTGRES_USER: root
           POSTGRES_PASSWORD: password
-          POSTGRES_DB: testdb
+          POSTGRES_DB: sso_dev
         ports:
           - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v2
@@ -31,23 +35,35 @@ jobs:
         with:
           go-version: '1.21'
 
-      - name: Build migration tool
+      - name: Install golang-migrate
         run: |
-          cd cmd/migrate
-          go build
-
-      - name: Set up PostgreSQL and run migrations
-        run: |
-          cd cmd/migrate
-          ./migrate -database postgres://postgres:password@localhost:5432/testdb -path migrations up
-        env:
-          DATABASE_URL: postgres://postgres:password@localhost:5432/testdb
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.12.2/migrate.linux-amd64.tar.gz | tar xvz
+          sudo mv migrate.linux-amd64 /usr/bin/migrate
+          which migrate
 
       - name: Install dependencies
         run: go mod download
 
+      - name: Create /config directory
+        run: mkdir -p ./config
+
+      - name: Create .env file
+        run: |
+          set -x
+          echo "${{ secrets.ENV_CONFIG }}" > ./config/.env
+          cat ./config/.env
+
+      - name: Display .env file
+        run: cat ./config/.env
+
+      - name: Wait for PostgreSQL to be ready
+        run: sleep 10
+
+      - name: Check PostgreSQL connection
+        run: pg_isready -h localhost -p 5432
+
       - name: Run tests
-        run: go test -v ./...
+        run: make test-all-app
 
       - name: Notify results
         run: echo "Tests completed!"

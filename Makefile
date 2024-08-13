@@ -2,7 +2,7 @@ CONFIG_PATH ?= ./config/.env
 SERVER_PORT ?= 44044
 
 # Don't forget to set POSTGRESQL_URL with your credentials
-POSTGRESQL_URL ?='postgres://app:p%40ssw0rd@localhost:5432/sso_dev?sslmode=disable'
+POSTGRESQL_URL ?= postgres://root:password@localhost:5432/sso_dev?sslmode=disable
 
 .PHONY: migrate migrate-down db-insert run-server stop-server test test-upd
 
@@ -43,6 +43,10 @@ run-server: stop-server
 	@echo "Running the server..."
 	@CONFIG_PATH=$(CONFIG_PATH) go run github.com/rshelekhov/sso/cmd/sso &
 	@sleep 5 # Wait for the server to start
+	@while ! nc -z localhost $(SERVER_PORT); do \
+		echo "Waiting for server to be ready..."; \
+		sleep 1; \
+	done
 	@echo "Server is running with PID $$(lsof -t -i :$(SERVER_PORT))."
 
 # Stop server
@@ -59,8 +63,10 @@ stop-server:
 # Run tests
 test-all-app: setup-local run-server
 	@echo "Running tests..."
-	@go test -v -json -timeout 60s ./... > test_results.json
+	@go test -v -timeout 60s ./...
 	@echo "Tests completed."
 
 test-api: setup-local run-server
-	@go test -v -json -timeout 60s ./api_tests > api_test_results.json
+	@echo "Running tests..."
+	@go test -v -timeout 60s ./api_tests
+	@echo "Tests completed."
