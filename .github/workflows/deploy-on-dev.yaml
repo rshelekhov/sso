@@ -1,0 +1,64 @@
+name: Deploy on DEV
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+  workflow_run:
+    workflows: ["Build and test"]
+    types:
+      - completed
+
+env:
+  DEV_SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+  DEV_SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+  DEV_SERVER_SSH_KEY: ${{ secrets.DEV_SERVER_SSH_KEY }}
+  ENV_CONFIG_DEV: ${{ secrets.ENV_CONFIG_DEV }}
+
+jobs:
+  deploy:
+    name: Deploy on DEV server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t grpc-sso:latest .
+
+      - name: Create a temporary SSH key file
+        run: |
+          echo "$DEV_SERVER_SSH_KEY" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
+
+      - name: Deploy Docker image to DEV server
+        run: |
+          scp -i /tmp/ssh_key grpc-sso:latest $DEV_SERVER_USER@$DEV_SERVER_HOST:/tmp/
+          
+          ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST << 'EOF'
+            # Create config file on the server
+            mkdir -p ./config/grpc-sso
+            echo "$ENV_CONFIG_DEV" > ./config/grpc-sso/.env
+            
+            # Stop and remove the existing container (if any)
+            docker stop app || true
+            docker rm app || true
+          
+            # Load the Docker image
+            docker load -i /tmp/grpc-sso:latest
+            
+            # Run the new container
+            docker run -d \
+              -v ./config/grpc-sso:/src/config \
+              -p 44044:44044 \
+              --name app \
+              grpc-sso:latest
+          EOF
+          
+          # Clean up the temporary SSH key file
+          rm /tmp/ssh_key
