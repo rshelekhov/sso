@@ -1,12 +1,11 @@
 name: Deploy on DEV
 
 on:
-  push:
-    branches:
-      - dev
-  pull_request:
-    branches:
-      - dev
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy'
+        required: true
   workflow_run:
     workflows: ["Build and test"]
     types:
@@ -35,6 +34,10 @@ jobs:
         run: |
           echo "$DEV_SERVER_SSH_KEY" > /tmp/ssh_key
           chmod 600 /tmp/ssh_key
+
+      - name: Add DEV server to known hosts
+        run: |
+          ssh-keyscan -H $DEV_SERVER_HOST >> ~/.ssh/known_hosts
 
       - name: Upload Docker image to DEV server
         run: |
