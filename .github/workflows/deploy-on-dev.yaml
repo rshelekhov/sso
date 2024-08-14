@@ -6,10 +6,6 @@ on:
       tag:
         description: 'Tag to deploy'
         required: true
-  workflow_run:
-    workflows: ["Build and test"]
-    types:
-      - completed
 
 env:
   DEV_SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
