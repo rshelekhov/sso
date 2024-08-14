@@ -1,11 +1,16 @@
 name: Deploy on DEV
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to deploy'
-        required: true
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+  workflow_run:
+    workflows: ["Build and test"]
+    types:
+      - completed
 
 env:
   DEV_SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
@@ -51,14 +56,14 @@ jobs:
             # Create config file on the server
             mkdir -p ./config/grpc-sso
             echo "$ENV_CONFIG_DEV" > ./config/grpc-sso/.env
-            
+          
             # Stop and remove the existing container (if any)
             docker stop app || true
             docker rm app || true
           
             # Load the Docker image
             docker load -i /tmp/grpc-sso.tar
-            
+          
             # Run the new container
             docker run -d \
               -v ./config/grpc-sso:/src/config \
@@ -66,7 +71,7 @@ jobs:
               --name app \
               grpc-sso:latest
           EOF
-          
+
       - name: Clean up
         run: |
           # Remove temporary files
