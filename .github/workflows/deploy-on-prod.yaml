@@ -1,0 +1,57 @@
+name: Deploy on PROD from Docker Hub
+
+on:
+  workflow_run:
+    workflows: ["Publish to Docker Hub"]
+    types:
+      - completed
+
+env:
+  PROD_SERVER_USER: ${{ secrets.PROD_SERVER_USER }}
+  PROD_SERVER_HOST: ${{ secrets.PROD_SERVER_HOST }}
+  PROD_SERVER_SSH_KEY: ${{ secrets.PROD_SERVER_SSH_KEY }}
+  DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_RS_USER }}
+  DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_RS_PASSWORD }}
+  REGISTRY_IMAGE: rshelekhov/grpc-sso
+  ENV_CONFIG_PROD: ${{ secrets.ENV_CONFIG_PROD }}
+
+jobs:
+  deploy:
+    name: Deploy to PROD server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Deploy Docker image to PROD server
+        run: |
+          # Create a temporary SSH key file
+          echo "$PROD_SERVER_SSH_KEY" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
+          
+          ssh -i /tmp/ssh_key $PROD_SERVER_USER@PROD_SERVER_HOST << 'EOF'
+            # Create config file on the server
+            mkdir -p ./config/grpc-sso
+            echo "$ENV_CONFIG_PROD" > ./config/grpc-sso/.env
+          
+             # Login to Docker Hub
+            echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USERNAME --password-stdin
+          
+            # Pull the latest Docker image
+            docker pull $REGISTRY_IMAGE:latest
+          
+            # Stop and remove the existing container (if any)
+            docker stop app || true
+            docker rm app || true
+          
+            # Run the new container
+            docker run -d \
+              -v ./config/grpc-sso:/src/config \
+              -p 44044:44044 \
+              --name app \
+              $REGISTRY_IMAGE:latest
+          EOF
+          
+          # Clean up the temporary SSH key file
+          rm /tmp/ssh_key
