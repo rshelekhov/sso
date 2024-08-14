@@ -70,8 +70,17 @@ jobs:
               --name app \
               grpc-sso:latest
           
-            # Run setup-dev to set up the database and insert test data
-            docker exec app make setup-dev
+            # Wait for a few seconds to ensure the container is running
+            sleep 10
+
+            # Check if the container is running
+            if [ "$(docker ps -q -f name=app)" ]; then
+              echo "Container is running. Executing setup-dev."
+              docker exec app make setup-dev
+            else
+              echo "Container is not running. Exiting."
+              exit 1
+            fi
           EOF
 
       - name: Clean up
