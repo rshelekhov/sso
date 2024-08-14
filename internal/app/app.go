@@ -25,8 +25,6 @@ func New(log *slog.Logger, cfg *config.ServerSettings) *App {
 
 	log.Debug("storage initiated")
 
-	log.Debug("DB_CONN_URL", slog.String("DB_CONN_URL", cfg.Postgres.ConnURL))
-
 	appStorage := postgres.NewAppStorage(pg)
 	authStorage := postgres.NewAuthStorage(pg)
 
