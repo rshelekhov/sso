@@ -1,12 +1,14 @@
-name: Test
+name: Build and test
 
 on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches:
       - main
+      - dev
 
 jobs:
   build:
@@ -28,7 +30,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup Go
         uses: actions/setup-go@v2
@@ -50,7 +52,7 @@ jobs:
       - name: Create .env file
         run: |
           set -x
-          echo "${{ secrets.ENV_CONFIG }}" > ./config/.env
+          echo "${{ secrets.ENV_CONFIG_TEST }}" > ./config/.env
 
       - name: Wait for PostgreSQL to be ready
         run: sleep 10
