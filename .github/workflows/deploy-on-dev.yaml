@@ -38,6 +38,7 @@ jobs:
 
       - name: Add DEV server to known hosts
         run: |
+          mkdir -p ~/.ssh
           ssh-keyscan -H $DEV_SERVER_HOST >> ~/.ssh/known_hosts
 
       - name: Upload Docker image to DEV server
