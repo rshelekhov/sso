@@ -1,4 +1,4 @@
-name: CI
+name: Test
 
 on:
   push:
@@ -51,10 +51,6 @@ jobs:
         run: |
           set -x
           echo "${{ secrets.ENV_CONFIG }}" > ./config/.env
-          cat ./config/.env
-
-      - name: Display .env file
-        run: cat ./config/.env
 
       - name: Wait for PostgreSQL to be ready
         run: sleep 10
