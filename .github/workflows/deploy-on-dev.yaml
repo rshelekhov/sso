@@ -36,6 +36,14 @@ jobs:
           echo "$DEV_SERVER_SSH_KEY" > /tmp/ssh_key
           chmod 600 /tmp/ssh_key
 
+      - name: Upload Docker image to DEV server
+        run: |
+          # Save Docker image to a tar file
+          docker save grpc-sso:latest -o grpc-sso.tar
+          
+          # Transfer Docker image tar file to DEV server
+          scp -i /tmp/ssh_key grpc-sso.tar $DEV_SERVER_USER@$DEV_SERVER_HOST:/tmp/
+
       - name: Deploy Docker image to DEV server
         run: |
           scp -i /tmp/ssh_key grpc-sso:latest $DEV_SERVER_USER@$DEV_SERVER_HOST:/tmp/
@@ -50,7 +58,7 @@ jobs:
             docker rm app || true
           
             # Load the Docker image
-            docker load -i /tmp/grpc-sso:latest
+            docker load -i /tmp/grpc-sso.tar
             
             # Run the new container
             docker run -d \
@@ -60,5 +68,8 @@ jobs:
               grpc-sso:latest
           EOF
           
-          # Clean up the temporary SSH key file
+      - name: Clean up
+        run: |
+          # Remove temporary files
           rm /tmp/ssh_key
+          rm grpc-sso.tar
