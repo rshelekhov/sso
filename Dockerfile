@@ -23,5 +23,6 @@ RUN apk update && apk add --no-cache ca-certificates make
 WORKDIR /src
 
 COPY --from=builder /app ./
+COPY --from=builder /src/Makefile ./
 
 CMD ["./app"]
