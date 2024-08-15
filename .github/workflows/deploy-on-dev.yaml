@@ -16,7 +16,6 @@ env:
   DEV_SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
   DEV_SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
   DEV_SERVER_SSH_KEY: ${{ secrets.DEV_SERVER_SSH_KEY }}
-  ENV_CONFIG_DEV: ${{ secrets.ENV_CONFIG_DEV }}
 
 jobs:
   deploy:
@@ -53,8 +52,7 @@ jobs:
         run: |
           ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST << 'EOF'
             # Create config file on the server
-            mkdir -p ./config/grpc-sso
-            echo "$ENV_CONFIG_DEV" > ./config/grpc-sso/.env
+            echo "${{ secrets.ENV_CONFIG_DEV }}" > ./config/grpc-sso/.env
           
             # Output the content of the config file for verification
             echo "Config file content:"
