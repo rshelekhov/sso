@@ -1,3 +1,4 @@
+# Stage 1: Build the application
 FROM golang:1.22-alpine3.19 AS builder
 
 WORKDIR /src
@@ -15,10 +16,12 @@ COPY . .
 # Build the application
 RUN go build -o /app ./cmd/sso
 
-# Prepare executor image
+# Stage 2: Prepare the final runtime image
 FROM alpine:3.19 AS runner
 
-RUN apk update && apk add --no-cache ca-certificates make
+RUN apk update && apk add --no-cache ca-certificates make postgresql-client
+# RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.12.2/migrate.linux-amd64.tar.gz | tar xvz
 
 WORKDIR /src
 
