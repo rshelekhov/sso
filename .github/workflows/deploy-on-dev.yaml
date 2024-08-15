@@ -43,7 +43,7 @@ jobs:
 
       - name: Upload Docker image to DEV server
         run: |
-          # Save Docker image to a tar file
+          # Save Docker image to a tar file 
           docker save grpc-sso:latest -o grpc-sso.tar
           
           # Transfer Docker image tar file to DEV server
