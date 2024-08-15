@@ -21,11 +21,6 @@ jobs:
       - name: Check out the repo into the Go module directory
         uses: actions/checkout@v3
 
-      - name: Set gRPC-SSO version
-        run: |
-          echo ${{ github.ref_name }} >> ./src/web/api/version.txt
-          echo Set version ${{ github.ref_name }}
-
       - name: Dump GitHub context
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
