@@ -5,6 +5,7 @@ WORKDIR /src
 
 # Setup base software for building an app
 RUN apk update && apk add --no-cache ca-certificates git make
+RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 # Download dependencies
 COPY go.mod go.sum ./
@@ -20,7 +21,6 @@ RUN go build -o /app ./cmd/sso
 FROM alpine:3.19 AS runner
 
 RUN apk update && apk add --no-cache ca-certificates make postgresql-client
-RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 WORKDIR /src
 
