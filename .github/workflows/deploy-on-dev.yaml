@@ -65,8 +65,7 @@ jobs:
             # Load the Docker image
             docker load -i /tmp/grpc-sso.tar
           
-            # Run the new container with the CONFIG_PATH environment variable set for loading config
-            # and POSTGRESQL_URL environment variable set for running database migrations
+            # Run the new container with the CONFIG_PATH environment variable set
             docker run -d \
               -v ${PWD}/config/grpc-sso:/src/config \
               -e CONFIG_PATH=/src/config/.env \
