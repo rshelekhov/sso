@@ -79,7 +79,7 @@ jobs:
             # Check if the container is running
             if [ "$(docker ps -q -f name=app)" ]; then
               echo "Container is running. Executing setup-dev."
-              docker exec app make setup-dev || { echo "Failed to execute setup-dev"; exit 1; }
+              docker exec app sh -c "make setup-dev" || { echo "Failed to execute setup-dev"; exit 1; }
             else
               echo "Container is not running. Checking logs..."
               docker logs app
