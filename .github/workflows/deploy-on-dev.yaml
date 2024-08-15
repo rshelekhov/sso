@@ -56,6 +56,10 @@ jobs:
             mkdir -p ./config/grpc-sso
             echo "$ENV_CONFIG_DEV" > ./config/grpc-sso/.env
           
+            # Output the content of the config file for verification
+            echo "Config file content:"
+            cat ./config/grpc-sso/.env
+          
             # Stop and remove the existing container (if any)
             docker stop app || true
             docker rm app || true
