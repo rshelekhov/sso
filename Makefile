@@ -4,11 +4,12 @@ SERVER_PORT ?= 44044
 # Don't forget to set POSTGRESQL_URL with your credentials
 POSTGRESQL_URL ?= postgres://root:password@localhost:5432/sso_dev?sslmode=disable
 
-.PHONY: migrate migrate-down db-insert run-server stop-server test test-upd
+.PHONY: setup setup-dev migrate migrate-down db-insert run-server stop-server test-all-app test-api
 
 setup: migrate
 
-setup-local: migrate db-insert
+# Run migrations and insert data to the database (only for local and dev)
+setup-dev: migrate db-insert
 
 # Run migrations only if not already applied
 migrate:
@@ -61,12 +62,12 @@ stop-server:
     	fi
 
 # Run tests
-test-all-app: setup-local run-server
+test-all-app: setup-dev run-server
 	@echo "Running tests..."
 	@go test -v -timeout 60s ./...
 	@echo "Tests completed."
 
-test-api: setup-local run-server
+test-api: setup-dev run-server
 	@echo "Running tests..."
 	@go test -v -timeout 60s ./api_tests
 	@echo "Tests completed."

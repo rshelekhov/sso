@@ -1,0 +1,96 @@
+name: Deploy on DEV
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+  workflow_run:
+    workflows: ["Build and test"]
+    types:
+      - completed
+
+env:
+  DEV_SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
+  DEV_SERVER_HOST: ${{ secrets.DEV_SERVER_HOST }}
+  DEV_SERVER_SSH_KEY: ${{ secrets.DEV_SERVER_SSH_KEY }}
+
+jobs:
+  deploy:
+    name: Deploy on DEV server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: |
+          docker build -t grpc-sso:latest .
+
+      - name: Create a temporary SSH key file
+        run: |
+          echo "$DEV_SERVER_SSH_KEY" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
+
+      - name: Add DEV server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H $DEV_SERVER_HOST >> ~/.ssh/known_hosts
+
+      - name: Upload Docker image to DEV server
+        run: |
+          # Save Docker image to a tar file 
+          docker save grpc-sso:latest -o grpc-sso.tar
+          
+          # Transfer Docker image tar file to DEV server
+          scp -i /tmp/ssh_key grpc-sso.tar $DEV_SERVER_USER@$DEV_SERVER_HOST:/tmp/
+
+      - name: Deploy Docker image to DEV server
+        run: |
+          ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST << 'EOF'
+            # Create config file on the server
+            echo "${{ secrets.ENV_CONFIG_DEV }}" > ./config/grpc-sso/.env
+          
+            # Output the content of the config file for verification
+            echo "Config file content:"
+            cat ./config/grpc-sso/.env
+          
+            # Stop and remove the existing container (if any)
+            docker stop app || true
+            docker rm app || true
+          
+            # Load the Docker image
+            docker load -i /tmp/grpc-sso.tar
+          
+            # Run the new container with the CONFIG_PATH environment variable set
+            docker run -d \
+              -v ${PWD}/config/grpc-sso:/src/config \
+              -e CONFIG_PATH=/src/config/.env \
+              -e POSTGRESQL_URL=${{ secrets.POSTGRESQL_URL }} \
+              -p 44044:44044 \
+              --name app \
+              grpc-sso:latest
+          
+            # Wait for a few seconds to ensure the container is running
+            sleep 10
+
+            # Check if the container is running
+            if [ "$(docker ps -q -f name=app)" ]; then
+              echo "Container is running. Executing setup-dev."
+              docker exec app sh -c "make setup-dev" || { echo "Failed to execute setup-dev"; exit 1; }
+            else
+              echo "Container is not running. Checking logs..."
+              docker logs app
+              echo "Exiting."
+              exit 1
+            fi
+          EOF
+
+      - name: Clean up
+        run: |
+          # Remove temporary files
+          rm /tmp/ssh_key
+          rm grpc-sso.tar
