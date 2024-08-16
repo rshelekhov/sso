@@ -1,13 +1,11 @@
 name: Deploy on DEV
 
 on:
-  pull_request:
-    branches:
-      - dev
-  workflow_run:
-    workflows: ["Build and test"]
-    types:
-      - completed
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy'
+        required: true
 
 env:
   DEV_SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
@@ -51,36 +49,33 @@ jobs:
             # Create config file on the server
             echo "${{ secrets.ENV_CONFIG_DEV }}" > ./config/grpc-sso/.env
           
-            # Output the content of the config file for verification
-            echo "Config file content:"
-            cat ./config/grpc-sso/.env
-          
             # Stop and remove the existing container (if any)
-            docker stop app || true
-            docker rm app || true
+            docker stop sso-app || true
+            docker rm sso-app || true
           
             # Load the Docker image
             docker load -i /tmp/grpc-sso.tar
           
-            # Run the new container with the CONFIG_PATH environment variable set
+            # Run the new container with the CONFIG_PATH environment variable for running the app
+            # and POSTGRESQL_URL environment variable set for running migrations
             docker run -d \
               -v ${PWD}/config/grpc-sso:/src/config \
               -e CONFIG_PATH=/src/config/.env \
               -e POSTGRESQL_URL=${{ secrets.POSTGRESQL_URL }} \
               -p 44044:44044 \
-              --name app \
+              --name sso-app \
               grpc-sso:latest
           
             # Wait for a few seconds to ensure the container is running
             sleep 10
 
             # Check if the container is running
-            if [ "$(docker ps -q -f name=app)" ]; then
+            if [ "$(docker ps -q -f name=sso-app)" ]; then
               echo "Container is running. Executing setup-dev."
-              docker exec app sh -c "make setup-dev" || { echo "Failed to execute setup-dev"; exit 1; }
+              docker exec sso-app sh -c "make setup-dev" || { echo "Failed to execute setup-dev"; exit 1; }
             else
               echo "Container is not running. Checking logs..."
-              docker logs app
+              docker logs sso-app
               echo "Exiting."
               exit 1
             fi

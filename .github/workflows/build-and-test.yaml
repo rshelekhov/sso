@@ -35,15 +35,12 @@ jobs:
 
       - name: Install golang-migrate
         run: |
-          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.12.2/migrate.linux-amd64.tar.gz | tar xvz
-          sudo mv migrate.linux-amd64 /usr/bin/migrate
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          export PATH=$PATH:$(go env GOPATH)/bin
           which migrate
 
       - name: Install dependencies
         run: go mod download
-
-      - name: Create /config directory
-        run: mkdir -p ./config
 
       - name: Create .env file
         run: |
@@ -57,6 +54,7 @@ jobs:
         run: pg_isready -h localhost -p 5432
 
       - name: Run tests
+        # TODO: maybe need to add env POSTGRESQL_URL here (?)
         run: make test-all-app
 
       - name: Notify results
