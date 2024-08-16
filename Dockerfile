@@ -5,6 +5,8 @@ WORKDIR /src
 
 # Setup base software for building an app
 RUN apk update && apk add --no-cache ca-certificates git make
+
+# Install golang-migrate
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 # Download dependencies
