@@ -1,9 +1,11 @@
 name: Deploy on DEV
 
 on:
-  pull_request:
-    branches:
-      - dev
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy'
+        required: true
 
 env:
   DEV_SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
@@ -48,8 +50,8 @@ jobs:
             echo "${{ secrets.ENV_CONFIG_DEV }}" > ./config/grpc-sso/.env
           
             # Stop and remove the existing container (if any)
-            docker stop app || true
-            docker rm app || true
+            docker stop sso-app || true
+            docker rm sso-app || true
           
             # Load the Docker image
             docker load -i /tmp/grpc-sso.tar
