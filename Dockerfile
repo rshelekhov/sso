@@ -22,7 +22,7 @@ RUN go build -o /app ./cmd/sso
 # Stage 2: Prepare the final runtime image
 FROM alpine:3.19 AS runner
 
-RUN apk update && apk add --no-cache ca-certificates make postgresql-client
+RUN apk update && apk add --no-cache ca-certificates make postgresql-client curl sudo
 
 WORKDIR /src
 
