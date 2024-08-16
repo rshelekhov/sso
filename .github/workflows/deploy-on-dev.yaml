@@ -1,11 +1,9 @@
 name: Deploy on DEV
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to deploy'
-        required: true
+  push:
+    tags:
+      - 'dev-v.'
 
 env:
   DEV_SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
@@ -18,8 +16,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out the repo into the Go module directory
+      - name: Check out code from dev branch
         uses: actions/checkout@v3
+        with:
+          ref: dev
 
       - name: Build Docker image
         run: |
