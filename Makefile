@@ -32,11 +32,16 @@ migrate:
 
 	@echo "Checking if golang-migrate is installed..."
 	@if ! which migrate > /dev/null 2>&1; then \
-		echo "golang-migrate not found. Installing..."; \
-		go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest; \
-	else \
-		echo "golang-migrate is already installed."; \
-	fi
+    	echo "golang-migrate not found. Installing..."; \
+    	VERSION=4.15.2; \
+    	OS=$$(uname | tr '[:upper:]' '[:lower:]'); \
+    	ARCH=$$(uname -m); \
+    	if [ "$$ARCH" = "x86_64" ]; then ARCH="amd64"; fi; \
+    	curl -L https://github.com/golang-migrate/migrate/releases/download/v$$VERSION/migrate.$$OS-$$ARCH.tar.gz | tar xvz; \
+    	sudo mv migrate.$$OS-$$ARCH /usr/local/bin/migrate; \
+    else \
+    	echo "golang-migrate is already installed."; \
+    fi
 
 	@echo "Checking if migrations are needed..."
 		@if psql $(POSTGRESQL_URL) -c "SELECT 1 FROM pg_tables WHERE tablename = 'apps';" | grep -q 1; then \
