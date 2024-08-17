@@ -13,8 +13,9 @@ env:
   PROD_SERVER_SSH_KEY: ${{ secrets.PROD_SERVER_SSH_KEY }}
   DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_RS_USER }}
   DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_HUB_RS_PASSWORD }}
-  REGISTRY_IMAGE: rshelekhov/grpc-sso
   ENV_CONFIG_PROD: ${{ secrets.ENV_CONFIG_PROD }}
+  REGISTRY_IMAGE: rshelekhov/grpc-sso
+  CONTAINER_NAME: grpc-sso
 
 jobs:
   deploy:
@@ -33,8 +34,7 @@ jobs:
           
           ssh -i /tmp/ssh_key $PROD_SERVER_USER@PROD_SERVER_HOST << 'EOF'
             # Create config file on the server
-            mkdir -p ./config/grpc-sso
-            echo "$ENV_CONFIG_PROD" > ./config/grpc-sso/.env
+            echo "$ENV_CONFIG_PROD" > ./config/$CONTAINER_NAME/.env
           
              # Login to Docker Hub
             echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_USERNAME --password-stdin
@@ -43,15 +43,29 @@ jobs:
             docker pull $REGISTRY_IMAGE:latest
           
             # Stop and remove the existing container (if any)
-            docker stop app || true
-            docker rm app || true
+            docker stop $CONTAINER_NAME || true
+            docker rm $CONTAINER_NAME || true
           
-            # Run the new container
+            # Run the new container with the CONFIG_PATH environment variable for running the app
+            # and POSTGRESQL_URL environment variable set for running migrations
             docker run -d \
-              -v ./config/grpc-sso:/src/config \
+              -v ${PWD}/config/$CONTAINER_NAME:/src/config \
+              -e CONFIG_PATH=/src/config/.env \
+              -e POSTGRESQL_URL=${{ secrets.POSTGRESQL_URL }} \
               -p 44044:44044 \
-              --name app \
-              $REGISTRY_IMAGE:latest
+              --name $CONTAINER_NAME \
+              $CONTAINER_NAME:latest
+          
+            # Check if the container is running
+            if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
+              echo "Container is running. Executing setup command."
+              docker exec $CONTAINER_NAME sh -c "make setup" || { echo "Failed to execute setup command"; exit 1; }
+            else
+              echo "Container is not running. Checking logs..."
+              docker logs $CONTAINER_NAME
+              echo "Exiting."
+              exit 1
+            fi
           EOF
           
           # Clean up the temporary SSH key file
