@@ -893,6 +893,10 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 
 	userDataFromDB, err := u.storage.GetUserData(ctx, userID, data.AppID)
 	if err != nil {
+		if errors.Is(err, le.ErrUserNotFound) {
+			handleError(ctx, log, le.ErrUserNotFound, err, slog.Any(key.UserID, userID))
+			return le.ErrUserNotFound
+		}
 		handleError(ctx, log, le.ErrFailedToGetUser, err, slog.Any(key.UserID, userID))
 		return le.ErrFailedToGetUser
 	}
