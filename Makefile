@@ -81,10 +81,10 @@ stop-server:
 # Run tests
 test-all-app: setup-dev run-server
 	@echo "Running tests..."
-	@go test -v -timeout 60s ./...
+	@go test -v -timeout 60s -parallel=1 ./...
 	@echo "Tests completed."
 
 test-api: setup-dev run-server
 	@echo "Running tests..."
-	@go test -v -timeout 60s ./api_tests
+	@go test -v -timeout 60s -parallel=1 ./api_tests
 	@echo "Tests completed."

@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken/mocks"
 	"github.com/stretchr/testify/require"
@@ -26,19 +27,19 @@ const (
 // Setup mocks, service and keys
 func setup(t *testing.T) (*mocks.MockKeyStorage, *Service, *rsa.PrivateKey, []byte) {
 	keyStorageMock := new(mocks.MockKeyStorage)
+	params := settings.DefaultPasswordHashParams
 
 	// Create the service with the mock KeyStorage
 	service := NewService(
 		"test-issuer",
 		"RS256",
 		keyStorageMock,
+		params,
 		time.Hour,
 		time.Minute*15,
 		time.Hour*24*30,
 		"example.com",
 		"/",
-		10,
-		"some_salt",
 	)
 
 	// Generate a test RSA private key

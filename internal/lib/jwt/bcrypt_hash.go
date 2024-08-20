@@ -4,27 +4,18 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"errors"
-	"fmt"
+	"github.com/rshelekhov/sso/internal/config/settings"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func PasswordHashBcrypt(password string, cost int, salt []byte) (string, error) {
-	const method = "jwt.PasswordHashBcrypt"
-
-	if password == "" {
-		return "", fmt.Errorf("%s: password is empty", method)
-	}
-	if len(salt) == 0 {
-		return "", fmt.Errorf("%s: salt is empty", method)
-	}
-
-	passwordHmac := hmac.New(sha256.New, salt)
+func PasswordHashBcrypt(password string, p settings.PasswordHashBcryptParams, pepper []byte) (string, error) {
+	passwordHmac := hmac.New(sha256.New, pepper)
 	_, err := passwordHmac.Write([]byte(password))
 	if err != nil {
 		return "", err
 	}
 
-	passwordBcrypt, err := bcrypt.GenerateFromPassword(passwordHmac.Sum(nil), cost)
+	passwordBcrypt, err := bcrypt.GenerateFromPassword(passwordHmac.Sum(nil), p.Cost)
 	if err != nil {
 		return "", err
 	}
@@ -32,18 +23,8 @@ func PasswordHashBcrypt(password string, cost int, salt []byte) (string, error) 
 	return string(passwordBcrypt), nil
 }
 
-func PasswordMatch(hash, password string, salt []byte) (bool, error) {
-	const method = "jwt.PasswordMatch"
-
-	if hash == "" {
-		return false, fmt.Errorf("%s: hash is empty", method)
-	} else if password == "" {
-		return false, fmt.Errorf("%s: password is empty", method)
-	} else if len(salt) == 0 {
-		return false, fmt.Errorf("%s: salt is empty", method)
-	}
-
-	passwordHmac := hmac.New(sha256.New, salt)
+func PasswordMatchBcrypt(hash, password string, pepper []byte) (bool, error) {
+	passwordHmac := hmac.New(sha256.New, pepper)
 	_, err := passwordHmac.Write([]byte(password))
 	if err != nil {
 		return false, err

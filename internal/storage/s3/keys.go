@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/sso/internal/config/settings"
 	"io"
 )
 
@@ -15,7 +15,7 @@ type KeyStorage struct {
 	PrivateKeyPath string
 }
 
-func NewKeyStorage(settings config.KeyStorageS3) (*KeyStorage, error) {
+func NewKeyStorage(settings settings.KeyStorageS3Params) (*KeyStorage, error) {
 	s3Client, err := NewS3Client(
 		settings.Region,
 		settings.Endpoint,

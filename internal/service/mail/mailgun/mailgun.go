@@ -3,13 +3,13 @@ package mailgun
 import (
 	"context"
 	"github.com/mailgun/mailgun-go/v4"
-	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/port"
 )
 
 const defaultTemplatesPath = "./static/email_templates"
 
-func NewMailTransport(cfg *config.MailgunEmailServiceSettings) port.MailTransport {
+func NewMailTransport(cfg *settings.MailgunParams) port.MailTransport {
 	mg := mailgun.NewMailgun(cfg.Domain, cfg.PrivateAPIKey)
 	return &mailService{
 		mailgun:       mg,

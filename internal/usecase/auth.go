@@ -122,7 +122,7 @@ func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, passw
 		return err
 	}
 
-	matched, err := jwt.PasswordMatch(user.PasswordHash, password, []byte(u.ts.PasswordHashSalt))
+	matched, err := jwt.PasswordMatch(user.PasswordHash, password, u.ts.PasswordHashParams)
 	if err != nil {
 		return err
 	}
@@ -153,11 +153,7 @@ func (u *AuthUsecase) RegisterUser(ctx context.Context, data *model.UserRequestD
 		return model.AuthTokenData{}, err
 	}
 
-	hash, err := jwt.PasswordHashBcrypt(
-		data.Password,
-		u.ts.PasswordHashCost,
-		[]byte(u.ts.PasswordHashSalt),
-	)
+	hash, err := jwt.PasswordHash(data.Password, u.ts.PasswordHashParams)
 	if err != nil {
 		handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err)
 		return model.AuthTokenData{}, le.ErrInternalServerError
@@ -613,7 +609,7 @@ func (u *AuthUsecase) checkPasswordHashAndUpdate(ctx context.Context, log *slog.
 		return le.ErrUpdatedPasswordMustNotMatchTheCurrent
 	}
 
-	updatedPassHash, err := jwt.PasswordHashBcrypt(reqData.UpdatedPassword, u.ts.PasswordHashCost, []byte(u.ts.PasswordHashSalt))
+	updatedPassHash, err := jwt.PasswordHash(reqData.UpdatedPassword, u.ts.PasswordHashParams)
 	if err != nil {
 		handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err, slog.Any(key.UserID, userData.ID))
 		return le.ErrInternalServerError
@@ -893,6 +889,10 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 
 	userDataFromDB, err := u.storage.GetUserData(ctx, userID, data.AppID)
 	if err != nil {
+		if errors.Is(err, le.ErrUserNotFound) {
+			handleError(ctx, log, le.ErrUserNotFound, err, slog.Any(key.UserID, userID))
+			return le.ErrUserNotFound
+		}
 		handleError(ctx, log, le.ErrFailedToGetUser, err, slog.Any(key.UserID, userID))
 		return le.ErrFailedToGetUser
 	}
@@ -931,11 +931,7 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 			return le.ErrNoPasswordChangesDetected
 		}
 
-		updatedPassHash, err := jwt.PasswordHashBcrypt(
-			data.UpdatedPassword,
-			u.ts.PasswordHashCost,
-			[]byte(u.ts.PasswordHashSalt),
-		)
+		updatedPassHash, err := jwt.PasswordHash(data.UpdatedPassword, u.ts.PasswordHashParams)
 		if err != nil {
 			handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err, slog.Any(key.UserID, userDataFromDB.ID))
 			return le.ErrInternalServerError
@@ -972,7 +968,7 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 }
 
 func (u *AuthUsecase) checkPasswordHashMatch(hash string, password string) error {
-	matched, err := jwt.PasswordMatch(hash, password, []byte(u.ts.PasswordHashSalt))
+	matched, err := jwt.PasswordMatch(hash, password, u.ts.PasswordHashParams)
 	if err != nil {
 		return err
 	}

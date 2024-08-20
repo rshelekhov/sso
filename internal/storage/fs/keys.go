@@ -2,7 +2,7 @@ package fs
 
 import (
 	"fmt"
-	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/sso/internal/config/settings"
 	"os"
 )
 
@@ -10,7 +10,7 @@ type KeyStorage struct {
 	PrivateKeyPath string
 }
 
-func NewKeyStorage(settings config.KeyStorageLocal) (*KeyStorage, error) {
+func NewKeyStorage(settings settings.KeyStorageLocalParams) (*KeyStorage, error) {
 	return &KeyStorage{
 		PrivateKeyPath: settings.Path,
 	}, nil
