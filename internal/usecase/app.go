@@ -3,10 +3,10 @@ package usecase
 import (
 	"context"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
@@ -19,20 +19,17 @@ import (
 )
 
 type AppUsecase struct {
-	cfg     *config.ServerSettings
 	log     *slog.Logger
 	storage port.AppStorage
 	ts      jwtoken.TokenService
 }
 
 func NewAppUsecase(
-	cfg *config.ServerSettings,
 	log *slog.Logger,
 	storage port.AppStorage,
 	ts jwtoken.TokenService,
 ) *AppUsecase {
 	return &AppUsecase{
-		cfg:     cfg,
 		log:     log,
 		storage: storage,
 		ts:      ts,
@@ -113,9 +110,9 @@ func (u *AppUsecase) generateAndHashSecret(name string) (string, error) {
 
 	secret := fmt.Sprintf("%s_%s", name, ksuid.New().String())
 
-	salt := u.cfg.DefaultHashBcrypt.Salt
-	if salt == "" {
-		return "", fmt.Errorf("%s: salt is empty in the config file", method)
+	salt := make([]byte, 32)
+	if _, err := rand.Read(salt); err != nil {
+		return "", err
 	}
 
 	secretHmac := hmac.New(sha256.New, []byte(salt))

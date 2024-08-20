@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
@@ -46,38 +47,35 @@ type Service struct {
 	Issuer                   string
 	SigningMethod            string
 	KeyStorage               port.KeyStorage
+	PasswordHashParams       settings.PasswordHashParams
 	JWKSetTTL                time.Duration
 	AccessTokenTTL           time.Duration
 	RefreshTokenTTL          time.Duration
 	RefreshTokenCookieDomain string
 	RefreshTokenCookiePath   string
-	PasswordHashCost         int
-	PasswordHashSalt         string
 }
 
 func NewService(
 	issuer string,
 	signingMethod string,
 	keyStorage port.KeyStorage,
+	passwordHashParams settings.PasswordHashParams,
 	JWKSetTTL time.Duration,
 	accessTokenTTL time.Duration,
 	refreshTokenTTL time.Duration,
 	refreshTokenCookieDomain string,
 	refreshTokenCookiePath string,
-	passwordHashCost int,
-	passwordHashSalt string,
 ) *Service {
 	return &Service{
 		Issuer:                   issuer,
 		SigningMethod:            signingMethod,
 		KeyStorage:               keyStorage,
+		PasswordHashParams:       passwordHashParams,
 		JWKSetTTL:                JWKSetTTL,
 		AccessTokenTTL:           accessTokenTTL,
 		RefreshTokenTTL:          refreshTokenTTL,
 		RefreshTokenCookieDomain: refreshTokenCookieDomain,
 		RefreshTokenCookiePath:   refreshTokenCookiePath,
-		PasswordHashCost:         passwordHashCost,
-		PasswordHashSalt:         passwordHashSalt,
 	}
 }
 

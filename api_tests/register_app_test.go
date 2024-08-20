@@ -6,7 +6,6 @@ import (
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/mocks"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/usecase"
 	"github.com/stretchr/testify/mock"
@@ -85,15 +84,10 @@ func TestRegisterApp_GeneratePrivateKeyError(t *testing.T) {
 	mockStorage.On("RegisterApp", mock.Anything, mock.Anything).Return(nil)
 	mockStorage.On("DeleteApp", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	cfg := &config.ServerSettings{
-		DefaultHashBcrypt: config.HashBcryptSettings{
-			Salt: "salt",
-		},
-	}
 	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	// Create an instance of AppUsecase with the mocks
-	appUsecase := usecase.NewAppUsecase(cfg, log, mockStorage, mockTS)
+	appUsecase := usecase.NewAppUsecase(log, mockStorage, mockTS)
 
 	appName := gofakeit.Word()
 
@@ -126,15 +120,10 @@ func TestRegisterApp_GeneratePrivateKeyError_DeleteAppError(t *testing.T) {
 	mockStorage.On("RegisterApp", mock.Anything, mock.Anything).Return(nil)
 	mockStorage.On("DeleteApp", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("failed to delete app"))
 
-	cfg := &config.ServerSettings{
-		DefaultHashBcrypt: config.HashBcryptSettings{
-			Salt: "salt",
-		},
-	}
 	log := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	// Create an instance of AppUsecase with the mocks
-	appUsecase := usecase.NewAppUsecase(cfg, log, mockStorage, mockTS)
+	appUsecase := usecase.NewAppUsecase(log, mockStorage, mockTS)
 
 	appName := gofakeit.Word()
 
