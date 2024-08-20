@@ -42,17 +42,16 @@ func New(log *slog.Logger, cfg *config.ServerSettings) *App {
 		cfg.JWTAuth.Issuer,
 		cfg.JWTAuth.SigningMethod,
 		keyStorage,
+		cfg.PasswordHash,
 		cfg.JWTAuth.JWKSetTTL,
 		cfg.JWTAuth.AccessTokenTTL,
 		cfg.JWTAuth.RefreshTokenTTL,
 		cfg.JWTAuth.RefreshTokenCookieDomain,
 		cfg.JWTAuth.RefreshTokenCookiePath,
-		cfg.DefaultHashBcrypt.Cost,
-		cfg.DefaultHashBcrypt.Salt,
 	)
 
 	// Initialize usecases
-	appUsecase := usecase.NewAppUsecase(cfg, log, appStorage, tokenService)
+	appUsecase := usecase.NewAppUsecase(log, appStorage, tokenService)
 	authUsecases := usecase.NewAuthUsecase(log, authStorage, tokenService, mailService)
 
 	// App

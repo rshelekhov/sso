@@ -2,7 +2,7 @@ package mail
 
 import (
 	"context"
-	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/rshelekhov/sso/internal/service/mail/mailgun"
 	"github.com/rshelekhov/sso/internal/service/mail/mock"
@@ -10,13 +10,13 @@ import (
 
 const defaultTemplatesPath = "./static/email_templates"
 
-func NewMailService(ess config.EmailServiceSettings) port.MailService {
+func NewMailService(ess settings.EmailService) port.MailService {
 	var s port.MailTransport
 
 	switch ess.Type {
-	case config.EmailServiceMailgun:
+	case settings.EmailServiceMailgun:
 		s = mailgun.NewMailTransport(ess.Mailgun)
-	case config.EmailServiceMock:
+	case settings.EmailServiceMock:
 		s = mock.NewMailTransport()
 	}
 

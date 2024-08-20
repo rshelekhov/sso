@@ -47,16 +47,15 @@ func main() {
 		cfg.JWTAuth.Issuer,
 		cfg.JWTAuth.SigningMethod,
 		keyStorage,
+		cfg.PasswordHash,
 		cfg.JWTAuth.JWKSetTTL,
 		cfg.JWTAuth.AccessTokenTTL,
 		cfg.JWTAuth.RefreshTokenTTL,
 		cfg.JWTAuth.RefreshTokenCookieDomain,
 		cfg.JWTAuth.RefreshTokenCookiePath,
-		cfg.DefaultHashBcrypt.Cost,
-		cfg.DefaultHashBcrypt.Salt,
 	)
 
-	appUsecase := usecase.NewAppUsecase(cfg, log, appStorage, tokenService)
+	appUsecase := usecase.NewAppUsecase(log, appStorage, tokenService)
 
 	err = appUsecase.RegisterApp(context.Background(), appName)
 	if err != nil {
