@@ -35,14 +35,14 @@ migrate:
 			echo "Migrations are not needed."; \
 		else \
 			echo "Running migrations..."; \
-			migrate -database $(POSTGRESQL_URL) -path ./migrations up; \
+			migrate -database $(POSTGRESQL_URL) -path migrations up; \
 			echo "Migrations completed."; \
 		fi
 
 # Rollback migrations
 migrate-down:
 	@echo "Rolling back migrations..."
-	@migrate -database $(POSTGRESQL_URL) -path ./migrations down
+	@migrate -database $(POSTGRESQL_URL) -path migrations down
 	@echo "Migrations rolled back."
 
 # Insert test data only if not already inserted
