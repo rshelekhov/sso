@@ -28,5 +28,6 @@ WORKDIR /src
 
 COPY --from=builder /app ./
 COPY --from=builder /src/Makefile ./
+COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 
 CMD ["./app"]
