@@ -2,8 +2,9 @@ package fs
 
 import (
 	"fmt"
-	"github.com/rshelekhov/sso/internal/config/settings"
 	"os"
+
+	"github.com/rshelekhov/sso/internal/config/settings"
 )
 
 type KeyStorage struct {
@@ -26,7 +27,7 @@ func (s *KeyStorage) SavePrivateKey(appID string, privateKeyPEM []byte) error {
 
 	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, appID)
 
-	if err := os.WriteFile(privateKeyFilePath, privateKeyPEM, 0600); err != nil {
+	if err := os.WriteFile(privateKeyFilePath, privateKeyPEM, 0o600); err != nil {
 		return fmt.Errorf("failed to save private key to file: %w", err)
 	}
 

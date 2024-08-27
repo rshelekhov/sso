@@ -3,11 +3,12 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"net"
+	"time"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/model"
-	"net"
-	"time"
 )
 
 type TestStorage struct {

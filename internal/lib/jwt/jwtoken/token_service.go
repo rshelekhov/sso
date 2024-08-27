@@ -6,14 +6,15 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
 	"google.golang.org/grpc/metadata"
-	"strings"
-	"time"
 )
 
 type ContextKey struct {
@@ -37,7 +38,7 @@ type TokenService interface {
 	GetKeyID(appID string) (string, error)
 	GetPublicKey(appID string) (interface{}, error)
 	NewRefreshToken() (string, error)
-	GetUserID(ctx context.Context, appID string, key string) (string, error)
+	GetUserID(ctx context.Context, appID, key string) (string, error)
 	GetClaimsFromToken(ctx context.Context, appID string) (map[string]interface{}, error)
 	GetTokenFromContext(ctx context.Context, appID string) (*jwt.Token, error)
 	ParseToken(tokenString, appID string) (*jwt.Token, error)
@@ -60,7 +61,7 @@ func NewService(
 	signingMethod string,
 	keyStorage port.KeyStorage,
 	passwordHashParams settings.PasswordHashParams,
-	JWKSetTTL time.Duration,
+	jwksTTL time.Duration,
 	accessTokenTTL time.Duration,
 	refreshTokenTTL time.Duration,
 	refreshTokenCookieDomain string,
@@ -71,7 +72,7 @@ func NewService(
 		SigningMethod:            signingMethod,
 		KeyStorage:               keyStorage,
 		PasswordHashParams:       passwordHashParams,
-		JWKSetTTL:                JWKSetTTL,
+		JWKSetTTL:                jwksTTL,
 		AccessTokenTTL:           accessTokenTTL,
 		RefreshTokenTTL:          refreshTokenTTL,
 		RefreshTokenCookieDomain: refreshTokenCookieDomain,
@@ -146,7 +147,7 @@ func (ts *Service) NewRefreshToken() (string, error) {
 	return token, nil
 }
 
-func (ts *Service) GetUserID(ctx context.Context, appID string, key string) (string, error) {
+func (ts *Service) GetUserID(ctx context.Context, appID, key string) (string, error) {
 	claims, err := ts.GetClaimsFromToken(ctx, appID)
 	if err != nil {
 		return "", err
@@ -196,6 +197,8 @@ func (ts *Service) GetTokenFromContext(ctx context.Context, appID string) (*jwt.
 
 func (ts *Service) ParseToken(s, appID string) (*jwt.Token, error) {
 	tokenString := strings.TrimSpace(s)
+
+	//nolint:revive
 	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return ts.GetPublicKey(appID)
 	})

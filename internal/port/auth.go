@@ -2,9 +2,10 @@ package port
 
 import (
 	"context"
-	"github.com/rshelekhov/sso/internal/model"
 	"log/slog"
 	"time"
+
+	"github.com/rshelekhov/sso/internal/model"
 )
 
 type (

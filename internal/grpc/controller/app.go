@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
+
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"google.golang.org/grpc/codes"
@@ -17,6 +18,7 @@ func (c *controller) RegisterApp(ctx context.Context, req *ssov1.RegisterAppRequ
 	appName := req.GetAppName()
 
 	err := c.appUsecase.RegisterApp(ctx, appName)
+
 	switch {
 	case errors.Is(err, le.ErrAppAlreadyExists):
 		return nil, status.Error(codes.AlreadyExists, le.ErrAppAlreadyExists.Error())

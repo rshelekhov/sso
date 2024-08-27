@@ -7,17 +7,19 @@ package main
 import (
 	"context"
 	"flag"
+	"os"
+
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 	"github.com/rshelekhov/sso/internal/storage"
 	"github.com/rshelekhov/sso/internal/storage/postgres"
 	"github.com/rshelekhov/sso/internal/usecase"
-	"os"
 )
 
 func main() {
 	var appName string
+
 	flag.StringVar(&appName, "name", appName, "Name of the app")
 	flag.StringVar(&appName, "n", appName, "Name of the app")
 	flag.Parse()
@@ -64,6 +66,7 @@ func main() {
 }
 
 const (
+	//nolint:revive
 	CONFIG_PATH       = "CONFIG_PATH"
 	defaultConfigPath = "./config/.env"
 )

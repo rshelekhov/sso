@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"errors"
+
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"golang.org/x/crypto/bcrypt"
 )

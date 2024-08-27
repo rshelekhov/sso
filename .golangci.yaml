@@ -15,6 +15,10 @@ linters-settings:
     tab-width: 1
   nestif:
     min-complexity: 4
+  staticcheck:
+    checks:
+      - all
+      - '-SA1029'
   sloglint:
     args-on-sep-lines: true
   testpackage:
@@ -62,6 +66,12 @@ issues:
       linters:
         - revive
         - wsl
+        - unused
+        - revive
+    - path: api_tests
+      linters:
+        - unused
+        - revive
     - linters:
         - wsl
       text: "only one cuddle assignment allowed before if statement"
@@ -74,3 +84,6 @@ issues:
     - linters:
         - wsl
       text: "return statements should not be cuddled if block has more than two lines"
+    - linters:
+        - revive
+      text: "unused-parameter: parameter 'info' seems to be unused, consider removing or renaming it as _"

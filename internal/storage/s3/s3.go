@@ -2,12 +2,13 @@ package s3
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"net/http"
-	"time"
 )
 
 func NewS3Client(region, endpoint, accessKey, secretKey string) (*s3.S3, error) {

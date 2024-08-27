@@ -32,12 +32,12 @@ func handleError(
 		errorMessage = errDetails.Error()
 	}
 
-	baseAttrs := []slog.Attr{
+	allAttrs := []slog.Attr{
 		slog.String(key.Error, errorMessage),
 		slog.String(key.Location, location),
 	}
 
-	allAttrs := append(baseAttrs, attrs...)
+	allAttrs = append(allAttrs, attrs...)
 	log.LogAttrs(ctx, slog.LevelError, err.Error(), allAttrs...)
 }
 

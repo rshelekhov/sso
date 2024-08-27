@@ -1,14 +1,15 @@
 package main
 
 import (
-	"github.com/rshelekhov/sso/internal/app"
-	"github.com/rshelekhov/sso/internal/config"
-	"github.com/rshelekhov/sso/internal/lib/constant/key"
-	"github.com/rshelekhov/sso/internal/lib/logger"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/rshelekhov/sso/internal/app"
+	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/sso/internal/lib/constant/key"
+	"github.com/rshelekhov/sso/internal/lib/logger"
 )
 
 func main() {
