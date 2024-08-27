@@ -2,14 +2,15 @@ package suite
 
 import (
 	"context"
+	"net"
+	"os"
+	"testing"
+
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite/storage/postgres"
 	"github.com/rshelekhov/sso/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"net"
-	"os"
-	"testing"
 )
 
 type Suite struct {
@@ -20,6 +21,7 @@ type Suite struct {
 }
 
 const (
+	//nolint:revive
 	CONFIG_PATH       = "CONFIG_PATH"
 	defaultConfigPath = "../config/.env"
 	grpcHost          = "localhost"
@@ -39,10 +41,7 @@ func New(t *testing.T) (context.Context, *Suite) {
 		cancelCtx()
 	})
 
-	cc, err := grpc.DialContext(context.Background(),
-		grpcAddress(cfg),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	cc, err := grpc.NewClient(grpcAddress(cfg), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal("grpc server connection failed: ", err)
 	}

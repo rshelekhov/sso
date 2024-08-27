@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/fatih/color"
 	"io"
 	"log/slog"
+
+	"github.com/fatih/color"
 )
 
 type Options struct {
@@ -16,7 +17,7 @@ type Options struct {
 }
 
 type PrettyHandler struct {
-	opts Options
+	// opts Options
 	slog.Handler
 	attrs []slog.Attr
 }
@@ -62,6 +63,7 @@ func (h *PrettyHandler) Handle(_ context.Context, r slog.Record) error {
 	}
 
 	var b []byte
+
 	var err error
 
 	if len(fields) > 0 {

@@ -4,9 +4,10 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"strings"
+
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"golang.org/x/crypto/argon2"
-	"strings"
 )
 
 func PasswordHashArgon2(password string, p settings.PasswordHashArgon2Params, salt, pepper []byte) string {

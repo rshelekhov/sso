@@ -1,12 +1,13 @@
 package controller
 
 import (
+	"strings"
+
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/model"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"strings"
 )
 
 const emptyValue = ""
@@ -145,7 +146,6 @@ func validateChangePasswordData(req *ssov1.ChangePasswordRequest, data *model.Ch
 	data.AppID = req.GetAppId()
 
 	return nil
-
 }
 
 func validateRefresh(req *ssov1.RefreshRequest, data *model.RefreshTokenRequestData) error {

@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 )
 
@@ -39,6 +40,7 @@ func generatePrivateKeyPEM() ([]byte, error) {
 
 func make64ColsString(input []byte) string {
 	var result string
+
 	for i := 0; i < len(input); i += 64 {
 		end := i + 64
 		if end > len(input) {
@@ -46,6 +48,7 @@ func make64ColsString(input []byte) string {
 		}
 		result += string(input[i:end]) + "\n"
 	}
+
 	return result
 }
 

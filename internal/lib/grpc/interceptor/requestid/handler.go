@@ -7,8 +7,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+//nolint:revive
 func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
-
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		requestID := handleRequestID(ctx)
 

@@ -3,8 +3,9 @@ package jwt
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/config/settings"
 	"io"
+
+	"github.com/rshelekhov/sso/internal/config/settings"
 )
 
 func PasswordHash(password string, params settings.PasswordHashParams) (string, error) {
@@ -24,6 +25,7 @@ func PasswordHash(password string, params settings.PasswordHashParams) (string, 
 	}
 
 	var hash string
+
 	switch params.Type {
 	case settings.PasswordHashDefault, settings.PasswordHashArgon2:
 		hash = PasswordHashArgon2(password, *params.Argon, salt, []byte(params.Pepper))
@@ -32,9 +34,11 @@ func PasswordHash(password string, params settings.PasswordHashParams) (string, 
 	default:
 		return "", fmt.Errorf("%s: unsupported password hash type: %s", method, params.Type)
 	}
+
 	if err != nil {
 		return "", err
 	}
+
 	return hash, nil
 }
 
