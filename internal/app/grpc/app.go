@@ -3,6 +3,9 @@ package grpcapp
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"net"
+
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	authgrpc "github.com/rshelekhov/sso/internal/grpc/controller"
@@ -12,8 +15,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"log/slog"
-	"net"
 )
 
 type App struct {
@@ -30,7 +31,7 @@ func New(
 ) *App {
 	loggingOpts := []logging.Option{
 		logging.WithLogOnEvents(
-			//logging.StartCall, logging.FinishCall,
+			// logging.StartCall, logging.FinishCall,
 			logging.PayloadReceived, logging.PayloadSent,
 		),
 		// Add any other option (check functions starting with logging.With).

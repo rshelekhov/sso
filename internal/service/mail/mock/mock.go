@@ -3,8 +3,9 @@ package mock
 import (
 	"context"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/port"
 	"time"
+
+	"github.com/rshelekhov/sso/internal/port"
 )
 
 // NewMailTransport creates new mail mock transport, all it does just print everything to console.
@@ -24,7 +25,7 @@ type EmailMessage struct {
 }
 
 // SendMessage simulates sending a plain text email
-func (s *EmailService) SendMessage(ctx context.Context, subject, body, recipient string) error {
+func (s *EmailService) SendMessage(_ context.Context, subject, body, recipient string) error {
 	msg := EmailMessage{
 		Subject:   subject,
 		Body:      body,
@@ -38,7 +39,7 @@ func (s *EmailService) SendMessage(ctx context.Context, subject, body, recipient
 }
 
 // SendHTML simulates sending an HTML email
-func (s *EmailService) SendHTML(ctx context.Context, subject, html, recipient string) error {
+func (s *EmailService) SendHTML(_ context.Context, subject, html, recipient string) error {
 	msg := EmailMessage{
 		Subject:   subject,
 		Body:      html,

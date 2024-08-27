@@ -28,7 +28,6 @@ And the last one, you need to have `psql` (PostgreSQL interactive terminal), bec
 
 Add config file to `./config/.env` (see an example in the `./config/.env.example`).
 
-- By default, this app use port `44044`. If you set another port please update `SERVER_PORT` in the `Makefile` as well.
 
 Set path to config:
 ```bash
@@ -38,6 +37,11 @@ export CONFIG_PATH=./config/.env
 Set URL for PostgresQL:
 ```bash
 export POSTGRESQL_URL='postgres://login:password@host:port/db_name?sslmode=disable'
+```
+
+By default, this app use port `44044`. Set `SERVER_PORT` environment variable with this or your value:
+```bash
+export SERVER_PORT=44044
 ```
 
 Run migrations using `make migrate` command.

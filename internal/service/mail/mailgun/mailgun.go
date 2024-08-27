@@ -2,6 +2,7 @@ package mailgun
 
 import (
 	"context"
+
 	"github.com/mailgun/mailgun-go/v4"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/port"

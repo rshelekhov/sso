@@ -3,11 +3,12 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"net"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib" // Import for side effects
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/storage/postgres/sqlc"
-	"net"
 )
 
 // NewStorage creates a new Postgres storage

@@ -74,6 +74,7 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 			handleError(ctx, log, le.ErrUserNotFound, err)
 			return model.AuthTokenData{}, le.ErrUserNotFound
 		}
+
 		handleError(ctx, log, le.ErrFailedToGetUserByEmail, err)
 		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
@@ -83,6 +84,7 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 			handleError(ctx, log, le.ErrInvalidCredentials, err, slog.Any(key.UserID, user.ID))
 			return model.AuthTokenData{}, le.ErrInvalidCredentials
 		}
+
 		handleError(ctx, log, le.ErrFailedToCheckIfPasswordMatch, err, slog.Any(key.UserID, user.ID))
 		return model.AuthTokenData{}, le.ErrInternalServerError
 	}
@@ -116,7 +118,6 @@ func (u *AuthUsecase) Login(ctx context.Context, data *model.UserRequestData) (m
 
 // verifyPassword checks if password is correct
 func (u *AuthUsecase) verifyPassword(ctx context.Context, user model.User, password string) error {
-
 	user, err := u.storage.GetUserData(ctx, user.ID, user.AppID)
 	if err != nil {
 		return err
@@ -374,7 +375,14 @@ func (u *AuthUsecase) updateLatestVisitedAt(ctx context.Context, deviceID, appID
 	return u.storage.UpdateLatestVisitedAt(ctx, deviceID, appID, lastVisitedAt)
 }
 
-func (u *AuthUsecase) createToken(ctx context.Context, data model.TokenData, createTokenFunc func(ctx context.Context, data model.TokenData) error) (model.TokenData, error) {
+func (u *AuthUsecase) createToken(
+	ctx context.Context,
+	data model.TokenData,
+	createTokenFunc func(ctx context.Context, data model.TokenData) error,
+) (
+	model.TokenData,
+	error,
+) {
 	token, err := generateToken()
 	if err != nil {
 		return model.TokenData{}, le.ErrFailedToGenerateToken
@@ -470,12 +478,15 @@ func (u *AuthUsecase) handleTokenProcessing(
 			handleError(ctx, log, le.ErrTokenNotFound, err, slog.Any(key.Token, token))
 			return model.TokenData{}, le.ErrTokenNotFound
 		}
+
 		handleError(ctx, log, le.ErrFailedToGetTokenData, err, slog.Any(key.Token, token))
 		return model.TokenData{}, le.ErrInternalServerError
 	}
 
 	if tokenData.ExpiresAt.Before(time.Now()) {
-		log.Info("token expired", slog.Any(key.UserID, tokenData.UserID), slog.Any(key.Token, tokenData.Token))
+		log.Info("token expired",
+			slog.Any(key.UserID, tokenData.UserID),
+			slog.Any(key.Token, tokenData.Token))
 
 		if err = u.storage.DeleteToken(ctx, tokenData.Token); err != nil {
 			handleError(ctx, log, le.ErrFailedToDeleteToken, err, slog.Any(key.Token, tokenData.Token))
@@ -519,6 +530,7 @@ func (u *AuthUsecase) ResetPassword(ctx context.Context, data *model.ResetPasswo
 			handleError(ctx, log, le.ErrUserNotFound, err, slog.Any(key.Email, data.Email))
 			return le.ErrUserNotFound
 		}
+
 		handleError(ctx, u.log, le.ErrFailedToGetUserByEmail, err, slog.Any(key.Email, data.Email))
 		return err
 	}
@@ -598,7 +610,12 @@ func (u *AuthUsecase) ChangePassword(ctx context.Context, data *model.ChangePass
 	return nil
 }
 
-func (u *AuthUsecase) checkPasswordHashAndUpdate(ctx context.Context, log *slog.Logger, userData model.User, reqData *model.ChangePasswordRequestData) error {
+func (u *AuthUsecase) checkPasswordHashAndUpdate(
+	ctx context.Context,
+	log *slog.Logger,
+	userData model.User,
+	reqData *model.ChangePasswordRequestData,
+) error {
 	err := u.checkPasswordHashMatch(userData.PasswordHash, reqData.UpdatedPassword)
 	if err != nil && !errors.Is(err, le.ErrPasswordsDoNotMatch) {
 		handleError(ctx, log, le.ErrFailedToCheckIfPasswordMatch, err, slog.Any(key.UserID, userData.ID))
@@ -660,6 +677,7 @@ func (u *AuthUsecase) LogoutUser(ctx context.Context, data model.UserDeviceReque
 			handleError(ctx, log, le.ErrUserDeviceNotFound, err)
 			return le.ErrUserDeviceNotFound
 		}
+
 		handleError(ctx, log, le.ErrFailedToGetDeviceID, err)
 		return err
 	}
@@ -695,6 +713,7 @@ func (u *AuthUsecase) RefreshTokens(ctx context.Context, data *model.RefreshToke
 	}
 
 	session, err := u.checkSessionAndDevice(ctx, data.RefreshToken, data.UserDevice)
+
 	switch {
 	case errors.Is(err, le.ErrSessionNotFound):
 		handleError(ctx, log, le.ErrSessionNotFound, err)
@@ -772,6 +791,7 @@ func (u *AuthUsecase) GetJWKS(ctx context.Context, data *model.JWKSRequestData) 
 			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, data.AppID))
 			return model.JWKS{}, le.ErrAppIDDoesNotExist
 		}
+
 		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, data.AppID))
 		return model.JWKS{}, err
 	}
@@ -855,6 +875,7 @@ func (u *AuthUsecase) GetUserByID(ctx context.Context, data *model.UserRequestDa
 			handleError(ctx, log, le.ErrUserNotFound, err, slog.Any(key.UserID, userID))
 			return model.User{}, le.ErrUserNotFound
 		}
+
 		handleError(ctx, log, le.ErrFailedToGetUser, err, slog.Any(key.UserID, userID))
 		return model.User{}, le.ErrFailedToGetUser
 	}
@@ -893,11 +914,12 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 			handleError(ctx, log, le.ErrUserNotFound, err, slog.Any(key.UserID, userID))
 			return le.ErrUserNotFound
 		}
+
 		handleError(ctx, log, le.ErrFailedToGetUser, err, slog.Any(key.UserID, userID))
 		return le.ErrFailedToGetUser
 	}
 
-	if err = updateUserFields(u, ctx, data, userDataFromDB, log); err != nil {
+	if err = updateUserFields(ctx, u, data, userDataFromDB, log); err != nil {
 		return err
 	}
 
@@ -906,7 +928,7 @@ func (u *AuthUsecase) UpdateUser(ctx context.Context, data *model.UserRequestDat
 	return nil
 }
 
-func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserRequestData, userDataFromDB model.User, log *slog.Logger) error {
+func updateUserFields(ctx context.Context, u *AuthUsecase, data *model.UserRequestData, userDataFromDB model.User, log *slog.Logger) error {
 	updatedUser := model.User{
 		ID:        userDataFromDB.ID,
 		Email:     data.Email,
@@ -914,48 +936,12 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 		UpdatedAt: time.Now(),
 	}
 
-	if data.UpdatedPassword != "" {
-		// Check current password
-		if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.Password); err != nil {
-			if errors.Is(err, le.ErrPasswordsDoNotMatch) {
-				handleError(ctx, log, le.ErrCurrentPasswordIsIncorrect, err, slog.Any(key.UserID, userDataFromDB.ID))
-				return le.ErrCurrentPasswordIsIncorrect
-			}
-			handleError(ctx, log, le.ErrFailedToCheckIfPasswordMatch, err, slog.Any(key.UserID, userDataFromDB.ID))
-			return le.ErrInternalServerError
-		}
-
-		// Check new password
-		if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.UpdatedPassword); err == nil {
-			handleError(ctx, log, le.ErrNoPasswordChangesDetected, nil, slog.Any(key.UserID, userDataFromDB.ID))
-			return le.ErrNoPasswordChangesDetected
-		}
-
-		updatedPassHash, err := jwt.PasswordHash(data.UpdatedPassword, u.ts.PasswordHashParams)
-		if err != nil {
-			handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err, slog.Any(key.UserID, userDataFromDB.ID))
-			return le.ErrInternalServerError
-		}
-
-		updatedUser.PasswordHash = updatedPassHash
+	if err := u.handlePasswordUpdate(ctx, data, userDataFromDB, &updatedUser, log); err != nil {
+		return err
 	}
 
-	emailChanged := updatedUser.Email != "" && updatedUser.Email != userDataFromDB.Email
-
-	if !emailChanged {
-		handleError(ctx, log, le.ErrNoEmailChangesDetected, nil, slog.Any(key.UserID, userDataFromDB.ID))
-		return le.ErrNoEmailChangesDetected
-	}
-
-	if err := u.storage.CheckEmailUniqueness(ctx, updatedUser); err != nil {
-		if errors.Is(err, le.ErrEmailAlreadyTaken) {
-			handleError(ctx, log, le.ErrEmailAlreadyTaken, err,
-				slog.Any(key.UserID, userDataFromDB.ID),
-				slog.String(key.Email, updatedUser.Email))
-			return le.ErrEmailAlreadyTaken
-		}
-		handleError(ctx, log, le.ErrFailedToCheckEmailUniqueness, err, slog.Any(key.UserID, userDataFromDB.ID))
-		return le.ErrInternalServerError
+	if err := u.handleEmailUpdate(ctx, userDataFromDB, &updatedUser, log); err != nil {
+		return err
 	}
 
 	err := u.storage.UpdateUser(ctx, updatedUser)
@@ -967,7 +953,43 @@ func updateUserFields(u *AuthUsecase, ctx context.Context, data *model.UserReque
 	return nil
 }
 
-func (u *AuthUsecase) checkPasswordHashMatch(hash string, password string) error {
+func (u *AuthUsecase) handlePasswordUpdate(
+	ctx context.Context,
+	data *model.UserRequestData,
+	userDataFromDB model.User,
+	updatedUser *model.User,
+	log *slog.Logger,
+) error {
+	if data.UpdatedPassword == "" {
+		return nil
+	}
+
+	if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.Password); err != nil {
+		if errors.Is(err, le.ErrPasswordsDoNotMatch) {
+			handleError(ctx, log, le.ErrCurrentPasswordIsIncorrect, err, slog.Any(key.UserID, userDataFromDB.ID))
+			return le.ErrCurrentPasswordIsIncorrect
+		}
+
+		handleError(ctx, log, le.ErrFailedToCheckIfPasswordMatch, err, slog.Any(key.UserID, userDataFromDB.ID))
+		return le.ErrInternalServerError
+	}
+
+	if err := u.checkPasswordHashMatch(userDataFromDB.PasswordHash, data.UpdatedPassword); err == nil {
+		handleError(ctx, log, le.ErrNoPasswordChangesDetected, nil, slog.Any(key.UserID, userDataFromDB.ID))
+		return le.ErrNoPasswordChangesDetected
+	}
+
+	updatedPassHash, err := jwt.PasswordHash(data.UpdatedPassword, u.ts.PasswordHashParams)
+	if err != nil {
+		handleError(ctx, log, le.ErrFailedToGeneratePasswordHash, err, slog.Any(key.UserID, userDataFromDB.ID))
+		return le.ErrInternalServerError
+	}
+
+	updatedUser.PasswordHash = updatedPassHash
+	return nil
+}
+
+func (u *AuthUsecase) checkPasswordHashMatch(hash, password string) error {
 	matched, err := jwt.PasswordMatch(hash, password, u.ts.PasswordHashParams)
 	if err != nil {
 		return err
@@ -975,6 +997,29 @@ func (u *AuthUsecase) checkPasswordHashMatch(hash string, password string) error
 
 	if !matched {
 		return le.ErrPasswordsDoNotMatch
+	}
+
+	return nil
+}
+
+func (u *AuthUsecase) handleEmailUpdate(ctx context.Context, userDataFromDB model.User, updatedUser *model.User, log *slog.Logger) error {
+	emailChanged := updatedUser.Email != "" && updatedUser.Email != userDataFromDB.Email
+
+	if !emailChanged {
+		handleError(ctx, log, le.ErrNoEmailChangesDetected, nil, slog.Any(key.UserID, userDataFromDB.ID))
+		return le.ErrNoEmailChangesDetected
+	}
+
+	if err := u.storage.CheckEmailUniqueness(ctx, *updatedUser); err != nil {
+		if errors.Is(err, le.ErrEmailAlreadyTaken) {
+			handleError(ctx, log, le.ErrEmailAlreadyTaken, err,
+				slog.Any(key.UserID, userDataFromDB.ID),
+				slog.String(key.Email, updatedUser.Email))
+			return le.ErrEmailAlreadyTaken
+		}
+
+		handleError(ctx, log, le.ErrFailedToCheckEmailUniqueness, err, slog.Any(key.UserID, userDataFromDB.ID))
+		return le.ErrInternalServerError
 	}
 
 	return nil
@@ -1072,6 +1117,7 @@ func (u *AuthUsecase) validateAppID(ctx context.Context, log *slog.Logger, appID
 			handleError(ctx, log, le.ErrAppIDDoesNotExist, err, slog.Any(key.AppID, appID))
 			return le.ErrAppIDDoesNotExist
 		}
+
 		handleError(ctx, log, le.ErrFailedToValidateAppID, err, slog.Any(key.AppID, appID))
 		return err
 	}

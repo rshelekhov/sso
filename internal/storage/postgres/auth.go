@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -11,8 +14,6 @@ import (
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/rshelekhov/sso/internal/storage/postgres/sqlc"
-	"strconv"
-	"time"
 )
 
 type AuthStorage struct {
@@ -286,7 +287,6 @@ func (s *AuthStorage) GetUserDeviceID(ctx context.Context, userID, userAgent str
 		UserID:    userID,
 		UserAgent: userAgent,
 	})
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", le.ErrUserDeviceNotFound
@@ -458,7 +458,6 @@ func (s *AuthStorage) UpdateUser(ctx context.Context, user model.User) error {
 
 	// Execute the update query
 	_, err := s.Exec(ctx, queryUpdate, queryParams...)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return le.ErrUserNotFound

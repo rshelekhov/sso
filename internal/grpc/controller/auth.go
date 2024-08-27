@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"errors"
+
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/model"
@@ -19,6 +20,7 @@ func (c *controller) Login(ctx context.Context, req *ssov1.LoginRequest) (*ssov1
 	}
 
 	tokenData, err := c.authUsecase.Login(ctx, userData)
+
 	switch {
 	case errors.Is(err, le.ErrAppIDDoesNotExist):
 		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
@@ -55,6 +57,7 @@ func (c *controller) RegisterUser(ctx context.Context, req *ssov1.RegisterUserRe
 	}
 
 	tokenData, err := c.authUsecase.RegisterUser(ctx, userData, endpoint)
+
 	switch {
 	case errors.Is(err, le.ErrAppIDDoesNotExist):
 		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
@@ -84,6 +87,7 @@ func (c *controller) VerifyEmail(ctx context.Context, req *ssov1.VerifyEmailRequ
 	}
 
 	err := c.authUsecase.VerifyEmail(ctx, request.VerificationToken)
+
 	switch {
 	case errors.Is(err, le.ErrTokenExpiredWithEmailResent):
 		return nil, status.Error(codes.FailedPrecondition, le.ErrTokenExpiredWithEmailResent.Error())
@@ -108,6 +112,7 @@ func (c *controller) ResetPassword(ctx context.Context, req *ssov1.ResetPassword
 	}
 
 	err := c.authUsecase.ResetPassword(ctx, request, endpoint)
+
 	switch {
 	case errors.Is(err, le.ErrAppIDDoesNotExist):
 		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
@@ -127,6 +132,7 @@ func (c *controller) ChangePassword(ctx context.Context, req *ssov1.ChangePasswo
 	}
 
 	err := c.authUsecase.ChangePassword(ctx, request)
+
 	switch {
 	case errors.Is(err, le.ErrAppIDDoesNotExist):
 		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
@@ -152,6 +158,7 @@ func (c *controller) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*sso
 	}
 
 	err := c.authUsecase.LogoutUser(ctx, request.UserDevice, request.AppID)
+
 	switch {
 	case errors.Is(err, le.ErrAppIDDoesNotExist):
 		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
@@ -175,6 +182,7 @@ func (c *controller) Refresh(ctx context.Context, req *ssov1.RefreshRequest) (*s
 	}
 
 	tokenData, err := c.authUsecase.RefreshTokens(ctx, request)
+
 	switch {
 	case errors.Is(err, le.ErrAppIDDoesNotExist):
 		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
@@ -208,6 +216,7 @@ func (c *controller) GetJWKS(ctx context.Context, req *ssov1.GetJWKSRequest) (*s
 	}
 
 	jwks, err := c.authUsecase.GetJWKS(ctx, request)
+
 	switch {
 	case errors.Is(err, le.ErrAppIDDoesNotExist):
 		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
@@ -228,6 +237,7 @@ func (c *controller) GetJWKS(ctx context.Context, req *ssov1.GetJWKSRequest) (*s
 			N:   jwk.N,
 			E:   jwk.E,
 		}
+
 		jwksResponse = append(jwksResponse, jwkResponse)
 	}
 
@@ -244,6 +254,7 @@ func (c *controller) GetUser(ctx context.Context, req *ssov1.GetUserRequest) (*s
 	}
 
 	user, err := c.authUsecase.GetUserByID(ctx, request)
+
 	switch {
 	case errors.Is(err, le.ErrAppIDDoesNotExist):
 		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
@@ -269,6 +280,7 @@ func (c *controller) UpdateUser(ctx context.Context, req *ssov1.UpdateUserReques
 	}
 
 	err := c.authUsecase.UpdateUser(ctx, request)
+
 	switch {
 	case errors.Is(err, le.ErrAppIDDoesNotExist):
 		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
@@ -276,8 +288,6 @@ func (c *controller) UpdateUser(ctx context.Context, req *ssov1.UpdateUserReques
 		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrUserNotFound):
 		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
-	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
-		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
 	case errors.Is(err, le.ErrEmailAlreadyTaken):
 		return nil, status.Error(codes.AlreadyExists, le.ErrEmailAlreadyTaken.Error())
 	case errors.Is(err, le.ErrCurrentPasswordIsIncorrect):
@@ -300,6 +310,7 @@ func (c *controller) DeleteUser(ctx context.Context, req *ssov1.DeleteUserReques
 	}
 
 	err := c.authUsecase.DeleteUser(ctx, request)
+
 	switch {
 	case errors.Is(err, le.ErrAppIDDoesNotExist):
 		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())

@@ -7,6 +7,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"log/slog"
+	"time"
+
 	"github.com/rshelekhov/sso/internal/lib/constant/key"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
@@ -14,8 +17,6 @@ import (
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/segmentio/ksuid"
 	"golang.org/x/crypto/bcrypt"
-	"log/slog"
-	"time"
 )
 
 type AppUsecase struct {
@@ -67,10 +68,12 @@ func (u *AppUsecase) RegisterApp(ctx context.Context, appName string) error {
 			log.LogAttrs(ctx, slog.LevelError, le.ErrAppAlreadyExists.Error())
 			return le.ErrAppAlreadyExists
 		}
+
 		log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
 			slog.String(key.AppID, appID),
 			slog.Any(key.Error, err),
 		)
+
 		return le.ErrInternalServerError
 	}
 
@@ -115,7 +118,7 @@ func (u *AppUsecase) generateAndHashSecret(name string) (string, error) {
 		return "", err
 	}
 
-	secretHmac := hmac.New(sha256.New, []byte(salt))
+	secretHmac := hmac.New(sha256.New, salt)
 	_, err := secretHmac.Write([]byte(secret))
 	if err != nil {
 		return "", err
@@ -145,10 +148,12 @@ func (u *AppUsecase) DeleteApp(ctx context.Context, appID, secretHash string) er
 			log.LogAttrs(ctx, slog.LevelError, le.ErrAppNotFound.Error())
 			return le.ErrAppNotFound
 		}
+
 		log.LogAttrs(ctx, slog.LevelError, le.ErrInternalServerError.Error(),
 			slog.String(key.AppID, appID),
 			slog.Any(key.Error, err),
 		)
+
 		return le.ErrInternalServerError
 	}
 

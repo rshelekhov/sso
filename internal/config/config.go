@@ -2,13 +2,15 @@ package config
 
 import (
 	"flag"
-	"github.com/rshelekhov/sso/internal/config/settings"
 	"log"
 	"os"
+
+	"github.com/rshelekhov/sso/internal/config/settings"
 
 	"github.com/spf13/viper"
 )
 
+//nolint:revive
 const CONFIG_PATH = "CONFIG_PATH"
 
 func MustLoad() *ServerSettings {

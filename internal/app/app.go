@@ -1,6 +1,8 @@
 package app
 
 import (
+	"log/slog"
+
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
@@ -9,7 +11,6 @@ import (
 	"github.com/rshelekhov/sso/internal/storage"
 	"github.com/rshelekhov/sso/internal/storage/postgres"
 	"github.com/rshelekhov/sso/internal/usecase"
-	"log/slog"
 )
 
 type App struct {

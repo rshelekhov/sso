@@ -1,10 +1,11 @@
 package controller
 
 import (
+	"log/slog"
+
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/internal/port"
 	"google.golang.org/grpc"
-	"log/slog"
 )
 
 type controller struct {

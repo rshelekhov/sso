@@ -2,10 +2,11 @@ package logger
 
 import (
 	"context"
-	"github.com/rshelekhov/sso/internal/lib/constant/key"
-	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogpretty"
 	"log/slog"
 	"os"
+
+	"github.com/rshelekhov/sso/internal/lib/constant/key"
+	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogpretty"
 )
 
 const (

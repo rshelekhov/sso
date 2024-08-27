@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"context"
+
 	"github.com/rshelekhov/sso/internal/model"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/stretchr/testify/mock"

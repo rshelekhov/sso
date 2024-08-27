@@ -2,6 +2,7 @@ package port
 
 import (
 	"context"
+
 	"github.com/rshelekhov/sso/internal/model"
 )
 

@@ -3,6 +3,7 @@ package localerror
 import (
 	"context"
 	"errors"
+
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -10,7 +11,6 @@ import (
 )
 
 func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
-
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {

@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"context"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
 	"github.com/stretchr/testify/mock"
@@ -43,7 +44,7 @@ func (m *MockTokenService) NewRefreshToken() (string, error) {
 	return args.String(0), args.Error(1)
 }
 
-func (m *MockTokenService) GetUserID(ctx context.Context, appID string, key string) (string, error) {
+func (m *MockTokenService) GetUserID(ctx context.Context, appID, key string) (string, error) {
 	args := m.Called(ctx, appID, key)
 	return args.String(0), args.Error(1)
 }

@@ -3,10 +3,11 @@ package s3
 import (
 	"bytes"
 	"fmt"
+	"io"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/rshelekhov/sso/internal/config/settings"
-	"io"
 )
 
 type KeyStorage struct {

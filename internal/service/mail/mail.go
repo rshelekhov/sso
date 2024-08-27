@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/port"
 	"github.com/rshelekhov/sso/internal/service/mail/mailgun"
