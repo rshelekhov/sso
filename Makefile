@@ -4,7 +4,7 @@ SERVER_PORT ?= 44044
 # Don't forget to set POSTGRESQL_URL with your credentials
 POSTGRESQL_URL ?= postgres://root:password@localhost:5432/sso_dev?sslmode=disable
 
-.PHONY: setup setup-dev migrate migrate-down db-insert run-server stop-server test-all-app test-api
+.PHONY: setup setup-dev migrate migrate-down db-insert run-server stop-server build test-all-app test-api lint
 
 setup: migrate
 
@@ -78,6 +78,9 @@ stop-server:
     		echo "No server is running on port $(SERVER_PORT)."; \
     	fi
 
+build:
+	go build -v ./cmd/sso
+
 # Run tests
 test-all-app: setup-dev run-server
 	@echo "Running tests..."
@@ -88,3 +91,12 @@ test-api: setup-dev run-server
 	@echo "Running tests..."
 	@go test -v -timeout 60s -parallel=1 ./api_tests
 	@echo "Tests completed."
+
+
+# Run linters
+lint:
+	@echo "Running linters..."
+	golangci-lint run --fix
+	@echo "Linters completed."
+
+.DEFAULT_GOAL := build
