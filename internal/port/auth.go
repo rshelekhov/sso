@@ -47,7 +47,6 @@ type (
 		DeleteRefreshToken(ctx context.Context, refreshToken string) error
 		DeleteSession(ctx context.Context, userID, deviceID, appID string) error
 		DeleteAllSessions(ctx context.Context, userID, appID string) error
-		CheckEmailUniqueness(ctx context.Context, user model.User) error
 		UpdateUser(ctx context.Context, user model.User) error
 		DeleteUser(ctx context.Context, user model.User) error
 		DeleteAllTokens(ctx context.Context, userID, appID string) error
