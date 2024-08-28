@@ -1003,23 +1003,22 @@ func (u *AuthUsecase) checkPasswordHashMatch(hash, password string) error {
 }
 
 func (u *AuthUsecase) handleEmailUpdate(ctx context.Context, userDataFromDB model.User, updatedUser *model.User, log *slog.Logger) error {
-	emailChanged := updatedUser.Email != "" && updatedUser.Email != userDataFromDB.Email
+	if updatedUser.Email == "" {
+		return nil
+	}
 
-	if !emailChanged {
+	if updatedUser.Email == userDataFromDB.Email {
 		handleError(ctx, log, le.ErrNoEmailChangesDetected, nil, slog.Any(key.UserID, userDataFromDB.ID))
 		return le.ErrNoEmailChangesDetected
 	}
 
-	if err := u.storage.CheckEmailUniqueness(ctx, *updatedUser); err != nil {
-		if errors.Is(err, le.ErrEmailAlreadyTaken) {
-			handleError(ctx, log, le.ErrEmailAlreadyTaken, err,
-				slog.Any(key.UserID, userDataFromDB.ID),
-				slog.String(key.Email, updatedUser.Email))
-			return le.ErrEmailAlreadyTaken
-		}
+	userStatus, err := u.storage.GetUserStatusByEmail(ctx, updatedUser.Email)
+	if err != nil {
+		return err
+	}
 
-		handleError(ctx, log, le.ErrFailedToCheckEmailUniqueness, err, slog.Any(key.UserID, userDataFromDB.ID))
-		return le.ErrInternalServerError
+	if userStatus == model.UserStatusActive.String() {
+		return le.ErrEmailAlreadyTaken
 	}
 
 	return nil
