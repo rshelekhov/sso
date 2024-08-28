@@ -25,7 +25,7 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -59,7 +59,7 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 
 	// Get user data to check if email was verified
 	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{
-		AppId: cfg.AppID,
+		AppID: cfg.AppID,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.GetVerified())
@@ -88,7 +88,7 @@ func TestVerifyEmail_TokenExpired(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,

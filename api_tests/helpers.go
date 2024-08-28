@@ -36,7 +36,7 @@ func cleanup(params cleanupParams) {
 
 	// Delete user
 	_, err := params.st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{
-		AppId: params.appID,
+		AppID: params.appID,
 	})
 	require.NoError(params.t, err)
 }

@@ -24,7 +24,7 @@ func TestDeleteUser_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -47,7 +47,7 @@ func TestDeleteUser_HappyPath(t *testing.T) {
 
 	// Delete user
 	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{
-		AppId: cfg.AppID,
+		AppID: cfg.AppID,
 	})
 	require.NoError(t, err)
 }
@@ -65,7 +65,7 @@ func TestDeleteUser_EmptyAppID(t *testing.T) {
 	resp, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -87,7 +87,7 @@ func TestDeleteUser_EmptyAppID(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 	// Delete user
 	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{
-		AppId: emptyValue,
+		AppID: emptyValue,
 	})
 	require.Contains(t, err.Error(), le.ErrAppIDIsRequired.Error())
 
