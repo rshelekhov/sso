@@ -24,7 +24,7 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -36,7 +36,7 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	// Request reset password instructions on email
 	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
 		Email:                    email,
-		AppId:                    cfg.AppID,
+		AppID:                    cfg.AppID,
 		ConfirmChangePasswordURL: cfg.ConfirmChangePasswordURL,
 	})
 	require.NoError(t, err)
@@ -48,7 +48,7 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	// Change password
 	_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
 		ResetPasswordToken: resetPasswordToken,
-		AppId:              cfg.AppID,
+		AppID:              cfg.AppID,
 		UpdatedPassword:    randomFakePassword(),
 	})
 	require.NoError(t, err)
@@ -79,7 +79,7 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -91,7 +91,7 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	// Request reset password instructions on email
 	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
 		Email:                    email,
-		AppId:                    cfg.AppID,
+		AppID:                    cfg.AppID,
 		ConfirmChangePasswordURL: cfg.ConfirmChangePasswordURL,
 	})
 	require.NoError(t, err)
@@ -107,7 +107,7 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	// Try to change password
 	_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
 		ResetPasswordToken: resetPasswordToken,
-		AppId:              cfg.AppID,
+		AppID:              cfg.AppID,
 		UpdatedPassword:    randomFakePassword(),
 	})
 	require.Error(t, err)
@@ -143,7 +143,7 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -155,7 +155,7 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 	// Request reset password instructions on email
 	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
 		Email:                    emptyValue,
-		AppId:                    cfg.AppID,
+		AppID:                    cfg.AppID,
 		ConfirmChangePasswordURL: cfg.ConfirmChangePasswordURL,
 	})
 	require.Error(t, err)
@@ -186,7 +186,7 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -217,7 +217,7 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 			// Request reset password instructions on email
 			_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
 				Email:                    email,
-				AppId:                    cfg.AppID,
+				AppID:                    cfg.AppID,
 				ConfirmChangePasswordURL: cfg.ConfirmChangePasswordURL,
 			})
 			require.NoError(t, err)
@@ -229,7 +229,7 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 			// Change password
 			_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
 				ResetPasswordToken: resetPasswordToken,
-				AppId:              cfg.AppID,
+				AppID:              cfg.AppID,
 				UpdatedPassword:    tt.password,
 			})
 			require.Error(t, tt.expectedErr)

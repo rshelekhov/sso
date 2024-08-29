@@ -24,7 +24,7 @@ func TestGetUser_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -47,7 +47,7 @@ func TestGetUser_HappyPath(t *testing.T) {
 
 	// Get user
 	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{
-		AppId: cfg.AppID,
+		AppID: cfg.AppID,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.GetEmail())
@@ -76,7 +76,7 @@ func TestGetUser_EmptyAppID(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -99,7 +99,7 @@ func TestGetUser_EmptyAppID(t *testing.T) {
 
 	// Get user
 	_, err = st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{
-		AppId: emptyValue,
+		AppID: emptyValue,
 	})
 
 	require.Contains(t, err.Error(), le.ErrAppIDIsRequired.Error())

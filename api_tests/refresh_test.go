@@ -23,7 +23,7 @@ func TestRefresh_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -42,7 +42,7 @@ func TestRefresh_HappyPath(t *testing.T) {
 	// Refresh tokens
 	respRefresh, err := st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
 		RefreshToken: refreshToken,
-		AppId:        cfg.AppID,
+		AppID:        cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -74,7 +74,7 @@ func TestRefresh_FailCases(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -143,7 +143,7 @@ func TestRefresh_FailCases(t *testing.T) {
 			// Refresh tokens
 			_, err = st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
 				RefreshToken: tt.refreshToken,
-				AppId:        tt.appID,
+				AppID:        tt.appID,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: tt.userAgent,
 					Ip:        tt.ip,
@@ -177,7 +177,7 @@ func TestRefresh_DeviceNotFound(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -195,7 +195,7 @@ func TestRefresh_DeviceNotFound(t *testing.T) {
 	// Refresh tokens
 	_, err = st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
 		RefreshToken: refreshToken,
-		AppId:        cfg.AppID,
+		AppID:        cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: gofakeit.UserAgent(),
 			Ip:        ip,

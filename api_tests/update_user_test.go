@@ -24,7 +24,7 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -50,7 +50,7 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 		Email:           gofakeit.Email(),
 		CurrentPassword: pass,
 		UpdatedPassword: randomFakePassword(),
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 	})
 	require.NoError(t, err)
 
@@ -78,7 +78,7 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           emailTaken,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -94,7 +94,7 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 	resp2Reg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 		VerificationURL: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -120,7 +120,7 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 		Email:           emailTaken,
 		CurrentPassword: pass,
 		UpdatedPassword: randomFakePassword(),
-		AppId:           cfg.AppID,
+		AppID:           cfg.AppID,
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), le.ErrEmailAlreadyTaken.Error())
@@ -174,6 +174,14 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			expectedErr: le.ErrCurrentPasswordIsIncorrect,
 		},
 		{
+			name:        "Current password is empty",
+			regEmail:    gofakeit.Email(),
+			curPassword: "",
+			updPassword: pass,
+			appID:       cfg.AppID,
+			expectedErr: le.ErrCurrentPasswordIsRequired,
+		},
+		{
 			name:        "No password changes detected",
 			regEmail:    gofakeit.Email(),
 			curPassword: pass,
@@ -200,7 +208,7 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:           tt.regEmail,
 				Password:        pass,
-				AppId:           cfg.AppID,
+				AppID:           cfg.AppID,
 				VerificationURL: cfg.VerificationURL,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: userAgent,
@@ -226,7 +234,7 @@ func TestUpdateUser_FailCases(t *testing.T) {
 				Email:           tt.updEmail,
 				CurrentPassword: tt.curPassword,
 				UpdatedPassword: tt.updPassword,
-				AppId:           tt.appID,
+				AppID:           tt.appID,
 			})
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tt.expectedErr.Error())
