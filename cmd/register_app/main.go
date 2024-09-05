@@ -7,7 +7,6 @@ package main
 import (
 	"context"
 	"flag"
-	"os"
 
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
@@ -22,16 +21,14 @@ func main() {
 
 	flag.StringVar(&appName, "name", appName, "Name of the app")
 	flag.StringVar(&appName, "n", appName, "Name of the app")
-	flag.Parse()
 
+	cfg := config.MustLoad()
+
+	log := logger.SetupLogger(cfg.AppEnv)
 	if appName == "" {
 		// I'm fine with panic for now, as it's an auxiliary utility.
 		panic("app name is required")
 	}
-
-	cfg := config.MustLoadPath(configPath())
-
-	log := logger.SetupLogger(cfg.AppEnv)
 
 	pg, err := postgres.NewStorage(cfg)
 	if err != nil {
@@ -63,18 +60,4 @@ func main() {
 	if err != nil {
 		return
 	}
-}
-
-const (
-	//nolint:revive
-	CONFIG_PATH       = "CONFIG_PATH"
-	defaultConfigPath = "./config/.env"
-)
-
-func configPath() string {
-	if v := os.Getenv(CONFIG_PATH); v != "" {
-		return v
-	}
-
-	return defaultConfigPath
 }
