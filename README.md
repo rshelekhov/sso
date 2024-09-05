@@ -28,7 +28,6 @@ And the last one, you need to have `psql` (PostgreSQL interactive terminal), bec
 
 Add config file to `./config/.env` (see an example in the `./config/.env.example`).
 
-
 Set path to config:
 ```bash
 export CONFIG_PATH=./config/.env
@@ -64,12 +63,11 @@ For more details you can see other commands in the `Makefile`.
 
 ### And coding style tests
 
-Explain what these tests test and why
-add details about linters
+This project uses linters to ensure code quality, consistency, and to catch potential issues such as code smells, bugs, or performance concerns early in the development process. Linters help maintain clean and efficient code by automatically checking it against predefined rules and best practices.
 
-```
-Give an example
-```
+Linters are managed using the library https://github.com/golangci/golangci-lint.
+
+To run the linters manually, use the command `make lint`.
 
 ## Deployment
 
@@ -89,12 +87,9 @@ docker run -d \
   grpc-sso:latest
 ```
 
-Then you need to register your app:
-Объяснить, что т.к. это пет проект, то регистрация упрощена и это можно сделать через терминал, подключившись к серверу.
+Then you need to register your app. It’s easier to do this now through a manual query to add a record in PostgreSQL. Additionally, there is a small CLI utility in the project for registering applications (see cmd/register_app). Since this is a pet project, a web interface for managing your instance has not been implemented yet.
 
-- 
-
-You can also check the settings for GitHub Actions in the `.github/workflows` folder to see how the application is deployed on dev and prod servers.
+You can also check the settings for GitHub Actions in the `.github/workflows` folder to see how the application is deployed on dev server.
 
 ## Features
 
