@@ -52,6 +52,9 @@ jobs:
             # Create config file on the server
             echo "${{ secrets.ENV_CONFIG_DEV }}" > ./config/grpc-sso/.env
           
+            # Create reframed-network if it doesn't exist
+            docker network inspect reframed-network >/dev/null 2>&1 || docker network create reframed-network
+
             # Stop and remove the existing container (if any)
             docker stop sso-app || true
             docker rm sso-app || true
@@ -62,6 +65,7 @@ jobs:
             # Run the new container with the CONFIG_PATH environment variable for running the app
             # and POSTGRESQL_URL environment variable set for running migrations
             docker run -d \
+              --network reframed-network \
               -v ${PWD}/config/grpc-sso:/src/config \
               -e CONFIG_PATH=/src/config/.env \
               -e POSTGRESQL_URL=${{ secrets.POSTGRESQL_URL }} \
