@@ -89,6 +89,11 @@ docker run -d \
   grpc-sso:latest
 ```
 
+Then you need to register your app:
+Объяснить, что т.к. это пет проект, то регистрация упрощена и это можно сделать через терминал, подключившись к серверу.
+
+- 
+
 You can also check the settings for GitHub Actions in the `.github/workflows` folder to see how the application is deployed on dev and prod servers.
 
 ## Features
@@ -115,3 +120,7 @@ You can also check the settings for GitHub Actions in the `.github/workflows` fo
 - [log/slog](https://pkg.go.dev/log/slog) as the centralized Syslog logger
 - [ksuid](https://github.com/segmentio/ksuid) as the unique identifier
 - [golangci-lint](https://github.com/golangci/golangci-lint) as a Go linters runner
+
+## Documentation
+
+You can see more details about API in [the documentation](https://www.postman.com/warped-crater-962061/workspace/grpc-sso) in Postman
