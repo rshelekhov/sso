@@ -118,4 +118,4 @@ You can also check the settings for GitHub Actions in the `.github/workflows` fo
 
 ## Documentation
 
-You can see more details about API in [the documentation](https://www.postman.com/warped-crater-962061/workspace/grpc-sso) in Postman
+You can see more details about API in [the documentation](https://www.postman.com/warped-crater-962061/workspace/grpc-sso) in Postman.
