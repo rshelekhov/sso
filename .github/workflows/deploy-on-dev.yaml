@@ -14,7 +14,6 @@ env:
 
 jobs:
   deploy:
-    if: github.event.pull_request.merged == true
     name: Deploy on DEV server
     runs-on: ubuntu-latest
 
