@@ -1,11 +1,11 @@
 name: Deploy on DEV
 
 on:
-  pull_request:
-    types:
-      - closed
-    branches:
-      - dev
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number in "v1.2.3" format'
+        required: true
 
 env:
   DEV_SERVER_USER: ${{ secrets.DEV_SERVER_USER }}
