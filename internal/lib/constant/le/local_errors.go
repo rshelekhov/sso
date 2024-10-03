@@ -13,9 +13,11 @@ const (
 	//	storage errors
 	// ===========================================================================
 
-	ErrLocalKeyStorageSettingsEmpty LocalError = "local key storage settings is empty"
-	ErrS3KeyStorageSettingsEmpty    LocalError = "s3 key storage settings is empty"
-	ErrFailedToCommitTransaction    LocalError = "failed to commit transaction"
+	ErrPostgresAppStorageSettingsEmpty LocalError = "postgres app storage settings is empty"
+	ErrMongoAppStorageSettingsEmpty    LocalError = "mongo app storage settings is empty"
+	ErrLocalKeyStorageSettingsEmpty    LocalError = "local key storage settings is empty"
+	ErrS3KeyStorageSettingsEmpty       LocalError = "s3 key storage settings is empty"
+	ErrFailedToCommitTransaction       LocalError = "failed to commit transaction"
 
 	// ===========================================================================
 	//	app errors

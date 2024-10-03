@@ -11,20 +11,20 @@ import (
 	"github.com/rshelekhov/sso/internal/storage/postgres/sqlc"
 )
 
-// NewStorage creates a new Postgres storage
+// NewStorage creates a new storage
 func NewStorage(cfg *config.ServerSettings) (*pgxpool.Pool, error) {
 	const method = "storage.postgres.NewStorage"
 
-	poolCfg, err := pgxpool.ParseConfig(cfg.Postgres.ConnURL)
+	poolCfg, err := pgxpool.ParseConfig(cfg.Storage.ConnURL)
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to parse config: %w", method, err)
 	}
 
-	poolCfg.MaxConnLifetime = cfg.Postgres.IdleTimeout
-	poolCfg.MaxConns = int32(cfg.Postgres.ConnPoolSize)
+	poolCfg.MaxConnLifetime = cfg.Storage.IdleTimeout
+	poolCfg.MaxConns = int32(cfg.Storage.ConnPoolSize)
 
-	dialer := &net.Dialer{KeepAlive: cfg.Postgres.DialTimeout}
-	dialer.Timeout = cfg.Postgres.DialTimeout
+	dialer := &net.Dialer{KeepAlive: cfg.Storage.DialTimeout}
+	dialer.Timeout = cfg.Storage.DialTimeout
 	poolCfg.ConnConfig.DialFunc = dialer.DialContext
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), poolCfg)

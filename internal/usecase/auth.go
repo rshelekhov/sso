@@ -248,7 +248,7 @@ func generateToken() (string, error) {
 	return hex.EncodeToString(token), nil
 }
 
-// TODO: Move sessions from Postgres to Redis
+// TODO: Move sessions from Storage to Redis
 
 // CreateUserSession creates new user session in the system and returns jwtoken
 func (u *AuthUsecase) CreateUserSession(
