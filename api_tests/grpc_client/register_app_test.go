@@ -1,11 +1,11 @@
-package api_tests
+package grpc_client
 
 import (
 	"errors"
 	"github.com/brianvoe/gofakeit/v6"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/api_tests/mocks"
-	"github.com/rshelekhov/sso/api_tests/suite"
+	mocks2 "github.com/rshelekhov/sso/api_tests/grpc_client/mocks"
+	"github.com/rshelekhov/sso/api_tests/grpc_client/suite"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/usecase"
 	"github.com/stretchr/testify/mock"
@@ -76,8 +76,8 @@ func TestRegisterApp_GeneratePrivateKeyError(t *testing.T) {
 	ctx, _ := suite.New(t)
 
 	// Create mocks
-	mockTS := mocks.NewMockTokenService()
-	mockStorage := mocks.NewMockAppStorage()
+	mockTS := mocks2.NewMockTokenService()
+	mockStorage := mocks2.NewMockAppStorage()
 
 	// Set up the mock to return an error when GeneratePrivateKey is called
 	mockTS.On("GeneratePrivateKey", mock.Anything).Return(errors.New("failed to generate PEM key pair"))
@@ -112,8 +112,8 @@ func TestRegisterApp_GeneratePrivateKeyError_DeleteAppError(t *testing.T) {
 	ctx, _ := suite.New(t)
 
 	// Create mocks
-	mockTS := mocks.NewMockTokenService()
-	mockStorage := mocks.NewMockAppStorage()
+	mockTS := mocks2.NewMockTokenService()
+	mockStorage := mocks2.NewMockAppStorage()
 
 	// Set up the mock to return an error when GeneratePrivateKey is called
 	mockTS.On("GeneratePrivateKey", mock.Anything).Return(errors.New("failed to generate PEM key pair"))

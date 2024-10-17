@@ -1,4 +1,4 @@
-package api_tests
+package grpc_client
 
 import (
 	"github.com/spf13/viper"

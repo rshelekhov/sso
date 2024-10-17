@@ -1,8 +1,8 @@
-package api_tests
+package grpc_client
 
 import (
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/api_tests/suite"
+	"github.com/rshelekhov/sso/api_tests/grpc_client/suite"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/stretchr/testify/require"
 	"testing"

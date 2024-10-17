@@ -2,12 +2,12 @@ package suite
 
 import (
 	"context"
+	"github.com/rshelekhov/sso/api_tests/grpc_client/suite/storage/postgres"
 	"net"
 	"os"
 	"testing"
 
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/api_tests/suite/storage/postgres"
 	"github.com/rshelekhov/sso/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
