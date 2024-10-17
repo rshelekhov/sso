@@ -25,8 +25,8 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -40,7 +40,7 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 
 	// Verify email
 	_, err = st.AuthClient.VerifyEmail(ctx, &ssov1.VerifyEmailRequest{
-		VerificationToken: verificationToken,
+		Token: verificationToken,
 	})
 	require.NoError(t, err)
 
@@ -59,7 +59,7 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 
 	// Get user data to check if email was verified
 	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{
-		AppID: cfg.AppID,
+		AppId: cfg.AppID,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.GetVerified())
@@ -88,8 +88,8 @@ func TestVerifyEmail_TokenExpired(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -107,7 +107,7 @@ func TestVerifyEmail_TokenExpired(t *testing.T) {
 
 	// Try to verify email (a new email with verification token should be sent)
 	_, err = st.AuthClient.VerifyEmail(ctx, &ssov1.VerifyEmailRequest{
-		VerificationToken: verificationToken,
+		Token: verificationToken,
 	})
 	require.Error(t, err)
 

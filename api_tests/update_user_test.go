@@ -24,8 +24,8 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -50,7 +50,7 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 		Email:           gofakeit.Email(),
 		CurrentPassword: pass,
 		UpdatedPassword: randomFakePassword(),
-		AppID:           cfg.AppID,
+		AppId:           cfg.AppID,
 	})
 	require.NoError(t, err)
 
@@ -78,8 +78,8 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           emailTaken,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -94,8 +94,8 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 	resp2Reg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -120,7 +120,7 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 		Email:           emailTaken,
 		CurrentPassword: pass,
 		UpdatedPassword: randomFakePassword(),
-		AppID:           cfg.AppID,
+		AppId:           cfg.AppID,
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), le.ErrEmailAlreadyTaken.Error())
@@ -208,8 +208,8 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:           tt.regEmail,
 				Password:        pass,
-				AppID:           cfg.AppID,
-				VerificationURL: cfg.VerificationURL,
+				AppId:           cfg.AppID,
+				VerificationUrl: cfg.VerificationURL,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: userAgent,
 					Ip:        ip,
@@ -234,7 +234,7 @@ func TestUpdateUser_FailCases(t *testing.T) {
 				Email:           tt.updEmail,
 				CurrentPassword: tt.curPassword,
 				UpdatedPassword: tt.updPassword,
-				AppID:           tt.appID,
+				AppId:           tt.appID,
 			})
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tt.expectedErr.Error())

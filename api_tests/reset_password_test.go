@@ -24,8 +24,8 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -35,9 +35,9 @@ func TestResetPassword_HappyPath(t *testing.T) {
 
 	// Request reset password instructions on email
 	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
-		Email:                    email,
-		AppID:                    cfg.AppID,
-		ConfirmChangePasswordURL: cfg.ConfirmChangePasswordURL,
+		Email:      email,
+		AppId:      cfg.AppID,
+		ConfirmUrl: cfg.ConfirmChangePasswordURL,
 	})
 	require.NoError(t, err)
 
@@ -47,9 +47,9 @@ func TestResetPassword_HappyPath(t *testing.T) {
 
 	// Change password
 	_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
-		ResetPasswordToken: resetPasswordToken,
-		AppID:              cfg.AppID,
-		UpdatedPassword:    randomFakePassword(),
+		Token:           resetPasswordToken,
+		AppId:           cfg.AppID,
+		UpdatedPassword: randomFakePassword(),
 	})
 	require.NoError(t, err)
 
@@ -79,8 +79,8 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -90,9 +90,9 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 
 	// Request reset password instructions on email
 	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
-		Email:                    email,
-		AppID:                    cfg.AppID,
-		ConfirmChangePasswordURL: cfg.ConfirmChangePasswordURL,
+		Email:      email,
+		AppId:      cfg.AppID,
+		ConfirmUrl: cfg.ConfirmChangePasswordURL,
 	})
 	require.NoError(t, err)
 
@@ -106,9 +106,9 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 
 	// Try to change password
 	_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
-		ResetPasswordToken: resetPasswordToken,
-		AppID:              cfg.AppID,
-		UpdatedPassword:    randomFakePassword(),
+		Token:           resetPasswordToken,
+		AppId:           cfg.AppID,
+		UpdatedPassword: randomFakePassword(),
 	})
 	require.Error(t, err)
 
@@ -143,8 +143,8 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -154,9 +154,9 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 
 	// Request reset password instructions on email
 	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
-		Email:                    emptyValue,
-		AppID:                    cfg.AppID,
-		ConfirmChangePasswordURL: cfg.ConfirmChangePasswordURL,
+		Email:      emptyValue,
+		AppId:      cfg.AppID,
+		ConfirmUrl: cfg.ConfirmChangePasswordURL,
 	})
 	require.Error(t, err)
 
@@ -186,8 +186,8 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -216,9 +216,9 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Request reset password instructions on email
 			_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
-				Email:                    email,
-				AppID:                    cfg.AppID,
-				ConfirmChangePasswordURL: cfg.ConfirmChangePasswordURL,
+				Email:      email,
+				AppId:      cfg.AppID,
+				ConfirmUrl: cfg.ConfirmChangePasswordURL,
 			})
 			require.NoError(t, err)
 
@@ -228,9 +228,9 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 
 			// Change password
 			_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
-				ResetPasswordToken: resetPasswordToken,
-				AppID:              cfg.AppID,
-				UpdatedPassword:    tt.password,
+				Token:           resetPasswordToken,
+				AppId:           cfg.AppID,
+				UpdatedPassword: tt.password,
 			})
 			require.Error(t, tt.expectedErr)
 		})

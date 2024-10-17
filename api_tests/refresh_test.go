@@ -23,8 +23,8 @@ func TestRefresh_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -42,7 +42,7 @@ func TestRefresh_HappyPath(t *testing.T) {
 	// Refresh tokens
 	respRefresh, err := st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
 		RefreshToken: refreshToken,
-		AppID:        cfg.AppID,
+		AppId:        cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -74,8 +74,8 @@ func TestRefresh_FailCases(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -143,7 +143,7 @@ func TestRefresh_FailCases(t *testing.T) {
 			// Refresh tokens
 			_, err = st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
 				RefreshToken: tt.refreshToken,
-				AppID:        tt.appID,
+				AppId:        tt.appID,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: tt.userAgent,
 					Ip:        tt.ip,
@@ -177,8 +177,8 @@ func TestRefresh_DeviceNotFound(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -195,7 +195,7 @@ func TestRefresh_DeviceNotFound(t *testing.T) {
 	// Refresh tokens
 	_, err = st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
 		RefreshToken: refreshToken,
-		AppID:        cfg.AppID,
+		AppId:        cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: gofakeit.UserAgent(),
 			Ip:        ip,

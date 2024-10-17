@@ -51,7 +51,7 @@ func (c *controller) RegisterUser(ctx context.Context, req *ssov1.RegisterUserRe
 		return nil, err
 	}
 
-	endpoint := req.GetVerificationURL()
+	endpoint := req.GetVerificationUrl()
 	if endpoint == emptyValue {
 		return nil, status.Error(codes.InvalidArgument, le.ErrEmailVerificationEndpointIsRequired.Error())
 	}
@@ -106,7 +106,7 @@ func (c *controller) ResetPassword(ctx context.Context, req *ssov1.ResetPassword
 		return nil, err
 	}
 
-	endpoint := req.GetConfirmChangePasswordURL()
+	endpoint := req.GetConfirmUrl()
 	if endpoint == emptyValue {
 		return nil, status.Error(codes.InvalidArgument, le.ErrConfirmChangePasswordEndpointIsRequired.Error())
 	}
