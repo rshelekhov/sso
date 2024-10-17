@@ -38,7 +38,7 @@ Set URL for PostgresQL:
 export POSTGRESQL_URL='postgres://login:password@host:port/db_name?sslmode=disable'
 ```
 
-By default, this app use port `44044`. Set `SERVER_PORT` environment variable with this or your value:
+By default, this app use port `44044` for the gRPC server and port `8081` for the gRPC-Gateway. Set `SERVER_PORT` environment variable with this or your value:
 ```bash
 export SERVER_PORT=44044
 ```
@@ -109,6 +109,7 @@ You can also check the settings for GitHub Actions in the `.github/workflows` fo
 - PostgresQL as a main database
 - S3 as a storage for pem files
 - Mailgun as an email service
+- [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway) as a reverse proxy
 - [golang-migrate](https://github.com/golang-migrate/migrate) for the database migrations
 - [sqlc](https://github.com/sqlc-dev/sqlc) as the generator type-safe code from SQL
 - [viper](https://github.com/spf13/viper) as a complete configuration solution for Go applications including [12-Factor apps](https://12factor.net/#the_twelve_factors)
@@ -118,4 +119,4 @@ You can also check the settings for GitHub Actions in the `.github/workflows` fo
 
 ## Documentation
 
-You can see more details about API in [the documentation](https://www.postman.com/warped-crater-962061/workspace/grpc-sso) in Postman.
+You can find more details about the API in the documentation [via Postman](https://www.postman.com/warped-crater-962061/workspace/grpc-sso) or [via Swagger UI](https://app.swaggerhub.com/apis/RomanShelekhov/grpc-sso-api/).
