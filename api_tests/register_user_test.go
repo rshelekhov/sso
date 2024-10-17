@@ -31,8 +31,8 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -45,7 +45,7 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 
 	// Get JWKS
 	jwks, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{
-		AppID: cfg.AppID,
+		AppId: cfg.AppID,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, jwks.GetJwks())
@@ -120,8 +120,8 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -136,8 +136,8 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 	respDoubleReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -228,8 +228,8 @@ func TestRegisterUser_FailCases(t *testing.T) {
 			_, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:           tt.email,
 				Password:        tt.password,
-				AppID:           tt.appID,
-				VerificationURL: cfg.VerificationURL,
+				AppId:           tt.appID,
+				VerificationUrl: cfg.VerificationURL,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: tt.userAgent,
 					Ip:        tt.ip,
@@ -254,8 +254,8 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 	resp1Reg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -270,8 +270,8 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 	resp2Reg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -305,8 +305,8 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -328,7 +328,7 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 
 	// Delete first user
 	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{
-		AppID: cfg.AppID,
+		AppId: cfg.AppID,
 	})
 	require.NoError(t, err)
 
@@ -336,8 +336,8 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	respReg, err = st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        randomFakePassword(),
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: gofakeit.UserAgent(),
 			Ip:        gofakeit.IPv4Address(),
