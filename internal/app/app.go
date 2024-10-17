@@ -2,8 +2,9 @@ package app
 
 import (
 	"context"
-	"github.com/rshelekhov/sso/internal/app/gateway"
 	"log/slog"
+
+	"github.com/rshelekhov/sso/internal/app/gateway"
 
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	"github.com/rshelekhov/sso/internal/config"

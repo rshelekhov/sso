@@ -24,7 +24,7 @@ func main() {
 
 	log.Info("starting application")
 	log.Debug("logger debug mode enabled")
-	
+
 	application := app.New(context.Background(), log, cfg)
 
 	go func() {
