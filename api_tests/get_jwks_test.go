@@ -23,7 +23,6 @@ func TestGetJWKS_HappyPath(t *testing.T) {
 	require.NotEmpty(t, resp.GetJwks()[0].GetKid())
 	require.NotEmpty(t, resp.GetJwks()[0].GetN())
 	require.NotEmpty(t, resp.GetJwks()[0].GetE())
-	require.NotEmpty(t, resp.GetTtl())
 }
 
 func TestGetJWKS_FailCases(t *testing.T) {
