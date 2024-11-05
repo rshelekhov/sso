@@ -9,7 +9,6 @@ import (
 	"github.com/rshelekhov/sso/internal/model"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -243,7 +242,6 @@ func (c *controller) GetJWKS(ctx context.Context, req *ssov1.GetJWKSRequest) (*s
 
 	return &ssov1.GetJWKSResponse{
 		Jwks: jwksResponse,
-		Ttl:  durationpb.New(jwks.TTL),
 	}, nil
 }
 
