@@ -80,7 +80,7 @@ func (c *controller) RegisterUser(ctx context.Context, req *ssov1.RegisterUserRe
 	return &ssov1.RegisterUserResponse{TokenData: tokenDataResponse}, nil
 }
 
-func (c *controller) VerifyEmail(ctx context.Context, req *ssov1.VerifyEmailRequest) (*ssov1.Empty, error) {
+func (c *controller) VerifyEmail(ctx context.Context, req *ssov1.VerifyEmailRequest) (*ssov1.VerifyEmailResponse, error) {
 	request := &model.VerifyEmailRequestData{}
 	if err := validateVerifyEmailData(req, request); err != nil {
 		return nil, err
@@ -97,10 +97,10 @@ func (c *controller) VerifyEmail(ctx context.Context, req *ssov1.VerifyEmailRequ
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.Empty{}, nil
+	return &ssov1.VerifyEmailResponse{}, nil
 }
 
-func (c *controller) ResetPassword(ctx context.Context, req *ssov1.ResetPasswordRequest) (*ssov1.Empty, error) {
+func (c *controller) ResetPassword(ctx context.Context, req *ssov1.ResetPasswordRequest) (*ssov1.ResetPasswordResponse, error) {
 	request := &model.ResetPasswordRequestData{}
 	if err := validateResetPasswordData(req, request); err != nil {
 		return nil, err
@@ -122,10 +122,10 @@ func (c *controller) ResetPassword(ctx context.Context, req *ssov1.ResetPassword
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.Empty{}, nil
+	return &ssov1.ResetPasswordResponse{}, nil
 }
 
-func (c *controller) ChangePassword(ctx context.Context, req *ssov1.ChangePasswordRequest) (*ssov1.Empty, error) {
+func (c *controller) ChangePassword(ctx context.Context, req *ssov1.ChangePasswordRequest) (*ssov1.ChangePasswordResponse, error) {
 	request := &model.ChangePasswordRequestData{}
 	if err := validateChangePasswordData(req, request); err != nil {
 		return nil, err
@@ -148,10 +148,10 @@ func (c *controller) ChangePassword(ctx context.Context, req *ssov1.ChangePasswo
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.Empty{}, nil
+	return &ssov1.ChangePasswordResponse{}, nil
 }
 
-func (c *controller) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.Empty, error) {
+func (c *controller) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.LogoutResponse, error) {
 	request := &model.UserRequestData{}
 	if err := validateLogout(req, request); err != nil {
 		return nil, err
@@ -172,7 +172,7 @@ func (c *controller) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*sso
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.Empty{}, nil
+	return &ssov1.LogoutResponse{}, nil
 }
 
 func (c *controller) Refresh(ctx context.Context, req *ssov1.RefreshRequest) (*ssov1.RefreshResponse, error) {
@@ -273,7 +273,7 @@ func (c *controller) GetUser(ctx context.Context, req *ssov1.GetUserRequest) (*s
 	}, nil
 }
 
-func (c *controller) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.Empty, error) {
+func (c *controller) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.UpdateUserResponse, error) {
 	request := &model.UserRequestData{}
 	if err := validateUpdateUser(req, request); err != nil {
 		return nil, err
@@ -300,10 +300,10 @@ func (c *controller) UpdateUser(ctx context.Context, req *ssov1.UpdateUserReques
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.Empty{}, nil
+	return &ssov1.UpdateUserResponse{}, nil
 }
 
-func (c *controller) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRequest) (*ssov1.Empty, error) {
+func (c *controller) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRequest) (*ssov1.DeleteUserResponse, error) {
 	request := &model.UserRequestData{}
 	if err := validateDeleteUser(req, request); err != nil {
 		return nil, err
@@ -320,5 +320,5 @@ func (c *controller) DeleteUser(ctx context.Context, req *ssov1.DeleteUserReques
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.Empty{}, nil
+	return &ssov1.DeleteUserResponse{}, nil
 }
