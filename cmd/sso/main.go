@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -25,13 +24,11 @@ func main() {
 	log.Info("starting application")
 	log.Debug("logger debug mode enabled")
 
-	application := app.New(context.Background(), log, cfg)
+	application := app.New(log, cfg)
 
 	go func() {
 		application.GRPCServer.MustRun()
 	}()
-
-	application.HTTPServer.Start()
 
 	// Graceful shutdown
 	stop := make(chan os.Signal, 1)

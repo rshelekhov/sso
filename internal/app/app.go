@@ -1,10 +1,7 @@
 package app
 
 import (
-	"context"
 	"log/slog"
-
-	"github.com/rshelekhov/sso/internal/app/gateway"
 
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	"github.com/rshelekhov/sso/internal/config"
@@ -18,10 +15,9 @@ import (
 
 type App struct {
 	GRPCServer *grpcapp.App
-	HTTPServer *gateway.App
 }
 
-func New(ctx context.Context, log *slog.Logger, cfg *config.ServerSettings) *App {
+func New(log *slog.Logger, cfg *config.ServerSettings) *App {
 	// Initialize storages
 	pg, err := postgres.NewStorage(cfg)
 	if err != nil {
@@ -62,11 +58,7 @@ func New(ctx context.Context, log *slog.Logger, cfg *config.ServerSettings) *App
 	// App
 	grpcServer := grpcapp.New(log, appUsecase, authUsecases, cfg.GRPCServer.Port)
 
-	// Gateway
-	httpServer := gateway.New(ctx, log, cfg.GRPCServer, cfg.HTTPServer)
-
 	return &App{
 		GRPCServer: grpcServer,
-		HTTPServer: httpServer,
 	}
 }
