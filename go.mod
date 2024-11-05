@@ -8,7 +8,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.17.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/jackc/pgx/v5 v5.5.5
-	github.com/rshelekhov/sso-protos v0.1.0
+	github.com/rshelekhov/sso-protos v0.1.4
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.9.0
