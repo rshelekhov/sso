@@ -23,8 +23,8 @@ func TestLogout_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -46,7 +46,7 @@ func TestLogout_HappyPath(t *testing.T) {
 
 	// Logout user
 	_, err = st.AuthClient.Logout(ctx, &ssov1.LogoutRequest{
-		AppID: cfg.AppID,
+		AppId: cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,

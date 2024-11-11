@@ -31,8 +31,8 @@ func TestLogin_HappyPath(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -45,7 +45,7 @@ func TestLogin_HappyPath(t *testing.T) {
 	respLogin, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
 		Email:    email,
 		Password: pass,
-		AppID:    cfg.AppID,
+		AppId:    cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -58,7 +58,7 @@ func TestLogin_HappyPath(t *testing.T) {
 
 	// Get JWKS
 	jwks, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{
-		AppID: cfg.AppID,
+		AppId: cfg.AppID,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, jwks.GetJwks())
@@ -142,8 +142,8 @@ func TestLogin_FailCases(t *testing.T) {
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppID:           cfg.AppID,
-		VerificationURL: cfg.VerificationURL,
+		AppId:           cfg.AppID,
+		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -244,7 +244,7 @@ func TestLogin_FailCases(t *testing.T) {
 			_, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
 				Email:    tt.email,
 				Password: tt.password,
-				AppID:    tt.appID,
+				AppId:    tt.appID,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: tt.userAgent,
 					Ip:        tt.ip,

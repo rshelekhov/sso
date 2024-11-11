@@ -56,9 +56,9 @@ func New(log *slog.Logger, cfg *config.ServerSettings) *App {
 	authUsecases := usecase.NewAuthUsecase(log, authStorage, tokenService, mailService)
 
 	// App
-	grpcApp := grpcapp.New(log, appUsecase, authUsecases, cfg.GRPCServer.Port)
+	grpcServer := grpcapp.New(log, appUsecase, authUsecases, cfg.GRPCServer.Port)
 
 	return &App{
-		GRPCServer: grpcApp,
+		GRPCServer: grpcServer,
 	}
 }

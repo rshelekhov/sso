@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (c *controller) RegisterApp(ctx context.Context, req *ssov1.RegisterAppRequest) (*ssov1.Empty, error) {
+func (c *controller) RegisterApp(ctx context.Context, req *ssov1.RegisterAppRequest) (*ssov1.RegisterAppResponse, error) {
 	if err := validateRegisterAppData(req); err != nil {
 		return nil, err
 	}
@@ -26,5 +26,5 @@ func (c *controller) RegisterApp(ctx context.Context, req *ssov1.RegisterAppRequ
 		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
 	}
 
-	return &ssov1.Empty{}, nil
+	return &ssov1.RegisterAppResponse{}, nil
 }
