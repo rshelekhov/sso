@@ -6,84 +6,90 @@ import (
 	"fmt"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
-	"github.com/segmentio/ksuid"
 	"time"
 )
 
-type Service interface {
-	CreateUserSession(ctx context.Context, user entity.User, userDeviceRequest entity.UserDeviceRequestData) (entity.SessionTokens, error)
-	CheckSessionAndDevice(ctx context.Context, refreshToken string, userDevice entity.UserDeviceRequestData) (entity.Session, error)
-	GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
-	DeleteRefreshToken(ctx context.Context, refreshToken string) error
-	DeleteSession(ctx context.Context, userID, deviceID, appID string) error
-	DeleteUserSessions(ctx context.Context, user entity.User) error
-}
+type (
+	Service interface {
+		CreateUserSession(ctx context.Context, reqData entity.SessionRequestData) (entity.SessionTokens, error)
+		CheckSessionAndDevice(ctx context.Context, refreshToken string, userDevice entity.UserDeviceRequestData) (entity.Session, error)
+		GetUserDeviceID(ctx context.Context, reqData entity.SessionRequestData) (string, error)
+		DeleteRefreshToken(ctx context.Context, refreshToken string) error
+		DeleteSession(ctx context.Context, sessionReqData entity.SessionRequestData) error
+		DeleteUserSessions(ctx context.Context, user entity.User) error
+	}
 
-type Storage interface {
-	CreateUserSession(ctx context.Context, session entity.Session) error
-	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error)
-	UpdateLastVisitedAt(ctx context.Context, deviceID, appID string, latestVisitedAt time.Time) error
-	DeleteRefreshToken(ctx context.Context, refreshToken string) error
-	DeleteSession(ctx context.Context, userID, deviceID, appID string) error
-	DeleteAllSessions(ctx context.Context, userID, appID string) error
-	GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
-	RegisterDevice(ctx context.Context, device entity.UserDevice) error
-}
+	JWTManager interface {
+		NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error)
+		NewRefreshToken() string
+		Issuer() string
+		AccessTokenTTL() time.Duration
+		RefreshTokenTTL() time.Duration
+		Kid(appID string) (string, error)
+		RefreshTokenCookieDomain() string
+		RefreshTokenCookiePath() string
+	}
+
+	Storage interface {
+		CreateUserSession(ctx context.Context, session entity.Session) error
+		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error)
+		UpdateLastVisitedAt(ctx context.Context, session entity.Session) error
+		DeleteRefreshToken(ctx context.Context, refreshToken string) error
+		DeleteSession(ctx context.Context, session entity.Session) error
+		DeleteAllSessions(ctx context.Context, userID, appID string) error
+		GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
+		RegisterDevice(ctx context.Context, device entity.UserDevice) error
+	}
+)
 
 type Session struct {
-	storage      Storage
-	tokenService token.JWTManager
+	jwtMgr  JWTManager
+	storage Storage
 }
 
-func NewService(storage Storage, ts token.JWTManager) *Session {
+func NewService(ts JWTManager, storage Storage) *Session {
 	return &Session{
-		storage:      storage,
-		tokenService: ts,
+		jwtMgr:  ts,
+		storage: storage,
 	}
 }
 
 // TODO: Move sessions from Postgres to Redis
 
 // CreateUserSession creates new user session in the system and returns jwtoken
-func (s *Session) CreateUserSession(
-	ctx context.Context,
-	user entity.User,
-	userDevice entity.UserDeviceRequestData,
-) (
-	entity.SessionTokens,
-	error,
-) {
+func (s *Session) CreateUserSession(ctx context.Context, sessionReqData entity.SessionRequestData) (entity.SessionTokens, error) {
 	const method = "service.session.CreateUserSession"
 
-	issuer, accessTokenTTL, refreshTokenTTL, err := s.prepareTokenConfig()
+	issuer, accessTokenTTL, refreshTokenTTL := s.prepareTokenConfig()
+
+	deviceID, err := s.getOrRegisterDeviceID(ctx, sessionReqData)
 	if err != nil {
 		return entity.SessionTokens{}, fmt.Errorf("%s: %w", method, err)
 	}
 
-	deviceID, err := s.getOrRegisterDeviceID(ctx, user.ID, user.AppID, userDevice)
-	if err != nil {
-		return entity.SessionTokens{}, fmt.Errorf("%s: %w", method, err)
-	}
-
+	sessionReqData.DeviceID = deviceID
 	currentTime := time.Now()
 
-	accessToken, refreshToken, err := s.createTokens(user, issuer, accessTokenTTL, currentTime)
+	accessToken, refreshToken, err := s.createTokens(sessionReqData, issuer, accessTokenTTL, currentTime)
 	if err != nil {
 		return entity.SessionTokens{}, fmt.Errorf("%s: %w", method, err)
 	}
 
-	if err = s.saveSession(ctx, user, deviceID, refreshToken, refreshTokenTTL, currentTime); err != nil {
+	session := entity.NewSession(sessionReqData, refreshToken, refreshTokenTTL, currentTime)
+
+	if err = s.saveSession(ctx, session); err != nil {
 		return entity.SessionTokens{}, fmt.Errorf("%s: %w", method, err)
 	}
 
-	tokenData, err := s.prepareTokenResponse(accessToken, refreshToken, refreshTokenTTL, currentTime)
+	tokenData, err := s.prepareTokenResponse(accessToken, session)
 
 	return tokenData, nil
 }
 
 func (s *Session) CheckSessionAndDevice(ctx context.Context, refreshToken string, userDevice entity.UserDeviceRequestData) (entity.Session, error) {
+	const method = "service.session.CheckSessionAndDevice"
+
 	session, err := s.storage.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, storage.ErrSessionNotFound) {
@@ -101,22 +107,48 @@ func (s *Session) CheckSessionAndDevice(ctx context.Context, refreshToken string
 		if errors.Is(err, storage.ErrUserDeviceNotFound) {
 			return entity.Session{}, domain.ErrUserDeviceNotFound
 		}
-		return entity.Session{}, err
+		return entity.Session{}, fmt.Errorf("%s: %w", method, err)
 	}
 
 	return session, nil
 }
 
-func (s *Session) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
-	return s.storage.GetUserDeviceID(ctx, userID, userAgent)
+func (s *Session) GetUserDeviceID(ctx context.Context, session entity.SessionRequestData) (string, error) {
+	const method = "service.session.GetUserDeviceID"
+
+	deviceID, err := s.storage.GetUserDeviceID(ctx, session.UserID, session.UserDevice.UserAgent)
+	if err != nil {
+		if !errors.Is(err, storage.ErrUserDeviceNotFound) {
+			return "", domain.ErrUserDeviceNotFound
+		}
+		return "", fmt.Errorf("%s: %w", method, err)
+	}
+
+	return deviceID, nil
 }
 
 func (s *Session) DeleteRefreshToken(ctx context.Context, refreshToken string) error {
-	return s.storage.DeleteRefreshToken(ctx, refreshToken)
+	const method = "service.session.DeleteRefreshToken"
+
+	if err := s.storage.DeleteRefreshToken(ctx, refreshToken); err != nil {
+		return fmt.Errorf("%s: %w", method, err)
+	}
+
+	return nil
 }
 
-func (s *Session) DeleteSession(ctx context.Context, userID, deviceID, appID string) error {
-	return s.storage.DeleteSession(ctx, userID, deviceID, appID)
+func (s *Session) DeleteSession(ctx context.Context, sessionReqData entity.SessionRequestData) error {
+	const method = "service.session.DeleteSession"
+
+	if err := s.storage.DeleteSession(ctx, entity.Session{
+		UserID:   sessionReqData.UserID,
+		DeviceID: sessionReqData.DeviceID,
+		AppID:    sessionReqData.AppID,
+	}); err != nil {
+		return fmt.Errorf("%s: %w", method, err)
+	}
+
+	return nil
 }
 
 func (s *Session) DeleteUserSessions(ctx context.Context, user entity.User) error {
@@ -129,19 +161,19 @@ func (s *Session) DeleteUserSessions(ctx context.Context, user entity.User) erro
 	return nil
 }
 
-func (s *Session) prepareTokenConfig() (string, time.Duration, time.Duration, error) {
-	issuer := s.tokenService.Issuer()
-	accessTokenTTL := s.tokenService.AccessTokenTTL()
-	refreshTokenTTL := s.tokenService.RefreshTokenTTL()
+func (s *Session) prepareTokenConfig() (issuer string, accessTokenTTL time.Duration, refreshTokenTTL time.Duration) {
+	issuer = s.jwtMgr.Issuer()
+	accessTokenTTL = s.jwtMgr.AccessTokenTTL()
+	refreshTokenTTL = s.jwtMgr.RefreshTokenTTL()
 
-	return issuer, accessTokenTTL, refreshTokenTTL, nil
+	return issuer, accessTokenTTL, refreshTokenTTL
 }
 
-func (s *Session) getOrRegisterDeviceID(ctx context.Context, userID, appID string, userDeviceRequest entity.UserDeviceRequestData) (string, error) {
-	deviceID, err := s.storage.GetUserDeviceID(ctx, userID, userDeviceRequest.UserAgent)
+func (s *Session) getOrRegisterDeviceID(ctx context.Context, session entity.SessionRequestData) (string, error) {
+	deviceID, err := s.storage.GetUserDeviceID(ctx, session.UserID, session.UserDevice.UserAgent)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserDeviceNotFound) {
-			return s.registerDevice(ctx, userID, appID, userDeviceRequest)
+			return s.registerDevice(ctx, session)
 		}
 		return "", fmt.Errorf("%w: %w", domain.ErrFailedToGetDeviceID, err)
 	}
@@ -149,16 +181,8 @@ func (s *Session) getOrRegisterDeviceID(ctx context.Context, userID, appID strin
 	return deviceID, nil
 }
 
-func (s *Session) registerDevice(ctx context.Context, userID, appID string, userDeviceRequest entity.UserDeviceRequestData) (string, error) {
-	userDevice := entity.UserDevice{
-		ID:            ksuid.New().String(),
-		UserID:        userID,
-		AppID:         appID,
-		UserAgent:     userDeviceRequest.UserAgent,
-		IP:            userDeviceRequest.IP,
-		Detached:      false,
-		LastVisitedAt: time.Now(),
-	}
+func (s *Session) registerDevice(ctx context.Context, session entity.SessionRequestData) (string, error) {
+	userDevice := entity.NewUserDevice(session)
 
 	if err := s.storage.RegisterDevice(ctx, userDevice); err != nil {
 		return "", fmt.Errorf("%w: %w", domain.ErrFailedToRegisterDevice, err)
@@ -167,61 +191,61 @@ func (s *Session) registerDevice(ctx context.Context, userID, appID string, user
 	return userDevice.ID, nil
 }
 
-func (s *Session) createTokens(user entity.User, issuer string, accessTokenTTL time.Duration, currentTime time.Time) (string, string, error) {
-	kid, err := s.tokenService.Kid(user.AppID)
+func (s *Session) createTokens(
+	session entity.SessionRequestData,
+	issuer string,
+	accessTokenTTL time.Duration,
+	currentTime time.Time,
+) (
+	accessToken string,
+	refreshToken string,
+	err error,
+) {
+	kid, err := s.jwtMgr.Kid(session.AppID)
 	if err != nil {
 		return "", "", fmt.Errorf("%w: %w", domain.ErrFailedToGetKeyID, err)
 	}
 
 	additionalClaims := map[string]interface{}{
 		"issuer":        issuer,
-		"user_id":       user.ID,
-		"app_id":        user.AppID,
+		"user_id":       session.UserID,
+		"app_id":        session.AppID,
 		"expiration_at": currentTime.Add(accessTokenTTL).Unix(),
 	}
 
-	accessToken, err := s.tokenService.NewAccessToken(user.AppID, kid, additionalClaims)
+	accessToken, err = s.jwtMgr.NewAccessToken(session.AppID, kid, additionalClaims)
 	if err != nil {
 		return "", "", fmt.Errorf("%w: %w", domain.ErrFailedToCreateAccessToken, err)
 	}
 
-	refreshToken := s.tokenService.NewRefreshToken()
+	refreshToken = s.jwtMgr.NewRefreshToken()
 
 	return accessToken, refreshToken, nil
 }
 
-func (s *Session) saveSession(ctx context.Context, user entity.User, deviceID, refreshToken string, refreshTokenTTL time.Duration, currentTime time.Time) error {
-	session := entity.Session{
-		UserID:        user.ID,
-		AppID:         user.AppID,
-		DeviceID:      deviceID,
-		RefreshToken:  refreshToken,
-		LastVisitedAt: currentTime,
-		ExpiresAt:     currentTime.Add(refreshTokenTTL),
-	}
-
+func (s *Session) saveSession(ctx context.Context, session entity.Session) error {
 	if err := s.storage.CreateUserSession(ctx, session); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
 	}
 
-	if err := s.storage.UpdateLastVisitedAt(ctx, deviceID, user.AppID, session.LastVisitedAt); err != nil {
+	if err := s.storage.UpdateLastVisitedAt(ctx, session); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToUpdateLastVisitedAt, err)
 	}
 
 	return nil
 }
 
-func (s *Session) prepareTokenResponse(accessToken, refreshToken string, refreshTokenTTL time.Duration, currentTime time.Time) (entity.SessionTokens, error) {
+func (s *Session) prepareTokenResponse(accessToken string, session entity.Session) (entity.SessionTokens, error) {
 
-	cookieDomain := s.tokenService.GetRefreshTokenCookieDomain()
-	path := s.tokenService.GetRefreshTokenCookiePath()
+	cookieDomain := s.jwtMgr.RefreshTokenCookieDomain()
+	path := s.jwtMgr.RefreshTokenCookiePath()
 
 	return entity.SessionTokens{
 		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		RefreshToken: session.RefreshToken,
 		Domain:       cookieDomain,
 		Path:         path,
-		ExpiresAt:    currentTime.Add(refreshTokenTTL),
+		ExpiresAt:    session.ExpiresAt,
 		HTTPOnly:     true,
 	}, nil
 }
