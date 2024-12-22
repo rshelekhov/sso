@@ -1,4 +1,4 @@
-package usecase
+package auth
 
 import (
 	"bytes"
@@ -23,7 +23,7 @@ import (
 )
 
 type (
-	AuthUsecase interface {
+	Usecase interface {
 		Login(ctx context.Context, appID string, reqData *entity.UserRequestData) (entity.SessionTokens, error)
 		RegisterUser(ctx context.Context, appID string, reqData *entity.UserRequestData, confirmEmailEndpoint string) (entity.SessionTokens, error)
 		VerifyEmail(ctx context.Context, verificationToken string) error
@@ -71,8 +71,8 @@ type (
 		DeleteToken(ctx context.Context, token string) error
 	}
 
-	AuthStorage interface {
-		// Transaction(ctx context.Context, fn func(storage AuthStorage) error) error
+	Storage interface {
+		// Transaction(ctx context.Context, fn func(storage Storage) error) error
 		ReplaceSoftDeletedUser(ctx context.Context, user entity.User) error
 		RegisterUser(ctx context.Context, user entity.User) error
 		MarkEmailVerified(ctx context.Context, userID, appID string) error
@@ -86,7 +86,7 @@ type authUsecase struct {
 	mailService         MailService
 	tokenService        TokenService
 	verificationService VerificationService
-	storage             AuthStorage
+	storage             Storage
 }
 
 func NewAuthUsecase(
@@ -96,8 +96,8 @@ func NewAuthUsecase(
 	ms MailService,
 	ts TokenService,
 	vs VerificationService,
-	storage AuthStorage,
-) AuthUsecase {
+	storage Storage,
+) Usecase {
 	return &authUsecase{
 		log:                 log,
 		sessionService:      ss,

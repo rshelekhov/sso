@@ -4,11 +4,6 @@ import (
 	"time"
 )
 
-type KeyStorage interface {
-	SavePrivateKey(appID string, privateKeyPEM []byte) error
-	GetPrivateKey(appID string) ([]byte, error)
-}
-
 type Service struct {
 	issuer                   string
 	signingMethod            SigningMethodType
@@ -19,6 +14,11 @@ type Service struct {
 	refreshTokenCookieDomain string
 	refreshTokenCookiePath   string
 	keyStorage               KeyStorage
+}
+
+type KeyStorage interface {
+	SavePrivateKey(appID string, privateKeyPEM []byte) error
+	GetPrivateKey(appID string) ([]byte, error)
 }
 
 func NewService(cfg Config, storage KeyStorage) *Service {

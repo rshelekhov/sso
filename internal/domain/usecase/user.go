@@ -1,4 +1,4 @@
-package usecase
+package user
 
 import (
 	"context"
@@ -6,47 +6,74 @@ import (
 	"fmt"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
-	"github.com/rshelekhov/sso/internal/domain/service/session"
-	"github.com/rshelekhov/sso/internal/domain/service/token"
-	"github.com/rshelekhov/sso/internal/domain/service/user"
 	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/lib/e"
-	"github.com/rshelekhov/sso/pkg/middleware"
 	"log/slog"
 	"time"
 )
 
 type (
-	UserUsecase interface {
+	Usecase interface {
 		GetUserByID(ctx context.Context, appID string) (entity.User, error)
 		UpdateUser(ctx context.Context, appID string, data *entity.UserRequestData) error
 		DeleteUser(ctx context.Context, appID string) error
 	}
+
+	ContextManager interface {
+		FromContext(ctx context.Context) (string, bool)
+		ToContext(ctx context.Context, value string) context.Context
+	}
+
+	AppValidator interface {
+		ValidateAppID(ctx context.Context, appID string) error
+	}
+
+	SessionService interface {
+		DeleteUserSessions(ctx context.Context, user entity.User) error
+	}
+
+	DomainUserService interface {
+		GetUserByID(ctx context.Context, appID, userID string) (entity.User, error)
+		GetUserData(ctx context.Context, appID, userID string) (entity.User, error)
+		GetUserStatusByEmail(ctx context.Context, email string) (string, error)
+		GetUserStatusByID(ctx context.Context, userID string) (string, error)
+		UpdateUser(ctx context.Context, user entity.User) error
+		DeleteUser(ctx context.Context, user entity.User) error
+		DeleteUserTokens(ctx context.Context, appID, userID string) error
+	}
+
+	PasswordManager interface {
+		HashPassword(password string) (string, error)
+		PasswordMatch(hash, password string) (bool, error)
+	}
+
+	IdentityManager interface {
+		ExtractUserIDFromContext(ctx context.Context, appID string) (string, error)
+	}
 )
 
-type userUsecase struct {
+type UserUsecase struct {
 	log            *slog.Logger
-	requestIDMgr   middleware.ContextManager
-	appIDMgr       middleware.ContextManager
-	appValidator   appvalidator.Validator
-	sessionService session.Service
-	userService    user.Service
-	passwordMgr    token.PasswordManager
-	identityMgr    token.IdentityManager
+	requestIDMgr   ContextManager
+	appIDMgr       ContextManager
+	appValidator   AppValidator
+	sessionService SessionService
+	userService    DomainUserService
+	passwordMgr    PasswordManager
+	identityMgr    IdentityManager
 }
 
 func NewUserUsecase(
 	log *slog.Logger,
-	reqIDMgr middleware.ContextManager,
-	appIDMgr middleware.ContextManager,
-	av appvalidator.Validator,
-	ss session.Service,
-	us user.Service,
-	pm token.PasswordManager,
-	im token.IdentityManager,
-) UserUsecase {
-	return &userUsecase{
+	reqIDMgr ContextManager,
+	appIDMgr ContextManager,
+	av AppValidator,
+	ss SessionService,
+	us DomainUserService,
+	pm PasswordManager,
+	im IdentityManager,
+) *UserUsecase {
+	return &UserUsecase{
 		log:            log,
 		requestIDMgr:   reqIDMgr,
 		appIDMgr:       appIDMgr,
@@ -58,8 +85,8 @@ func NewUserUsecase(
 	}
 }
 
-func (u *userUsecase) GetUserByID(ctx context.Context, appID string) (entity.User, error) {
-	const method = "usecase.userUsecase.GetUser"
+func (u *UserUsecase) GetUserByID(ctx context.Context, appID string) (entity.User, error) {
+	const method = "usecase.UserUsecase.GetUser"
 
 	log := u.log.With(slog.String("method", method))
 
@@ -84,8 +111,8 @@ func (u *userUsecase) GetUserByID(ctx context.Context, appID string) (entity.Use
 	return userData, nil
 }
 
-func (u *userUsecase) UpdateUser(ctx context.Context, appID string, data *entity.UserRequestData) error {
-	const method = "usecase.userUsecase.UpdateUser"
+func (u *UserUsecase) UpdateUser(ctx context.Context, appID string, data *entity.UserRequestData) error {
+	const method = "usecase.UserUsecase.UpdateUser"
 
 	log := u.log.With(slog.String("method", method))
 
@@ -115,8 +142,8 @@ func (u *userUsecase) UpdateUser(ctx context.Context, appID string, data *entity
 	return nil
 }
 
-func (u *userUsecase) DeleteUser(ctx context.Context, appID string) error {
-	const method = "usecase.userUsecase.DeleteUser"
+func (u *UserUsecase) DeleteUser(ctx context.Context, appID string) error {
+	const method = "usecase.UserUsecase.DeleteUser"
 
 	log := u.log.With(slog.String("method", method))
 
@@ -159,7 +186,7 @@ func (u *userUsecase) DeleteUser(ctx context.Context, appID string) error {
 	return nil
 }
 
-func (u *userUsecase) updateUserFields(
+func (u *UserUsecase) updateUserFields(
 	ctx context.Context,
 	appID string,
 	data *entity.UserRequestData,
@@ -188,12 +215,12 @@ func (u *userUsecase) updateUserFields(
 	return nil
 }
 
-func (u *userUsecase) handlePasswordUpdate(
+func (u *UserUsecase) handlePasswordUpdate(
 	data *entity.UserRequestData,
 	userDataFromDB entity.User,
 	updatedUser *entity.User,
 ) error {
-	const method = "usecase.userUsecase.handlePasswordUpdate"
+	const method = "usecase.UserUsecase.handlePasswordUpdate"
 
 	if data.UpdatedPassword == "" {
 		return nil
@@ -219,8 +246,8 @@ func (u *userUsecase) handlePasswordUpdate(
 	return nil
 }
 
-func (u *userUsecase) validateCurrentPassword(hash, password string) error {
-	const method = "usecase.userUsecase.validateCurrentPassword"
+func (u *UserUsecase) validateCurrentPassword(hash, password string) error {
+	const method = "usecase.UserUsecase.validateCurrentPassword"
 
 	matched, err := u.passwordMgr.PasswordMatch(hash, password)
 	if err != nil {
@@ -234,8 +261,8 @@ func (u *userUsecase) validateCurrentPassword(hash, password string) error {
 	return nil
 }
 
-func (u *userUsecase) validatePasswordChanged(hash, password string) error {
-	const method = "usecase.userUsecase.validatePasswordChanged"
+func (u *UserUsecase) validatePasswordChanged(hash, password string) error {
+	const method = "usecase.UserUsecase.validatePasswordChanged"
 
 	matched, err := u.passwordMgr.PasswordMatch(hash, password)
 	if err != nil {
@@ -249,8 +276,8 @@ func (u *userUsecase) validatePasswordChanged(hash, password string) error {
 	return nil
 }
 
-func (u *userUsecase) handleEmailUpdate(ctx context.Context, userDataFromDB entity.User, updatedUser *entity.User) error {
-	const method = "usecase.userUsecase.handleEmailUpdate"
+func (u *UserUsecase) handleEmailUpdate(ctx context.Context, userDataFromDB entity.User, updatedUser *entity.User) error {
+	const method = "usecase.UserUsecase.handleEmailUpdate"
 
 	if updatedUser.Email == "" {
 		return nil
@@ -272,7 +299,7 @@ func (u *userUsecase) handleEmailUpdate(ctx context.Context, userDataFromDB enti
 	return nil
 }
 
-func (u *userUsecase) cleanupUserData(ctx context.Context, user entity.User) error {
+func (u *UserUsecase) cleanupUserData(ctx context.Context, user entity.User) error {
 	if err := u.userService.DeleteUser(ctx, user); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteUser, err)
 	}

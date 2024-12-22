@@ -1,4 +1,4 @@
-package usecase
+package app
 
 import (
 	"context"
@@ -18,7 +18,7 @@ import (
 )
 
 type (
-	AppUsecase interface {
+	Usecase interface {
 		RegisterApp(ctx context.Context, appName string) error
 		DeleteApp(ctx context.Context, appID, secretHash string) error
 	}
@@ -28,7 +28,7 @@ type (
 		PublicKey(appID string) (interface{}, error)
 	}
 
-	AppStorage interface {
+	Storage interface {
 		RegisterApp(ctx context.Context, data entity.AppData) error
 		DeleteApp(ctx context.Context, data entity.AppData) error
 	}
@@ -37,14 +37,14 @@ type (
 type appUsecase struct {
 	log        *slog.Logger
 	keyManager KeyManager
-	storage    AppStorage
+	storage    Storage
 }
 
 func NewAppUsecase(
 	log *slog.Logger,
 	km KeyManager,
-	storage AppStorage,
-) AppUsecase {
+	storage Storage,
+) Usecase {
 	return &appUsecase{
 		log:        log,
 		keyManager: km,
