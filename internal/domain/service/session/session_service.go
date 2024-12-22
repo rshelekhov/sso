@@ -11,15 +11,6 @@ import (
 )
 
 type (
-	Service interface {
-		CreateUserSession(ctx context.Context, reqData entity.SessionRequestData) (entity.SessionTokens, error)
-		CheckSessionAndDevice(ctx context.Context, refreshToken string, userDevice entity.UserDeviceRequestData) (entity.Session, error)
-		GetUserDeviceID(ctx context.Context, reqData entity.SessionRequestData) (string, error)
-		DeleteRefreshToken(ctx context.Context, refreshToken string) error
-		DeleteSession(ctx context.Context, sessionReqData entity.SessionRequestData) error
-		DeleteUserSessions(ctx context.Context, user entity.User) error
-	}
-
 	JWTManager interface {
 		NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error)
 		NewRefreshToken() string
