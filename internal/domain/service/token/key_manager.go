@@ -10,13 +10,8 @@ import (
 	"github.com/rshelekhov/sso/internal/domain"
 )
 
-type KeyManager interface {
-	GenerateAndSavePrivateKey(appID string) error
-	PublicKey(appID string) (interface{}, error)
-}
-
-func (s *service) GenerateAndSavePrivateKey(appID string) error {
-	const method = "service.token.GenerateAndSavePrivateKey"
+func (s *Service) GenerateAndSavePrivateKey(appID string) error {
+	const method = "Service.token.GenerateAndSavePrivateKey"
 
 	privateKeyPEM, err := generatePrivateKeyPEM()
 	if err != nil {
@@ -30,8 +25,8 @@ func (s *service) GenerateAndSavePrivateKey(appID string) error {
 	return nil
 }
 
-func (s *service) PublicKey(appID string) (interface{}, error) {
-	const method = "service.token.PublicKey"
+func (s *Service) PublicKey(appID string) (interface{}, error) {
+	const method = "Service.token.PublicKey"
 
 	privateKey, err := s.getPrivateKeyFromPEM(appID)
 	if err != nil {
@@ -77,7 +72,7 @@ func make64ColsString(input []byte) string {
 	return result
 }
 
-func (s *service) getPrivateKeyFromPEM(appID string) (interface{}, error) {
+func (s *Service) getPrivateKeyFromPEM(appID string) (interface{}, error) {
 	privateKeyPEM, err := s.keyStorage.GetPrivateKey(appID)
 	if err != nil {
 		return nil, err

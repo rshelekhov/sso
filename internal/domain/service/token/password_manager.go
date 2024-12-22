@@ -7,13 +7,8 @@ import (
 	"io"
 )
 
-type PasswordManager interface {
-	HashPassword(password string) (string, error)
-	PasswordMatch(hash, password string) (bool, error)
-}
-
-func (s *service) HashPassword(password string) (string, error) {
-	const method = "service.token.HashPassword"
+func (s *Service) HashPassword(password string) (string, error) {
+	const method = "Service.token.HashPassword"
 
 	if password == "" {
 		return "", fmt.Errorf("%s: %w", method, domain.ErrPasswordIsNotAllowed)
@@ -48,8 +43,8 @@ func (s *service) HashPassword(password string) (string, error) {
 	return hash, nil
 }
 
-func (s *service) PasswordMatch(hash, password string) (bool, error) {
-	const method = "service.token.PasswordMatch"
+func (s *Service) PasswordMatch(hash, password string) (bool, error) {
+	const method = "Service.token.PasswordMatch"
 
 	if hash == "" {
 		return false, fmt.Errorf("%s: %w", method, domain.ErrHashIsNotAllowed)

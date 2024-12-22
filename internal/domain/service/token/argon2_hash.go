@@ -41,7 +41,7 @@ func passwordHashArgon2(password string, p PasswordHashArgon2Params, salt, peppe
 }
 
 func passwordMatchArgon2(hashStr, password string, pepper []byte) (bool, error) {
-	const method = "service.token.PasswordMatchArgon2"
+	const method = "Service.token.PasswordMatchArgon2"
 
 	p := PasswordHashArgon2Params{}
 	parts := strings.Split(hashStr, "$")

@@ -8,12 +8,8 @@ import (
 	"strings"
 )
 
-type IdentityManager interface {
-	ExtractUserIDFromContext(ctx context.Context, appID string) (string, error)
-}
-
-func (s *service) ExtractUserIDFromContext(ctx context.Context, appID string) (string, error) {
-	const method = "service.token.ExtractUserIDFromContext"
+func (s *Service) ExtractUserIDFromContext(ctx context.Context, appID string) (string, error) {
+	const method = "Service.token.ExtractUserIDFromContext"
 
 	claims, err := s.getClaimsFromToken(ctx, appID)
 	if err != nil {
@@ -28,8 +24,8 @@ func (s *service) ExtractUserIDFromContext(ctx context.Context, appID string) (s
 	return userID.(string), nil
 }
 
-func (s *service) getClaimsFromToken(ctx context.Context, appID string) (map[string]interface{}, error) {
-	const method = "service.token.getClaimsFromToken"
+func (s *Service) getClaimsFromToken(ctx context.Context, appID string) (map[string]interface{}, error) {
+	const method = "Service.token.getClaimsFromToken"
 
 	token, err := s.getTokenFromContext(ctx, appID)
 	if err != nil {
@@ -44,8 +40,8 @@ func (s *service) getClaimsFromToken(ctx context.Context, appID string) (map[str
 	return claims, nil
 }
 
-func (s *service) getTokenFromContext(ctx context.Context, appID string) (*jwt.Token, error) {
-	const method = "service.token.getTokenFromContext"
+func (s *Service) getTokenFromContext(ctx context.Context, appID string) (*jwt.Token, error) {
+	const method = "Service.token.getTokenFromContext"
 
 	token, ok := ctx.Value(domain.AccessTokenKey).(string)
 	if !ok {
@@ -55,8 +51,8 @@ func (s *service) getTokenFromContext(ctx context.Context, appID string) (*jwt.T
 	return s.parseToken(token, appID)
 }
 
-func (s *service) parseToken(tokenRaw, appID string) (*jwt.Token, error) {
-	const method = "service.token.parseToken"
+func (s *Service) parseToken(tokenRaw, appID string) (*jwt.Token, error) {
+	const method = "Service.token.parseToken"
 
 	tokenString := strings.TrimSpace(tokenRaw)
 

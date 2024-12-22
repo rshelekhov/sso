@@ -4,21 +4,12 @@ import (
 	"time"
 )
 
-type (
-	Service interface {
-		JWTManager
-		PasswordManager
-		IdentityManager
-		KeyManager
-	}
+type KeyStorage interface {
+	SavePrivateKey(appID string, privateKeyPEM []byte) error
+	GetPrivateKey(appID string) ([]byte, error)
+}
 
-	KeyStorage interface {
-		SavePrivateKey(appID string, privateKeyPEM []byte) error
-		GetPrivateKey(appID string) ([]byte, error)
-	}
-)
-
-type service struct {
+type Service struct {
 	issuer                   string
 	signingMethod            SigningMethodType
 	passwordHashParams       PasswordHashParams
@@ -30,8 +21,8 @@ type service struct {
 	keyStorage               KeyStorage
 }
 
-func NewService(cfg Config, storage KeyStorage) Service {
-	return &service{
+func NewService(cfg Config, storage KeyStorage) *Service {
+	return &Service{
 		issuer:                   cfg.Issuer,
 		signingMethod:            cfg.SigningMethod,
 		passwordHashParams:       cfg.PasswordHashParams,

@@ -11,21 +11,8 @@ import (
 	"time"
 )
 
-type JWTManager interface {
-	NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error)
-	NewRefreshToken() string
-	Issuer() string
-	AccessTokenTTL() time.Duration
-	RefreshTokenTTL() time.Duration
-	JWKSTTL() time.Duration
-	Kid(appID string) (string, error)
-	RefreshTokenCookieDomain() string
-	RefreshTokenCookiePath() string
-	SigningMethod() string
-}
-
-func (s *service) NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error) {
-	const method = "service.token.NewAccessToken"
+func (s *Service) NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error) {
+	const method = "Service.token.NewAccessToken"
 
 	if appID == "" {
 		return "", fmt.Errorf("%s: %w", method, domain.ErrAppIDIsNotAllowed)
@@ -65,28 +52,28 @@ func (s *service) NewAccessToken(appID, kid string, additionalClaims map[string]
 	return signedToken, nil
 }
 
-func (s *service) NewRefreshToken() string {
+func (s *Service) NewRefreshToken() string {
 	return ksuid.New().String()
 }
 
-func (s *service) Issuer() string {
+func (s *Service) Issuer() string {
 	return s.issuer
 }
 
-func (s *service) AccessTokenTTL() time.Duration {
+func (s *Service) AccessTokenTTL() time.Duration {
 	return s.accessTokenTTL
 }
 
-func (s *service) RefreshTokenTTL() time.Duration {
+func (s *Service) RefreshTokenTTL() time.Duration {
 	return s.refreshTokenTTL
 }
 
-func (s *service) JWKSTTL() time.Duration {
+func (s *Service) JWKSTTL() time.Duration {
 	return s.jwksTTL
 }
 
-func (s *service) Kid(appID string) (string, error) {
-	const method = "service.service.Kid"
+func (s *Service) Kid(appID string) (string, error) {
+	const method = "Service.Service.Kid"
 
 	if appID == "" {
 		return "", fmt.Errorf("%s: %w", method, domain.ErrAppIDIsNotAllowed)
@@ -108,19 +95,19 @@ func (s *service) Kid(appID string) (string, error) {
 	return keyID, nil
 }
 
-func (s *service) RefreshTokenCookieDomain() string {
+func (s *Service) RefreshTokenCookieDomain() string {
 	return s.refreshTokenCookieDomain
 }
 
-func (s *service) RefreshTokenCookiePath() string {
+func (s *Service) RefreshTokenCookiePath() string {
 	return s.refreshTokenCookiePath
 }
 
-func (s *service) SigningMethod() string {
+func (s *Service) SigningMethod() string {
 	return string(s.signingMethod)
 }
 
-func (s *service) algorithm() jwt.SigningMethod {
+func (s *Service) algorithm() jwt.SigningMethod {
 	switch s.signingMethod {
 	case SigningMethodRS256:
 		return jwt.SigningMethodRS256
