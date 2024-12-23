@@ -47,7 +47,7 @@ func TestNewAccessToken(t *testing.T) {
 
 		tokenString, err := tokenService.NewAccessToken(emptyAppID, "test-kid", additionalClaims)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), domain.ErrAppIDIsNotAllowed.Error())
+		require.ErrorIs(t, err, domain.ErrAppIDIsNotAllowed)
 		require.Empty(t, tokenString)
 	})
 
@@ -56,7 +56,7 @@ func TestNewAccessToken(t *testing.T) {
 
 		tokenString, err := tokenService.NewAccessToken(appID, kid, additionalClaims)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), domain.ErrEmptyKidIsNotAllowed.Error())
+		require.ErrorIs(t, err, domain.ErrEmptyKidIsNotAllowed)
 		require.Empty(t, tokenString)
 	})
 }

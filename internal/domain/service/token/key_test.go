@@ -34,45 +34,47 @@ func TestGenerateAndSavePrivateKey(t *testing.T) {
 }
 
 func TestPublicKey(t *testing.T) {
-	mockKeyStorage, tokenService, privateKey, privateKeyPEM := setup(t)
+	t.Run("Success", func(t *testing.T) {
+		mockKeyStorage, tokenService, privateKey, privateKeyPEM := setup(t)
 
-	mockKeyStorage.
-		On("GetPrivateKey", appID).
-		Once().
-		Return(privateKeyPEM, nil)
+		mockKeyStorage.
+			On("GetPrivateKey", appID).
+			Once().
+			Return(privateKeyPEM, nil)
 
-	publicKey, err := tokenService.PublicKey(appID)
-	require.NoError(t, err)
-	require.IsType(t, &rsa.PublicKey{}, publicKey)
-	require.Equal(t, &privateKey.PublicKey, publicKey.(*rsa.PublicKey))
-}
-
-func TestPublicKey_UnknownType(t *testing.T) {
-	mockKeyStorage := new(mocks.KeyStorage)
-
-	cfg := Config{
-		PasswordHashParams: defaultPasswordHashParams,
-	}
-
-	tokenService := NewService(cfg, mockKeyStorage)
-
-	// Generate a test private key
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	require.NoError(t, err)
-
-	// Encode the private key to PEM format
-	privateKeyBytes, err := x509.MarshalECPrivateKey(privateKey)
-	require.NoError(t, err)
-
-	privateKeyPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: privateKeyBytes,
+		publicKey, err := tokenService.PublicKey(appID)
+		require.NoError(t, err)
+		require.IsType(t, &rsa.PublicKey{}, publicKey)
+		require.Equal(t, &privateKey.PublicKey, publicKey.(*rsa.PublicKey))
 	})
 
-	mockKeyStorage.On("GetPrivateKey", appID).Return(privateKeyPEM, nil)
+	t.Run("Error — Unknown type", func(t *testing.T) {
+		mockKeyStorage := new(mocks.KeyStorage)
 
-	_, err = tokenService.PublicKey(appID)
-	require.NotEmpty(t, err)
+		cfg := Config{
+			PasswordHashParams: defaultPasswordHashParams,
+		}
+
+		tokenService := NewService(cfg, mockKeyStorage)
+
+		// Generate a test private key
+		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		require.NoError(t, err)
+
+		// Encode the private key to PEM format
+		privateKeyBytes, err := x509.MarshalECPrivateKey(privateKey)
+		require.NoError(t, err)
+
+		privateKeyPEM := pem.EncodeToMemory(&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: privateKeyBytes,
+		})
+
+		mockKeyStorage.On("GetPrivateKey", appID).Return(privateKeyPEM, nil)
+
+		_, err = tokenService.PublicKey(appID)
+		require.NotEmpty(t, err)
+	})
 }
 
 func TestGeneratePrivateKeyPEM(t *testing.T) {

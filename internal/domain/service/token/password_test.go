@@ -8,159 +8,144 @@ import (
 	"testing"
 )
 
-func TestHashPassword_HappyPath(t *testing.T) {
-	testCases := []struct {
-		name           string
-		password       string
-		passwordParams PasswordHashParams
-	}{
-		{
-			name:     "Valid password with Argon2",
-			password: "test-password",
-			passwordParams: PasswordHashParams{
+func TestHashPassword(t *testing.T) {
+	mockKeyStorage := new(mocks.KeyStorage)
+
+	t.Run("Valid password with Argon2", func(t *testing.T) {
+		cfg := Config{
+			PasswordHashParams: PasswordHashParams{
 				Type:       PasswordHashArgon2,
 				SaltLength: 32,
 				Pepper:     "pepper",
 				Argon:      &defaultPasswordHashArgon2Params,
 			},
-		},
-		{
-			name:     "Valid password with Bcrypt",
-			password: "test-password",
-			passwordParams: PasswordHashParams{
+		}
+
+		tokenService := NewService(cfg, mockKeyStorage)
+
+		hashedPassword, err := tokenService.HashPassword("test-password")
+
+		require.NoError(t, err)
+		assert.NotEmpty(t, hashedPassword)
+
+		assert.Greater(t, len(hashedPassword), 0)
+	})
+
+	t.Run("Valid password with Bcrypt", func(t *testing.T) {
+		cfg := Config{
+			PasswordHashParams: PasswordHashParams{
 				Type:       PasswordHashBcrypt,
 				SaltLength: 32,
 				Pepper:     "pepper",
 				Bcrypt:     &defaultPasswordHashBcryptParams,
 			},
-		},
-	}
+		}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			mockKeyStorage := new(mocks.KeyStorage)
+		tokenService := NewService(cfg, mockKeyStorage)
 
-			cfg := Config{
-				PasswordHashParams: tc.passwordParams,
-			}
+		hashedPassword, err := tokenService.HashPassword("test-password")
 
-			tokenService := NewService(cfg, mockKeyStorage)
+		require.NoError(t, err)
+		assert.NotEmpty(t, hashedPassword)
 
-			hashedPassword, err := tokenService.HashPassword(tc.password)
+		assert.Greater(t, len(hashedPassword), 0)
+	})
 
-			require.NoError(t, err)
-			assert.NotEmpty(t, hashedPassword)
+	t.Run("Empty password", func(t *testing.T) {
+		cfg := Config{
+			PasswordHashParams: defaultPasswordHashParams,
+		}
 
-			assert.Greater(t, len(hashedPassword), 0)
-		})
-	}
+		tokenService := NewService(cfg, mockKeyStorage)
+
+		hashedPassword, err := tokenService.HashPassword("")
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), domain.ErrPasswordIsNotAllowed.Error())
+		assert.Empty(t, hashedPassword)
+	})
 }
 
-func TestHashPassword_EmptyPassword(t *testing.T) {
-	mockKeyStorage := new(mocks.KeyStorage)
-
-	cfg := Config{
-		PasswordHashParams: defaultPasswordHashParams,
-	}
-
-	tokenService := NewService(cfg, mockKeyStorage)
-
-	hashedPassword, err := tokenService.HashPassword("")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), domain.ErrPasswordIsNotAllowed.Error())
-	assert.Empty(t, hashedPassword)
-
-}
-
-func TestPasswordMatch_HappyPathWithArgon2(t *testing.T) {
+func TestPasswordMatch(t *testing.T) {
 	mockKeyStorage := new(mocks.KeyStorage)
 	password := "test-password"
 
-	cfg := Config{
-		PasswordHashParams: PasswordHashParams{
-			Type:       PasswordHashArgon2,
-			SaltLength: 32,
-			Pepper:     "pepper",
-			Argon:      &defaultPasswordHashArgon2Params,
-		},
-	}
+	t.Run("Success with Argon2", func(t *testing.T) {
+		cfg := Config{
+			PasswordHashParams: PasswordHashParams{
+				Type:       PasswordHashArgon2,
+				SaltLength: 32,
+				Pepper:     "pepper",
+				Argon:      &defaultPasswordHashArgon2Params,
+			},
+		}
 
-	tokenService := NewService(cfg, mockKeyStorage)
+		tokenService := NewService(cfg, mockKeyStorage)
 
-	hashedPassword, err := tokenService.HashPassword(password)
+		hashedPassword, err := tokenService.HashPassword(password)
 
-	require.NoError(t, err)
-	require.NotEmpty(t, hashedPassword)
+		require.NoError(t, err)
+		require.NotEmpty(t, hashedPassword)
 
-	matched, err := tokenService.PasswordMatch(hashedPassword, password)
+		matched, err := tokenService.PasswordMatch(hashedPassword, password)
 
-	require.NoError(t, err)
-	require.True(t, matched)
+		require.NoError(t, err)
+		require.True(t, matched)
+	})
 
-}
+	t.Run("Success with Bcrypt", func(t *testing.T) {
+		cfg := Config{
+			PasswordHashParams: PasswordHashParams{
+				Type:       PasswordHashBcrypt,
+				SaltLength: 32,
+				Pepper:     "pepper",
+				Bcrypt:     &defaultPasswordHashBcryptParams,
+			},
+		}
 
-func TestPasswordMatch_HappyPathWithBcrypt(t *testing.T) {
-	mockKeyStorage := new(mocks.KeyStorage)
-	password := "test-password"
+		tokenService := NewService(cfg, mockKeyStorage)
 
-	cfg := Config{
-		PasswordHashParams: PasswordHashParams{
-			Type:       PasswordHashBcrypt,
-			SaltLength: 32,
-			Pepper:     "pepper",
-			Bcrypt:     &defaultPasswordHashBcryptParams,
-		},
-	}
+		hashedPassword, err := tokenService.HashPassword(password)
 
-	tokenService := NewService(cfg, mockKeyStorage)
+		require.NoError(t, err)
+		require.NotEmpty(t, hashedPassword)
 
-	hashedPassword, err := tokenService.HashPassword(password)
+		matched, err := tokenService.PasswordMatch(hashedPassword, password)
 
-	require.NoError(t, err)
-	require.NotEmpty(t, hashedPassword)
+		require.NoError(t, err)
+		require.True(t, matched)
+	})
 
-	matched, err := tokenService.PasswordMatch(hashedPassword, password)
+	t.Run("Empty hash", func(t *testing.T) {
+		cfg := Config{
+			PasswordHashParams: defaultPasswordHashParams,
+		}
 
-	require.NoError(t, err)
-	require.True(t, matched)
+		tokenService := NewService(cfg, mockKeyStorage)
 
-}
+		matched, err := tokenService.PasswordMatch("", "test-password")
 
-func TestPasswordMatch_EmptyHash(t *testing.T) {
-	mockKeyStorage := new(mocks.KeyStorage)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, domain.ErrHashIsNotAllowed)
+		assert.Equal(t, false, matched)
+	})
 
-	cfg := Config{
-		PasswordHashParams: defaultPasswordHashParams,
-	}
+	t.Run("Empty password", func(t *testing.T) {
+		cfg := Config{
+			PasswordHashParams: defaultPasswordHashParams,
+		}
 
-	tokenService := NewService(cfg, mockKeyStorage)
+		tokenService := NewService(cfg, mockKeyStorage)
 
-	matched, err := tokenService.PasswordMatch("", "test-password")
+		hashedPassword, err := tokenService.HashPassword(password)
 
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), domain.ErrHashIsNotAllowed.Error())
-	assert.Equal(t, false, matched)
-}
+		require.NoError(t, err)
+		require.NotEmpty(t, hashedPassword)
 
-func TestPasswordMatch_EmptyPassword(t *testing.T) {
-	mockKeyStorage := new(mocks.KeyStorage)
-	password := "test-password"
+		matched, err := tokenService.PasswordMatch(hashedPassword, "")
 
-	cfg := Config{
-		PasswordHashParams: defaultPasswordHashParams,
-	}
-
-	tokenService := NewService(cfg, mockKeyStorage)
-
-	hashedPassword, err := tokenService.HashPassword(password)
-
-	require.NoError(t, err)
-	require.NotEmpty(t, hashedPassword)
-
-	matched, err := tokenService.PasswordMatch(hashedPassword, "")
-
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), domain.ErrPasswordIsNotAllowed.Error())
-	assert.Equal(t, false, matched)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), domain.ErrPasswordIsNotAllowed.Error())
+		assert.Equal(t, false, matched)
+	})
 }

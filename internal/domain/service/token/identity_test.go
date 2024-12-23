@@ -33,7 +33,7 @@ func TestExtractUserIDFromContext(t *testing.T) {
 
 		userID, err := tokenService.ExtractUserIDFromContext(ctx, appID)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), domain.ErrUserIDNotFoundInContext.Error())
+		require.ErrorIs(t, err, domain.ErrUserIDNotFoundInContext)
 		require.Empty(t, userID)
 
 		mockKeyStorage.AssertExpectations(t)
@@ -44,7 +44,7 @@ func TestExtractUserIDFromContext(t *testing.T) {
 
 		userID, err := tokenService.ExtractUserIDFromContext(emptyCtx, appID)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), domain.ErrNoTokenFoundInContext.Error())
+		require.ErrorIs(t, err, domain.ErrNoTokenFoundInContext)
 		require.Empty(t, userID)
 	})
 
@@ -53,7 +53,7 @@ func TestExtractUserIDFromContext(t *testing.T) {
 
 		userID, err := tokenService.ExtractUserIDFromContext(ctx, appID)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), domain.ErrFailedToParseTokenWithClaims.Error())
+		require.ErrorIs(t, err, domain.ErrFailedToParseTokenWithClaims)
 		require.Empty(t, userID)
 	})
 }
