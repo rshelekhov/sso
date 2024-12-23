@@ -9,7 +9,7 @@ import (
 )
 
 func (s *Service) ExtractUserIDFromContext(ctx context.Context, appID string) (string, error) {
-	const method = "Service.token.ExtractUserIDFromContext"
+	const method = "service.token.ExtractUserIDFromContext"
 
 	claims, err := s.getClaimsFromToken(ctx, appID)
 	if err != nil {
@@ -25,7 +25,7 @@ func (s *Service) ExtractUserIDFromContext(ctx context.Context, appID string) (s
 }
 
 func (s *Service) getClaimsFromToken(ctx context.Context, appID string) (map[string]interface{}, error) {
-	const method = "Service.token.getClaimsFromToken"
+	const method = "service.token.getClaimsFromToken"
 
 	token, err := s.getTokenFromContext(ctx, appID)
 	if err != nil {
@@ -41,7 +41,7 @@ func (s *Service) getClaimsFromToken(ctx context.Context, appID string) (map[str
 }
 
 func (s *Service) getTokenFromContext(ctx context.Context, appID string) (*jwt.Token, error) {
-	const method = "Service.token.getTokenFromContext"
+	const method = "service.token.getTokenFromContext"
 
 	token, ok := ctx.Value(domain.AccessTokenKey).(string)
 	if !ok {
@@ -52,7 +52,7 @@ func (s *Service) getTokenFromContext(ctx context.Context, appID string) (*jwt.T
 }
 
 func (s *Service) parseToken(tokenRaw, appID string) (*jwt.Token, error) {
-	const method = "Service.token.parseToken"
+	const method = "service.token.parseToken"
 
 	tokenString := strings.TrimSpace(tokenRaw)
 

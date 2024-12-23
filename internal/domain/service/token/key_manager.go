@@ -11,7 +11,7 @@ import (
 )
 
 func (s *Service) GenerateAndSavePrivateKey(appID string) error {
-	const method = "Service.token.GenerateAndSavePrivateKey"
+	const method = "service.token.GenerateAndSavePrivateKey"
 
 	privateKeyPEM, err := generatePrivateKeyPEM()
 	if err != nil {
@@ -26,7 +26,7 @@ func (s *Service) GenerateAndSavePrivateKey(appID string) error {
 }
 
 func (s *Service) PublicKey(appID string) (interface{}, error) {
-	const method = "Service.token.PublicKey"
+	const method = "service.token.PublicKey"
 
 	privateKey, err := s.getPrivateKeyFromPEM(appID)
 	if err != nil {

@@ -12,7 +12,7 @@ import (
 )
 
 func (s *Service) NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error) {
-	const method = "Service.token.NewAccessToken"
+	const method = "service.token.NewAccessToken"
 
 	if appID == "" {
 		return "", fmt.Errorf("%s: %w", method, domain.ErrAppIDIsNotAllowed)
@@ -73,7 +73,7 @@ func (s *Service) JWKSTTL() time.Duration {
 }
 
 func (s *Service) Kid(appID string) (string, error) {
-	const method = "Service.Service.Kid"
+	const method = "service.Service.Kid"
 
 	if appID == "" {
 		return "", fmt.Errorf("%s: %w", method, domain.ErrAppIDIsNotAllowed)

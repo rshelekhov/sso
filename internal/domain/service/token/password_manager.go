@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Service) HashPassword(password string) (string, error) {
-	const method = "Service.token.HashPassword"
+	const method = "service.token.HashPassword"
 
 	if password == "" {
 		return "", fmt.Errorf("%s: %w", method, domain.ErrPasswordIsNotAllowed)
@@ -44,7 +44,7 @@ func (s *Service) HashPassword(password string) (string, error) {
 }
 
 func (s *Service) PasswordMatch(hash, password string) (bool, error) {
-	const method = "Service.token.PasswordMatch"
+	const method = "service.token.PasswordMatch"
 
 	if hash == "" {
 		return false, fmt.Errorf("%s: %w", method, domain.ErrHashIsNotAllowed)

@@ -9,7 +9,7 @@ import (
 )
 
 func passwordHashBcrypt(password string, p PasswordHashBcryptParams, pepper []byte) (string, error) {
-	const method = "Service.token.PasswordHashBcrypt"
+	const method = "service.token.PasswordHashBcrypt"
 
 	passwordHmac := hmac.New(sha256.New, pepper)
 	_, err := passwordHmac.Write([]byte(password))
@@ -26,7 +26,7 @@ func passwordHashBcrypt(password string, p PasswordHashBcryptParams, pepper []by
 }
 
 func passwordMatchBcrypt(hash, password string, pepper []byte) (bool, error) {
-	const method = "Service.token.PasswordMatchBcrypt"
+	const method = "service.token.PasswordMatchBcrypt"
 
 	passwordHmac := hmac.New(sha256.New, pepper)
 	_, err := passwordHmac.Write([]byte(password))
