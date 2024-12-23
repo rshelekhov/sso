@@ -13,9 +13,7 @@ const (
 	//	storage errors
 	// ===========================================================================
 
-	ErrLocalKeyStorageSettingsEmpty LocalError = "local key storage settings is empty"
-	ErrS3KeyStorageSettingsEmpty    LocalError = "s3 key storage settings is empty"
-	ErrFailedToCommitTransaction    LocalError = "failed to commit transaction"
+	ErrFailedToCommitTransaction LocalError = "failed to commit transaction"
 
 	// ===========================================================================
 	//	app errors
@@ -80,7 +78,7 @@ const (
 	ErrFailedToDeleteUser                    LocalError = "failed to delete user"
 
 	// ===========================================================================
-	//	JWT service errors
+	//	JWT session errors
 	// ===========================================================================
 
 	ErrFailedToCreateAccessToken     LocalError = "failed to create access jwtoken"

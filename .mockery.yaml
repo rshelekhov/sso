@@ -1,0 +1,31 @@
+with-expecter: true
+issue-845-fix: true
+mockname: "{{.InterfaceName}}"
+outpkg: mocks
+packages:
+  github.com/rshelekhov/sso/internal/domain/service/appvalidator:
+    config:
+      dir: internal/domain/service/appvalidator/mocks
+    interfaces:
+      Storage:
+  github.com/rshelekhov/sso/internal/domain/service/session:
+    config:
+      dir: internal/domain/service/session/mocks
+    interfaces:
+      JWTManager:
+      Storage:
+  github.com/rshelekhov/sso/internal/domain/service/token:
+    config:
+      dir: internal/domain/service/token/mocks
+    interfaces:
+      KeyStorage:
+  github.com/rshelekhov/sso/internal/domain/service/user:
+    config:
+      dir: internal/domain/service/user/mocks
+    interfaces:
+      Storage:
+  github.com/rshelekhov/sso/internal/domain/service/verification:
+    config:
+      dir: internal/domain/service/verification/mocks
+    interfaces:
+      Storage:

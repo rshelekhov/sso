@@ -1,15 +1,16 @@
-package app
+package postgres
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/infrastructure/storage/postgres/sqlc"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
+	"github.com/rshelekhov/sso/src/domain/entity"
+	"github.com/rshelekhov/sso/src/infrastructure/storage"
+	"github.com/rshelekhov/sso/src/infrastructure/storage/app/postgres/sqlc"
 )
 
 type Storage struct {
@@ -17,7 +18,7 @@ type Storage struct {
 	*sqlc.Queries
 }
 
-func NewStorage(pool *pgxpool.Pool) *Storage {
+func NewAppStorage(pool *pgxpool.Pool) *Storage {
 	return &Storage{
 		Pool:    pool,
 		Queries: sqlc.New(pool),
@@ -39,7 +40,7 @@ func (s *Storage) RegisterApp(ctx context.Context, data entity.AppData) error {
 	}); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == UniqueViolationErrorCode {
-			return le.ErrAppAlreadyExists
+			return storage.ErrAppAlreadyExists
 		}
 		return fmt.Errorf("%s: failed to insert app: %w", method, err)
 	}
@@ -57,7 +58,23 @@ func (s *Storage) DeleteApp(ctx context.Context, data entity.AppData) error {
 			Valid: true,
 		},
 	}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return storage.ErrAppNotFound
+		}
 		return fmt.Errorf("%s: failed to delete app: %w", method, err)
+	}
+	return nil
+}
+
+func (s *Storage) CheckAppIDExists(ctx context.Context, appID string) error {
+	const method = "user.storage.CheckAppIDExists"
+
+	appIDExists, err := s.Queries.CheckAppIDExists(ctx, appID)
+	if err != nil {
+		return fmt.Errorf("%s: failed to check if app ID exists: %w", method, err)
+	}
+	if !appIDExists {
+		return storage.ErrAppIDDoesNotExist
 	}
 	return nil
 }

@@ -1,322 +1,278 @@
-package controller
+package grpc
 
 import (
 	"context"
-	"errors"
-
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
-	"github.com/rshelekhov/sso/internal/model"
+	"github.com/rshelekhov/sso/src/lib/e"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	"log/slog"
 )
 
 func (c *controller) Login(ctx context.Context, req *ssov1.LoginRequest) (*ssov1.LoginResponse, error) {
-	userData := &model.UserRequestData{}
-	if err := validateLoginData(req, userData); err != nil {
-		return nil, err
+	const method = "controller.gRPC.Login"
+
+	log := c.log.With(slog.String("method", method))
+
+	reqID, err := c.getRequestID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetRequestID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetRequestID, err)
 	}
 
-	tokenData, err := c.authUsecase.Login(ctx, userData)
+	log = log.With(slog.String("requestID", reqID))
 
-	switch {
-	case errors.Is(err, le.ErrAppIDDoesNotExist):
-		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
-	case errors.Is(err, le.ErrUserNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
-	case errors.Is(err, le.ErrInvalidCredentials):
-		return nil, status.Error(codes.Unauthenticated, le.ErrInvalidCredentials.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	if err = validateLoginRequest(req); err != nil {
+		e.HandleError(ctx, log, ErrValidationError, err)
+		return nil, status.Errorf(codes.InvalidArgument, "%v: %v", ErrValidationError, err)
 	}
 
-	tokenDataResponse := &ssov1.TokenData{
-		AccessToken:      tokenData.AccessToken,
-		RefreshToken:     tokenData.RefreshToken,
-		Domain:           tokenData.Domain,
-		Path:             tokenData.Path,
-		ExpiresAt:        timestamppb.New(tokenData.ExpiresAt),
-		HttpOnly:         tokenData.HTTPOnly,
-		AdditionalFields: tokenData.AdditionalFields,
+	appID, err := c.getAndValidateAppID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetAndValidateAppID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetAndValidateAppID, err)
 	}
 
-	return &ssov1.LoginResponse{TokenData: tokenDataResponse}, nil
+	userData := fromLoginRequest(req)
+
+	tokenData, err := c.authUsecase.Login(ctx, appID, userData)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToLoginUser, err)
+		return nil, mapErrorToGRPCStatus(err)
+	}
+
+	return toLoginResponse(tokenData), nil
 }
 
 func (c *controller) RegisterUser(ctx context.Context, req *ssov1.RegisterUserRequest) (*ssov1.RegisterUserResponse, error) {
-	userData := &model.UserRequestData{}
-	if err := validateRegisterData(req, userData); err != nil {
-		return nil, err
+	const method = "controller.gRPC.RegisterUser"
+
+	log := c.log.With(slog.String("method", method))
+
+	reqID, err := c.getRequestID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetRequestID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetRequestID, err)
 	}
 
+	log = log.With(slog.String("requestID", reqID))
+
+	if err = validateRegisterUserRequest(req); err != nil {
+		e.HandleError(ctx, log, ErrValidationError, err)
+		return nil, status.Errorf(codes.InvalidArgument, "%v: %v", ErrValidationError, err)
+	}
+
+	appID, err := c.getAndValidateAppID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetAndValidateAppID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetAndValidateAppID, err)
+	}
+
+	userData := fromRegisterUserRequest(req)
 	endpoint := req.GetVerificationUrl()
-	if endpoint == emptyValue {
-		return nil, status.Error(codes.InvalidArgument, le.ErrEmailVerificationEndpointIsRequired.Error())
+
+	tokenData, err := c.authUsecase.RegisterUser(ctx, appID, userData, endpoint)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToRegisterUser, err)
+		return nil, mapErrorToGRPCStatus(err)
 	}
 
-	tokenData, err := c.authUsecase.RegisterUser(ctx, userData, endpoint)
-
-	switch {
-	case errors.Is(err, le.ErrAppIDDoesNotExist):
-		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
-	case errors.Is(err, le.ErrUserAlreadyExists):
-		return nil, status.Error(codes.AlreadyExists, le.ErrUserAlreadyExists.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
-	}
-
-	tokenDataResponse := &ssov1.TokenData{
-		AccessToken:      tokenData.AccessToken,
-		RefreshToken:     tokenData.RefreshToken,
-		Domain:           tokenData.Domain,
-		Path:             tokenData.Path,
-		ExpiresAt:        timestamppb.New(tokenData.ExpiresAt),
-		HttpOnly:         tokenData.HTTPOnly,
-		AdditionalFields: tokenData.AdditionalFields,
-	}
-
-	return &ssov1.RegisterUserResponse{TokenData: tokenDataResponse}, nil
+	return toRegisterUserResponse(tokenData), nil
 }
 
 func (c *controller) VerifyEmail(ctx context.Context, req *ssov1.VerifyEmailRequest) (*ssov1.VerifyEmailResponse, error) {
-	request := &model.VerifyEmailRequestData{}
-	if err := validateVerifyEmailData(req, request); err != nil {
-		return nil, err
+	const method = "controller.gRPC.VerifyEmail"
+
+	log := c.log.With(slog.String("method", method))
+
+	reqID, err := c.getRequestID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetRequestID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetRequestID, err)
 	}
 
-	err := c.authUsecase.VerifyEmail(ctx, request.VerificationToken)
+	log = log.With(slog.String("requestID", reqID))
 
-	switch {
-	case errors.Is(err, le.ErrTokenExpiredWithEmailResent):
-		return nil, status.Error(codes.FailedPrecondition, le.ErrTokenExpiredWithEmailResent.Error())
-	case errors.Is(err, le.ErrTokenNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrTokenNotFound.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	if err = validateVerifyEmailRequest(req); err != nil {
+		e.HandleError(ctx, log, ErrValidationError, err)
+		return nil, status.Errorf(codes.InvalidArgument, "%v: %v", ErrValidationError, err)
+	}
+
+	verificationToken := req.GetToken()
+
+	err = c.authUsecase.VerifyEmail(ctx, verificationToken)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToVerifyEmail, err)
+		return nil, mapErrorToGRPCStatus(err)
 	}
 
 	return &ssov1.VerifyEmailResponse{}, nil
 }
 
 func (c *controller) ResetPassword(ctx context.Context, req *ssov1.ResetPasswordRequest) (*ssov1.ResetPasswordResponse, error) {
-	request := &model.ResetPasswordRequestData{}
-	if err := validateResetPasswordData(req, request); err != nil {
-		return nil, err
+	const method = "controller.gRPC.ResetPassword"
+
+	log := c.log.With(slog.String("method", method))
+
+	reqID, err := c.getRequestID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetRequestID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetRequestID, err)
 	}
 
+	log = log.With(slog.String("requestID", reqID))
+
+	if err = validateResetPasswordRequest(req); err != nil {
+		e.HandleError(ctx, log, ErrValidationError, err)
+		return nil, status.Errorf(codes.InvalidArgument, "%v: %v", ErrValidationError, err)
+	}
+
+	appID, err := c.getAndValidateAppID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetAndValidateAppID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetAndValidateAppID, err)
+	}
+
+	reqData := fromResetPasswordRequest(req)
 	endpoint := req.GetConfirmUrl()
-	if endpoint == emptyValue {
-		return nil, status.Error(codes.InvalidArgument, le.ErrConfirmChangePasswordEndpointIsRequired.Error())
-	}
 
-	err := c.authUsecase.ResetPassword(ctx, request, endpoint)
-
-	switch {
-	case errors.Is(err, le.ErrAppIDDoesNotExist):
-		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
-	case errors.Is(err, le.ErrUserNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	err = c.authUsecase.ResetPassword(ctx, appID, reqData, endpoint)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToResetPassword, err)
+		return nil, mapErrorToGRPCStatus(err)
 	}
 
 	return &ssov1.ResetPasswordResponse{}, nil
 }
 
 func (c *controller) ChangePassword(ctx context.Context, req *ssov1.ChangePasswordRequest) (*ssov1.ChangePasswordResponse, error) {
-	request := &model.ChangePasswordRequestData{}
-	if err := validateChangePasswordData(req, request); err != nil {
-		return nil, err
+	const method = "controller.gRPC.ChangePassword"
+
+	log := c.log.With(slog.String("method", method))
+
+	reqID, err := c.getRequestID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetRequestID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetRequestID, err)
 	}
 
-	err := c.authUsecase.ChangePassword(ctx, request)
+	log = log.With(slog.String("requestID", reqID))
 
-	switch {
-	case errors.Is(err, le.ErrAppIDDoesNotExist):
-		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
-	case errors.Is(err, le.ErrTokenExpiredWithEmailResent):
-		return nil, status.Error(codes.FailedPrecondition, le.ErrTokenExpiredWithEmailResent.Error())
-	case errors.Is(err, le.ErrUserNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
-	case errors.Is(err, le.ErrTokenNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrTokenNotFound.Error())
-	case errors.Is(err, le.ErrUpdatedPasswordMustNotMatchTheCurrent):
-		return nil, status.Error(codes.InvalidArgument, le.ErrUpdatedPasswordMustNotMatchTheCurrent.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	if err = validateChangePasswordRequest(req); err != nil {
+		e.HandleError(ctx, log, ErrValidationError, err)
+		return nil, status.Errorf(codes.InvalidArgument, "%v: %v", ErrValidationError, err)
+	}
+
+	appID, err := c.getAndValidateAppID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetAndValidateAppID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetAndValidateAppID, err)
+	}
+
+	reqData := fromChangePasswordRequest(req)
+
+	err = c.authUsecase.ChangePassword(ctx, appID, reqData)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToChangePassword, err)
+		return nil, mapErrorToGRPCStatus(err)
 	}
 
 	return &ssov1.ChangePasswordResponse{}, nil
 }
 
 func (c *controller) Logout(ctx context.Context, req *ssov1.LogoutRequest) (*ssov1.LogoutResponse, error) {
-	request := &model.UserRequestData{}
-	if err := validateLogout(req, request); err != nil {
-		return nil, err
+	const method = "controller.gRPC.Logout"
+
+	log := c.log.With(slog.String("method", method))
+
+	reqID, err := c.getRequestID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetRequestID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetRequestID, err)
 	}
 
-	err := c.authUsecase.LogoutUser(ctx, request.UserDevice, request.AppID)
+	log = log.With(slog.String("requestID", reqID))
 
-	switch {
-	case errors.Is(err, le.ErrAppIDDoesNotExist):
-		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
-	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
-		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
-	case errors.Is(err, le.ErrUserDeviceNotFound):
-		return nil, status.Error(codes.Internal, le.ErrUserDeviceNotFound.Error())
-	case errors.Is(err, le.ErrFailedToDeleteSession):
-		return nil, status.Error(codes.Internal, le.ErrFailedToDeleteSession.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	if err = validateLogoutRequest(req); err != nil {
+		e.HandleError(ctx, log, ErrValidationError, err)
+		return nil, status.Errorf(codes.InvalidArgument, "%v: %v", ErrValidationError, err)
+	}
+
+	appID, err := c.getAndValidateAppID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetAndValidateAppID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetAndValidateAppID, err)
+	}
+
+	reqData := fromLogoutRequest(req)
+
+	err = c.authUsecase.LogoutUser(ctx, appID, reqData)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToLogoutUser, err)
+		return nil, mapErrorToGRPCStatus(err)
 	}
 
 	return &ssov1.LogoutResponse{}, nil
 }
 
 func (c *controller) Refresh(ctx context.Context, req *ssov1.RefreshRequest) (*ssov1.RefreshResponse, error) {
-	request := &model.RefreshTokenRequestData{}
-	if err := validateRefresh(req, request); err != nil {
-		return nil, err
+	const method = "controller.gRPC.Refresh"
+
+	log := c.log.With(slog.String("method", method))
+
+	reqID, err := c.getRequestID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetRequestID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetRequestID, err)
 	}
 
-	tokenData, err := c.authUsecase.RefreshTokens(ctx, request)
+	log = log.With(slog.String("requestID", reqID))
 
-	switch {
-	case errors.Is(err, le.ErrAppIDDoesNotExist):
-		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
-	case errors.Is(err, le.ErrSessionNotFound):
-		return nil, status.Error(codes.Unauthenticated, le.ErrSessionNotFound.Error())
-	case errors.Is(err, le.ErrSessionExpired):
-		return nil, status.Error(codes.Unauthenticated, le.ErrSessionExpired.Error())
-	case errors.Is(err, le.ErrUserDeviceNotFound):
-		return nil, status.Error(codes.Unauthenticated, le.ErrUserDeviceNotFound.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	if err = validateRefreshRequest(req); err != nil {
+		e.HandleError(ctx, log, ErrValidationError, err)
+		return nil, status.Errorf(codes.InvalidArgument, "%v: %v", ErrValidationError, err)
 	}
 
-	tokenDataResponse := &ssov1.TokenData{
-		AccessToken:      tokenData.AccessToken,
-		RefreshToken:     tokenData.RefreshToken,
-		Domain:           tokenData.Domain,
-		Path:             tokenData.Path,
-		ExpiresAt:        timestamppb.New(tokenData.ExpiresAt),
-		HttpOnly:         tokenData.HTTPOnly,
-		AdditionalFields: tokenData.AdditionalFields,
+	appID, err := c.getAndValidateAppID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetAndValidateAppID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetAndValidateAppID, err)
 	}
 
-	return &ssov1.RefreshResponse{TokenData: tokenDataResponse}, nil
+	reqData := fromRefreshRequest(req)
+
+	tokenData, err := c.authUsecase.RefreshTokens(ctx, appID, reqData)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToRefreshTokens, err)
+		return nil, mapErrorToGRPCStatus(err)
+	}
+	return toRefreshResponse(tokenData), nil
 }
 
 func (c *controller) GetJWKS(ctx context.Context, req *ssov1.GetJWKSRequest) (*ssov1.GetJWKSResponse, error) {
-	request := &model.JWKSRequestData{}
-	if err := validateGetJWKS(req, request); err != nil {
-		return nil, err
+	const method = "controller.gRPC.GetJWKS"
+
+	log := c.log.With(slog.String("method", method))
+
+	reqID, err := c.getRequestID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetRequestID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetRequestID, err)
 	}
 
-	jwks, err := c.authUsecase.GetJWKS(ctx, request)
+	log = log.With(slog.String("requestID", reqID))
 
-	switch {
-	case errors.Is(err, le.ErrAppIDDoesNotExist):
-		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
-	case errors.Is(err, le.ErrFailedToGetJWKS):
-		return nil, status.Error(codes.Internal, le.ErrFailedToGetJWKS.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	appID, err := c.getAndValidateAppID(ctx)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetAndValidateAppID, err)
+		return nil, status.Errorf(codes.Internal, "%v: %v", ErrFailedToGetAndValidateAppID, err)
 	}
 
-	var jwksResponse []*ssov1.JWK
-
-	for _, jwk := range jwks.Keys {
-		jwkResponse := &ssov1.JWK{
-			Kty: jwk.Kty,
-			Kid: jwk.Kid,
-			Use: jwk.Use,
-			Alg: jwk.Alg,
-			N:   jwk.N,
-			E:   jwk.E,
-		}
-
-		jwksResponse = append(jwksResponse, jwkResponse)
+	jwks, err := c.authUsecase.GetJWKS(ctx, appID)
+	if err != nil {
+		e.HandleError(ctx, log, ErrFailedToGetJWKS, err)
+		return nil, mapErrorToGRPCStatus(err)
 	}
 
-	return &ssov1.GetJWKSResponse{
-		Jwks: jwksResponse,
-	}, nil
-}
-
-func (c *controller) GetUser(ctx context.Context, req *ssov1.GetUserRequest) (*ssov1.GetUserResponse, error) {
-	request := &model.UserRequestData{}
-	if err := validateGetUser(req, request); err != nil {
-		return nil, err
-	}
-
-	user, err := c.authUsecase.GetUserByID(ctx, request)
-
-	switch {
-	case errors.Is(err, le.ErrAppIDDoesNotExist):
-		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
-	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
-		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
-	case errors.Is(err, le.ErrUserNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
-	}
-
-	return &ssov1.GetUserResponse{
-		Email:     user.Email,
-		Verified:  user.Verified,
-		UpdatedAt: timestamppb.New(user.UpdatedAt),
-	}, nil
-}
-
-func (c *controller) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.UpdateUserResponse, error) {
-	request := &model.UserRequestData{}
-	if err := validateUpdateUser(req, request); err != nil {
-		return nil, err
-	}
-
-	err := c.authUsecase.UpdateUser(ctx, request)
-
-	switch {
-	case errors.Is(err, le.ErrAppIDDoesNotExist):
-		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
-	case errors.Is(err, le.ErrFailedToGetUserIDFromToken):
-		return nil, status.Error(codes.Internal, le.ErrFailedToGetUserIDFromToken.Error())
-	case errors.Is(err, le.ErrUserNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
-	case errors.Is(err, le.ErrEmailAlreadyTaken):
-		return nil, status.Error(codes.AlreadyExists, le.ErrEmailAlreadyTaken.Error())
-	case errors.Is(err, le.ErrCurrentPasswordIsIncorrect):
-		return nil, status.Error(codes.InvalidArgument, le.ErrCurrentPasswordIsIncorrect.Error())
-	case errors.Is(err, le.ErrNoEmailChangesDetected):
-		return nil, status.Error(codes.InvalidArgument, le.ErrNoEmailChangesDetected.Error())
-	case errors.Is(err, le.ErrNoPasswordChangesDetected):
-		return nil, status.Error(codes.InvalidArgument, le.ErrNoPasswordChangesDetected.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
-	}
-
-	return &ssov1.UpdateUserResponse{}, nil
-}
-
-func (c *controller) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRequest) (*ssov1.DeleteUserResponse, error) {
-	request := &model.UserRequestData{}
-	if err := validateDeleteUser(req, request); err != nil {
-		return nil, err
-	}
-
-	err := c.authUsecase.DeleteUser(ctx, request)
-
-	switch {
-	case errors.Is(err, le.ErrAppIDDoesNotExist):
-		return nil, status.Error(codes.Unauthenticated, le.ErrAppIDDoesNotExist.Error())
-	case errors.Is(err, le.ErrUserNotFound):
-		return nil, status.Error(codes.NotFound, le.ErrUserNotFound.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
-	}
-
-	return &ssov1.DeleteUserResponse{}, nil
+	return toJWKSResponse(jwks), nil
 }

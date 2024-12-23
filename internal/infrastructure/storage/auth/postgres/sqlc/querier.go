@@ -9,18 +9,6 @@ import (
 )
 
 type Querier interface {
-	CheckAppIDExists(ctx context.Context, id string) (bool, error)
-	CreateToken(ctx context.Context, arg CreateTokenParams) error
-	DeleteAllTokens(ctx context.Context, arg DeleteAllTokensParams) error
-	DeleteToken(ctx context.Context, token string) error
-	DeleteUser(ctx context.Context, arg DeleteUserParams) error
-	GetTokenData(ctx context.Context, token string) (GetTokenDataRow, error)
-	GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error)
-	GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUserByIDRow, error)
-	GetUserData(ctx context.Context, arg GetUserDataParams) (GetUserDataRow, error)
-	GetUserIDByToken(ctx context.Context, token string) (string, error)
-	GetUserStatusByEmail(ctx context.Context, email string) (string, error)
-	GetUserStatusByID(ctx context.Context, id string) (string, error)
 	MarkEmailVerified(ctx context.Context, arg MarkEmailVerifiedParams) error
 	RegisterUser(ctx context.Context, arg RegisterUserParams) error
 }

@@ -16,7 +16,7 @@ type Querier interface {
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (GetSessionByRefreshTokenRow, error)
 	GetUserDeviceID(ctx context.Context, arg GetUserDeviceIDParams) (string, error)
 	RegisterDevice(ctx context.Context, arg RegisterDeviceParams) error
-	UpdateLastLoginAt(ctx context.Context, arg UpdateLastLoginAtParams) error
+	UpdateLastVisitedAt(ctx context.Context, arg UpdateLastVisitedAtParams) error
 }
 
 var _ Querier = (*Queries)(nil)

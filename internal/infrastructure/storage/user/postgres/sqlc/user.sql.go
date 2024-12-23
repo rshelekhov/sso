@@ -47,6 +47,38 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
 	return err
 }
 
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT id, email, app_id, updated_at
+FROM users
+WHERE email = $1
+  AND app_id = $2
+  AND deleted_at IS NULL
+`
+
+type GetUserByEmailParams struct {
+	Email string `db:"email"`
+	AppID string `db:"app_id"`
+}
+
+type GetUserByEmailRow struct {
+	ID        string    `db:"id"`
+	Email     string    `db:"email"`
+	AppID     string    `db:"app_id"`
+	UpdatedAt time.Time `db:"updated_at"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, arg.Email, arg.AppID)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.AppID,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserByID = `-- name: GetUserByID :one
 SELECT id, email, app_id, verified, updated_at
 FROM users

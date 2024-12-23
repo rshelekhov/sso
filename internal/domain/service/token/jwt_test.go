@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/src/domain"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -22,7 +22,10 @@ func TestNewAccessToken(t *testing.T) {
 	t.Run("Happy Path", func(t *testing.T) {
 		kid := "test-kid"
 
-		mockKeyStorage.On("GetPrivateKey", appID).Return(privateKeyPEM, nil)
+		mockKeyStorage.
+			On("GetPrivateKey", appID).
+			Once().
+			Return(privateKeyPEM, nil)
 
 		tokenString, err := tokenService.NewAccessToken(appID, kid, additionalClaims)
 		require.NoError(t, err)
@@ -37,8 +40,6 @@ func TestNewAccessToken(t *testing.T) {
 		claims := token.Claims.(jwt.MapClaims)
 		require.Equal(t, claimValue, claims[claimKey])
 		require.Equal(t, kid, token.Header["kid"])
-
-		mockKeyStorage.AssertExpectations(t)
 	})
 
 	t.Run("Empty appID", func(t *testing.T) {
@@ -64,7 +65,10 @@ func TestGetKeyID(t *testing.T) {
 	mockKeyStorage, tokenService, privateKey, privateKeyPEM := setup(t)
 
 	t.Run("valid appID", func(t *testing.T) {
-		mockKeyStorage.On("GetPrivateKey", appID).Return(privateKeyPEM, nil)
+		mockKeyStorage.
+			On("GetPrivateKey", appID).
+			Once().
+			Return(privateKeyPEM, nil)
 
 		publicKey := &privateKey.PublicKey
 		der, err := x509.MarshalPKIXPublicKey(publicKey)
@@ -75,8 +79,6 @@ func TestGetKeyID(t *testing.T) {
 		keyID, err := tokenService.Kid(appID)
 		require.NoError(t, err)
 		require.Equal(t, expectedKeyID, keyID)
-
-		mockKeyStorage.AssertExpectations(t)
 	})
 
 	t.Run("empty appID", func(t *testing.T) {

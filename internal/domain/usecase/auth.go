@@ -1,4 +1,4 @@
-package auth
+package usecase
 
 import (
 	"bytes"
@@ -8,10 +8,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/domain"
-	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/infrastructure/storage"
-	"github.com/rshelekhov/sso/internal/lib/e"
+	"github.com/rshelekhov/sso/src/domain"
+	"github.com/rshelekhov/sso/src/domain/entity"
+	"github.com/rshelekhov/sso/src/infrastructure/storage"
+	"github.com/rshelekhov/sso/src/lib/e"
 	"html/template"
 	"log/slog"
 	"math/big"
@@ -19,11 +19,21 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
+	"github.com/rshelekhov/sso/src/lib/constant/le"
 )
 
+type AuthUsecase struct {
+	log                 *slog.Logger
+	sessionService      SessionService
+	userService         UserService
+	mailService         MailService
+	tokenService        TokenService
+	verificationService VerificationService
+	storage             AuthStorage
+}
+
 type (
-	Usecase interface {
+	AuthProvider interface {
 		Login(ctx context.Context, appID string, reqData *entity.UserRequestData) (entity.SessionTokens, error)
 		RegisterUser(ctx context.Context, appID string, reqData *entity.UserRequestData, confirmEmailEndpoint string) (entity.SessionTokens, error)
 		VerifyEmail(ctx context.Context, verificationToken string) error
@@ -35,8 +45,8 @@ type (
 	}
 
 	SessionService interface {
-		CreateUserSession(ctx context.Context, reqData entity.SessionRequestData) (entity.SessionTokens, error)
-		CheckSessionAndDevice(ctx context.Context, refreshToken string, userDevice entity.UserDeviceRequestData) (entity.Session, error)
+		CreateSession(ctx context.Context, reqData entity.SessionRequestData) (entity.SessionTokens, error)
+		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error)
 		GetUserDeviceID(ctx context.Context, reqData entity.SessionRequestData) (string, error)
 		DeleteSession(ctx context.Context, sessionReqData entity.SessionRequestData) error
 		DeleteRefreshToken(ctx context.Context, refreshToken string) error
@@ -71,23 +81,13 @@ type (
 		DeleteToken(ctx context.Context, token string) error
 	}
 
-	Storage interface {
-		// Transaction(ctx context.Context, fn func(storage Storage) error) error
+	AuthStorage interface {
+		// Transaction(ctx context.Context, fn func(storage AuthStorage) error) error
 		ReplaceSoftDeletedUser(ctx context.Context, user entity.User) error
 		RegisterUser(ctx context.Context, user entity.User) error
 		MarkEmailVerified(ctx context.Context, userID, appID string) error
 	}
 )
-
-type authUsecase struct {
-	log                 *slog.Logger
-	sessionService      SessionService
-	userService         UserService
-	mailService         MailService
-	tokenService        TokenService
-	verificationService VerificationService
-	storage             Storage
-}
 
 func NewAuthUsecase(
 	log *slog.Logger,
@@ -96,9 +96,9 @@ func NewAuthUsecase(
 	ms MailService,
 	ts TokenService,
 	vs VerificationService,
-	storage Storage,
-) Usecase {
-	return &authUsecase{
+	storage AuthStorage,
+) *AuthUsecase {
+	return &AuthUsecase{
 		log:                 log,
 		sessionService:      ss,
 		userService:         us,
@@ -110,7 +110,7 @@ func NewAuthUsecase(
 }
 
 // Login checks if user with given credentials exists in the system
-func (u *authUsecase) Login(ctx context.Context, appID string, reqData *entity.UserRequestData) (entity.SessionTokens, error) {
+func (u *AuthUsecase) Login(ctx context.Context, appID string, reqData *entity.UserRequestData) (entity.SessionTokens, error) {
 	const method = "usecase.appUsecase.Login"
 
 	log := u.log.With(
@@ -151,7 +151,7 @@ func (u *authUsecase) Login(ctx context.Context, appID string, reqData *entity.U
 			},
 		}
 
-		tokenData, err = u.sessionService.CreateUserSession(ctx, sessionReqData)
+		tokenData, err = u.sessionService.CreateSession(ctx, sessionReqData)
 		if err != nil {
 			e.HandleError(ctx, log, domain.ErrFailedToCreateUserSession, err, slog.Any("userID", userData.ID))
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
@@ -171,7 +171,7 @@ func (u *authUsecase) Login(ctx context.Context, appID string, reqData *entity.U
 }
 
 // RegisterUser creates new user in the system and returns jwtoken
-func (u *authUsecase) RegisterUser(ctx context.Context, appID string, reqData *entity.UserRequestData, verifyEmailEndpoint string) (entity.SessionTokens, error) {
+func (u *AuthUsecase) RegisterUser(ctx context.Context, appID string, reqData *entity.UserRequestData, verifyEmailEndpoint string) (entity.SessionTokens, error) {
 	const method = "usecase.appUsecase.RegisterUser"
 
 	log := u.log.With(
@@ -221,7 +221,7 @@ func (u *authUsecase) RegisterUser(ctx context.Context, appID string, reqData *e
 			},
 		}
 
-		authTokenData, err = u.sessionService.CreateUserSession(ctx, sessionReqData)
+		authTokenData, err = u.sessionService.CreateSession(ctx, sessionReqData)
 		if err != nil {
 			e.HandleError(ctx, log, domain.ErrFailedToCreateUserSession, err, slog.Any("userID", newUser.ID))
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
@@ -251,7 +251,7 @@ func (u *authUsecase) RegisterUser(ctx context.Context, appID string, reqData *e
 	return authTokenData, nil
 }
 
-func (u *authUsecase) VerifyEmail(ctx context.Context, verificationToken string) error {
+func (u *AuthUsecase) VerifyEmail(ctx context.Context, verificationToken string) error {
 	const method = "usecase.appUsecase.VerifyEmail"
 
 	log := u.log.With(
@@ -284,7 +284,7 @@ func (u *authUsecase) VerifyEmail(ctx context.Context, verificationToken string)
 	return nil
 }
 
-func (u *authUsecase) ResetPassword(ctx context.Context, appID string, reqData *entity.ResetPasswordRequestData, changePasswordEndpoint string) error {
+func (u *AuthUsecase) ResetPassword(ctx context.Context, appID string, reqData *entity.ResetPasswordRequestData, changePasswordEndpoint string) error {
 	const method = "usecase.appUsecase.ResetPassword"
 
 	log := u.log.With(
@@ -322,7 +322,7 @@ func (u *authUsecase) ResetPassword(ctx context.Context, appID string, reqData *
 	return nil
 }
 
-func (u *authUsecase) ChangePassword(ctx context.Context, appID string, reqData *entity.ChangePasswordRequestData) error {
+func (u *AuthUsecase) ChangePassword(ctx context.Context, appID string, reqData *entity.ChangePasswordRequestData) error {
 	const method = "usecase.appUsecase.ChangePassword"
 
 	log := u.log.With(
@@ -361,7 +361,7 @@ func (u *authUsecase) ChangePassword(ctx context.Context, appID string, reqData 
 	return nil
 }
 
-func (u *authUsecase) LogoutUser(ctx context.Context, appID string, reqData *entity.UserDeviceRequestData) error {
+func (u *AuthUsecase) LogoutUser(ctx context.Context, appID string, reqData *entity.UserDeviceRequestData) error {
 	const method = "usecase.appUsecase.LogoutUser"
 
 	log := u.log.With(
@@ -408,14 +408,14 @@ func (u *authUsecase) LogoutUser(ctx context.Context, appID string, reqData *ent
 	return nil
 }
 
-func (u *authUsecase) RefreshTokens(ctx context.Context, appID string, reqData *entity.RefreshTokenRequestData) (entity.SessionTokens, error) {
+func (u *AuthUsecase) RefreshTokens(ctx context.Context, appID string, reqData *entity.RefreshTokenRequestData) (entity.SessionTokens, error) {
 	const method = "usecase.appUsecase.RefreshTokens"
 
 	log := u.log.With(
 		slog.String("method", method),
 	)
 
-	userSession, err := u.sessionService.CheckSessionAndDevice(ctx, reqData.RefreshToken, reqData.UserDevice)
+	userSession, err := u.sessionService.GetSessionByRefreshToken(ctx, reqData.RefreshToken)
 
 	switch {
 	case errors.Is(err, domain.ErrSessionNotFound):
@@ -446,7 +446,7 @@ func (u *authUsecase) RefreshTokens(ctx context.Context, appID string, reqData *
 		},
 	}
 
-	tokenData, err := u.sessionService.CreateUserSession(ctx, sessionReqData)
+	tokenData, err := u.sessionService.CreateSession(ctx, sessionReqData)
 	if err != nil {
 		e.HandleError(ctx, log, domain.ErrFailedToCreateUserSession, err, slog.Any("userID", userSession.UserID))
 		return entity.SessionTokens{}, fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
@@ -457,7 +457,7 @@ func (u *authUsecase) RefreshTokens(ctx context.Context, appID string, reqData *
 	return tokenData, nil
 }
 
-func (u *authUsecase) GetJWKS(ctx context.Context, appID string) (entity.JWKS, error) {
+func (u *AuthUsecase) GetJWKS(ctx context.Context, appID string) (entity.JWKS, error) {
 	const method = "usecase.appUsecase.GetJWKS"
 
 	log := u.log.With(
@@ -507,8 +507,8 @@ func (u *authUsecase) GetJWKS(ctx context.Context, appID string) (entity.JWKS, e
 }
 
 // verifyPassword checks if password is correct
-func (u *authUsecase) verifyPassword(ctx context.Context, userData entity.User, password string) error {
-	const method = "usecase.authUsecase.verifyPassword"
+func (u *AuthUsecase) verifyPassword(ctx context.Context, userData entity.User, password string) error {
+	const method = "usecase.AuthUsecase.verifyPassword"
 
 	userData, err := u.userService.GetUserData(ctx, userData.AppID, userData.ID)
 	if err != nil {
@@ -527,7 +527,7 @@ func (u *authUsecase) verifyPassword(ctx context.Context, userData entity.User, 
 	return nil
 }
 
-func (u *authUsecase) sendEmailWithToken(ctx context.Context, tokenData entity.VerificationToken, templateType entity.EmailTemplateType) error {
+func (u *AuthUsecase) sendEmailWithToken(ctx context.Context, tokenData entity.VerificationToken, templateType entity.EmailTemplateType) error {
 	subject := templateType.Subject()
 
 	templatePath := filepath.Join(u.mailService.GetTemplatesPath(), templateType.FileName())
@@ -557,7 +557,7 @@ func (u *authUsecase) sendEmailWithToken(ctx context.Context, tokenData entity.V
 	return u.mailService.SendHTML(ctx, subject, body.String(), tokenData.Email)
 }
 
-func (u *authUsecase) handleTokenProcessing(
+func (u *AuthUsecase) handleTokenProcessing(
 	ctx context.Context,
 	token string,
 	emailTemplateType entity.EmailTemplateType,
@@ -601,13 +601,13 @@ func (u *authUsecase) handleTokenProcessing(
 	return tokenData, nil
 }
 
-func (u *authUsecase) checkPasswordHashAndUpdate(
+func (u *AuthUsecase) checkPasswordHashAndUpdate(
 	ctx context.Context,
 	appID string,
 	userData entity.User,
 	reqData *entity.ChangePasswordRequestData,
 ) error {
-	const method = "usecase.authUsecase.checkPasswordHashAndUpdate"
+	const method = "usecase.AuthUsecase.checkPasswordHashAndUpdate"
 
 	err := u.validatePasswordChanged(userData.PasswordHash, reqData.UpdatedPassword)
 	if err != nil {
@@ -633,8 +633,8 @@ func (u *authUsecase) checkPasswordHashAndUpdate(
 	return nil
 }
 
-func (u *authUsecase) validatePasswordChanged(hash, password string) error {
-	const method = "usecase.authUsecase.validatePasswordChanged"
+func (u *AuthUsecase) validatePasswordChanged(hash, password string) error {
+	const method = "usecase.AuthUsecase.validatePasswordChanged"
 
 	matched, err := u.tokenService.PasswordMatch(hash, password)
 	if err != nil {
@@ -648,7 +648,7 @@ func (u *authUsecase) validatePasswordChanged(hash, password string) error {
 	return nil
 }
 
-func (u *authUsecase) constructJWKS(jwks ...entity.JWK) entity.JWKS {
+func (u *AuthUsecase) constructJWKS(jwks ...entity.JWK) entity.JWKS {
 	return entity.JWKS{
 		Keys: jwks,
 		TTL:  u.tokenService.JWKSTTL(),

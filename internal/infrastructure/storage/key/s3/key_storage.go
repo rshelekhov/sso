@@ -46,6 +46,8 @@ type Config struct {
 const privateKeyFilePathFormat = "%s/app_%s_private.pem"
 
 func (s *KeyStorage) SavePrivateKey(appID string, privateKeyPEM []byte) error {
+	const method = "service.token.SavePrivateKey"
+
 	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, appID)
 
 	_, err := s.Client.PutObject(&s3.PutObjectInput{
@@ -55,13 +57,15 @@ func (s *KeyStorage) SavePrivateKey(appID string, privateKeyPEM []byte) error {
 		ACL:    aws.String("private"),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to save private key to S3: %w", err)
+		return fmt.Errorf("%s: failed to save private key to S3: %w", method, err)
 	}
 
 	return nil
 }
 
 func (s *KeyStorage) GetPrivateKey(appID string) ([]byte, error) {
+	const method = "service.token.GetPrivateKey"
+
 	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, appID)
 
 	result, err := s.Client.GetObject(&s3.GetObjectInput{
@@ -69,13 +73,13 @@ func (s *KeyStorage) GetPrivateKey(appID string) ([]byte, error) {
 		Key:    aws.String(privateKeyFilePath),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get private key from S3: %w", err)
+		return nil, fmt.Errorf("%s: failed to get private key from S3: %w", method, err)
 	}
 	defer result.Body.Close()
 
 	privateKeyBytes, err := io.ReadAll(result.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read private key data: %w", err)
+		return nil, fmt.Errorf("%s:failed to read private key data: %w", method, err)
 	}
 
 	return privateKeyBytes, nil

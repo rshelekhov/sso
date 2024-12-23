@@ -1,12 +1,16 @@
-package model
+package entity
 
 import (
 	"time"
 )
 
+const (
+	IssuerKey = "issuer"
+)
+
 type (
-	// AuthTokenData uses for creating user sessions
-	AuthTokenData struct {
+	// SessionTokens uses for creating user sessions
+	SessionTokens struct {
 		AccessToken      string
 		RefreshToken     string
 		Domain           string
@@ -18,26 +22,45 @@ type (
 
 	RefreshTokenRequestData struct {
 		RefreshToken string
-		AppID        string
-		UserDevice   DeviceRequestData
+		UserDevice   UserDeviceRequestData
 	}
 )
 
-type TokenType int
+type VerificationTokenType int
 
 const (
-	TokenTypeVerifyEmail TokenType = iota
+	TokenTypeVerifyEmail VerificationTokenType = iota
 	TokenTypeResetPassword
 )
 
-// TokenData uses for creating tokens for verification email and reset password
-type TokenData struct {
+// VerificationToken uses for creating tokens for verification email and reset password
+type VerificationToken struct {
 	Token     string
 	UserID    string
 	AppID     string
 	Endpoint  string
 	Email     string
-	Type      TokenType
+	Type      VerificationTokenType
 	CreatedAt time.Time
 	ExpiresAt time.Time
+}
+
+func NewVerificationToken(
+	token, endpoint string,
+	user User,
+	tokenType VerificationTokenType,
+	expiryTime time.Duration,
+) VerificationToken {
+	currentTime := time.Now()
+
+	return VerificationToken{
+		Token:     token,
+		UserID:    user.ID,
+		AppID:     user.AppID,
+		Endpoint:  endpoint,
+		Email:     user.Email,
+		Type:      tokenType,
+		CreatedAt: currentTime,
+		ExpiresAt: currentTime.Add(expiryTime),
+	}
 }

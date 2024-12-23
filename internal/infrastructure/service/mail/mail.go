@@ -2,44 +2,46 @@ package mail
 
 import (
 	"context"
-
-	"github.com/rshelekhov/sso/internal/config/settings"
-	"github.com/rshelekhov/sso/internal/port"
-	"github.com/rshelekhov/sso/internal/service/mail/mailgun"
-	"github.com/rshelekhov/sso/internal/service/mail/mock"
+	"github.com/rshelekhov/sso/pkg/service/mail/mailgun"
+	"github.com/rshelekhov/sso/pkg/service/mail/mocks"
 )
+
+type EmailClient interface {
+	SendPlainText(ctx context.Context, subject, body, recipient string) error
+	SendHTML(ctx context.Context, subject, html, recipient string) error
+}
+
+type Service struct {
+	client        EmailClient
+	templatesPath string
+}
 
 const defaultTemplatesPath = "./static/email_templates"
 
-func NewMailService(ess settings.EmailService) port.MailService {
-	var s port.MailTransport
+func NewService(cfg Config) *Service {
+	var client EmailClient
 
-	switch ess.Type {
-	case settings.EmailServiceMailgun:
-		s = mailgun.NewMailTransport(ess.Mailgun)
-	case settings.EmailServiceMock:
-		s = mock.NewMailTransport()
+	switch cfg.Type {
+	case EmailServiceMailgun:
+		client = mailgun.NewClient(cfg.Mailgun.Domain, cfg.Mailgun.APIKey, cfg.Mailgun.Sender)
+	case EmailServiceMock:
+		client = mocks.NewClient()
 	}
 
-	return &EmailService{
-		service:       s,
+	return &Service{
+		client:        client,
 		templatesPath: defaultTemplatesPath,
 	}
 }
 
-type EmailService struct {
-	service       port.MailTransport
-	templatesPath string
+func (s *Service) SendPlainText(ctx context.Context, subject, body, recipient string) error {
+	return s.client.SendPlainText(ctx, subject, body, recipient)
 }
 
-func (s *EmailService) SendMessage(ctx context.Context, subject, body, recipient string) error {
-	return s.service.SendMessage(ctx, subject, body, recipient)
+func (s *Service) SendHTML(ctx context.Context, subject, html, recipient string) error {
+	return s.client.SendHTML(ctx, subject, html, recipient)
 }
 
-func (s *EmailService) SendHTML(ctx context.Context, subject, html, recipient string) error {
-	return s.service.SendHTML(ctx, subject, html, recipient)
-}
-
-func (s *EmailService) GetTemplatesPath() string {
+func (s *Service) GetTemplatesPath() string {
 	return s.templatesPath
 }

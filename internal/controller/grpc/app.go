@@ -1,17 +1,17 @@
-package controller
+package grpc
 
 import (
 	"context"
 	"errors"
 
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
+	"github.com/rshelekhov/sso/src/lib/constant/le"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 func (c *controller) RegisterApp(ctx context.Context, req *ssov1.RegisterAppRequest) (*ssov1.RegisterAppResponse, error) {
-	if err := validateRegisterAppData(req); err != nil {
+	if err := validateRegisterAppRequest(req); err != nil {
 		return nil, err
 	}
 

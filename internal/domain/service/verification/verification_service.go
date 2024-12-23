@@ -6,39 +6,31 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/domain"
-	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"github.com/rshelekhov/sso/src/domain"
+	"github.com/rshelekhov/sso/src/domain/entity"
+	"github.com/rshelekhov/sso/src/infrastructure/storage"
 	"time"
 )
 
-type (
-	Service interface {
-		CreateToken(ctx context.Context, user entity.User, verificationEndpoint string, tokenType entity.VerificationTokenType) (entity.VerificationToken, error)
-		GetTokenData(ctx context.Context, token string) (entity.VerificationToken, error)
-		DeleteToken(ctx context.Context, token string) error
-	}
-
-	Storage interface {
-		SaveVerificationToken(ctx context.Context, data entity.VerificationToken) error
-		GetVerificationTokenData(ctx context.Context, token string) (entity.VerificationToken, error)
-		DeleteVerificationToken(ctx context.Context, token string) error
-	}
-)
-
-type service struct {
+type Service struct {
 	tokenExpiryTime time.Duration
 	storage         Storage
 }
 
-func NewService(tokenExpiryTime time.Duration, storage Storage) Service {
-	return &service{
+type Storage interface {
+	SaveVerificationToken(ctx context.Context, data entity.VerificationToken) error
+	GetVerificationTokenData(ctx context.Context, token string) (entity.VerificationToken, error)
+	DeleteVerificationToken(ctx context.Context, token string) error
+}
+
+func NewService(tokenExpiryTime time.Duration, storage Storage) *Service {
+	return &Service{
 		tokenExpiryTime: tokenExpiryTime,
 		storage:         storage,
 	}
 }
 
-func (s *service) CreateToken(
+func (s *Service) CreateToken(
 	ctx context.Context,
 	user entity.User,
 	verificationEndpoint string,
@@ -47,7 +39,7 @@ func (s *service) CreateToken(
 	entity.VerificationToken,
 	error,
 ) {
-	const method = "service.verification.CreateToken"
+	const method = "Service.verification.CreateToken"
 
 	verificationTokenString, err := generateToken()
 	if err != nil {
@@ -63,8 +55,8 @@ func (s *service) CreateToken(
 	return tokenData, nil
 }
 
-func (s *service) GetTokenData(ctx context.Context, token string) (entity.VerificationToken, error) {
-	const method = "service.verification.GetTokenData"
+func (s *Service) GetTokenData(ctx context.Context, token string) (entity.VerificationToken, error) {
+	const method = "Service.verification.GetTokenData"
 
 	tokenData, err := s.storage.GetVerificationTokenData(ctx, token)
 	if err != nil {
@@ -78,8 +70,8 @@ func (s *service) GetTokenData(ctx context.Context, token string) (entity.Verifi
 	return tokenData, nil
 }
 
-func (s *service) DeleteToken(ctx context.Context, token string) error {
-	const method = "service.verification.DeleteToken"
+func (s *Service) DeleteToken(ctx context.Context, token string) error {
+	const method = "Service.verification.DeleteToken"
 
 	if err := s.storage.DeleteVerificationToken(ctx, token); err != nil {
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToDeleteVerificationToken, err)

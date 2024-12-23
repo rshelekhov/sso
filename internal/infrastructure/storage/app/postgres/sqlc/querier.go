@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	CheckAppIDExists(ctx context.Context, id string) (bool, error)
 	DeleteApp(ctx context.Context, arg DeleteAppParams) error
 	InsertApp(ctx context.Context, arg InsertAppParams) error
 }

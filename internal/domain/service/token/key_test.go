@@ -8,7 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
-	"github.com/rshelekhov/sso/internal/domain/service/token/mocks"
+	"github.com/rshelekhov/sso/src/domain/service/token/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"strings"
@@ -24,25 +24,27 @@ func TestGenerateAndSavePrivateKey(t *testing.T) {
 
 	tokenService := NewService(cfg, mockKeyStorage)
 
-	mockKeyStorage.On("SavePrivateKey", appID, mock.Anything).Return(nil)
+	mockKeyStorage.
+		On("SavePrivateKey", appID, mock.Anything).
+		Once().
+		Return(nil)
 
 	err := tokenService.GenerateAndSavePrivateKey(appID)
 	require.NoError(t, err)
-
-	mockKeyStorage.AssertExpectations(t)
 }
 
 func TestPublicKey(t *testing.T) {
 	mockKeyStorage, tokenService, privateKey, privateKeyPEM := setup(t)
 
-	mockKeyStorage.On("GetPrivateKey", appID).Return(privateKeyPEM, nil)
+	mockKeyStorage.
+		On("GetPrivateKey", appID).
+		Once().
+		Return(privateKeyPEM, nil)
 
 	publicKey, err := tokenService.PublicKey(appID)
 	require.NoError(t, err)
 	require.IsType(t, &rsa.PublicKey{}, publicKey)
 	require.Equal(t, &privateKey.PublicKey, publicKey.(*rsa.PublicKey))
-
-	mockKeyStorage.AssertExpectations(t)
 }
 
 func TestPublicKey_UnknownType(t *testing.T) {
@@ -71,8 +73,6 @@ func TestPublicKey_UnknownType(t *testing.T) {
 
 	_, err = tokenService.PublicKey(appID)
 	require.NotEmpty(t, err)
-
-	mockKeyStorage.AssertExpectations(t)
 }
 
 func TestGeneratePrivateKeyPEM(t *testing.T) {

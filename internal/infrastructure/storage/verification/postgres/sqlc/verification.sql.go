@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const deleteVerificationToken = `-- name: DeleteVerificationToken :exec
+const deleteVerificationToken = `-- name: DeleteToken :exec
 DELETE FROM tokens
 WHERE token = $1
 `
@@ -20,7 +20,7 @@ func (q *Queries) DeleteVerificationToken(ctx context.Context, token string) err
 	return err
 }
 
-const getVerificationTokenData = `-- name: GetVerificationTokenData :one
+const getVerificationTokenData = `-- name: GetTokenData :one
 SELECT token, user_id, app_id, endpoint, token_type_id, recipient, expires_at
 FROM tokens
 WHERE token = $1

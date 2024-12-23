@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	DeleteAllTokens(ctx context.Context, arg DeleteAllTokensParams) error
 	DeleteUser(ctx context.Context, arg DeleteUserParams) error
+	GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUserByIDRow, error)
 	GetUserData(ctx context.Context, arg GetUserDataParams) (GetUserDataRow, error)
 	GetUserStatusByEmail(ctx context.Context, email string) (string, error)

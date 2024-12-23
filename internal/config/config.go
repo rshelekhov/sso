@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/rshelekhov/sso/internal/config/settings"
+	"github.com/rshelekhov/sso/src/config/settings"
 
 	"github.com/spf13/viper"
 )

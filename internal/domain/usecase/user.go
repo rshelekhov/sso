@@ -1,19 +1,30 @@
-package user
+package usecase
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/domain"
-	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
-	"github.com/rshelekhov/sso/internal/lib/e"
+	"github.com/rshelekhov/sso/src/domain"
+	"github.com/rshelekhov/sso/src/domain/entity"
+	"github.com/rshelekhov/sso/src/lib/constant/le"
+	"github.com/rshelekhov/sso/src/lib/e"
 	"log/slog"
 	"time"
 )
 
+type UserUsecase struct {
+	log            *slog.Logger
+	requestIDMgr   ContextManager
+	appIDMgr       ContextManager
+	appValidator   AppValidator
+	sessionService UserSessionService
+	userService    DomainUserService
+	passwordMgr    PasswordManager
+	identityMgr    IdentityManager
+}
+
 type (
-	Usecase interface {
+	UserProvider interface {
 		GetUserByID(ctx context.Context, appID string) (entity.User, error)
 		UpdateUser(ctx context.Context, appID string, data *entity.UserRequestData) error
 		DeleteUser(ctx context.Context, appID string) error
@@ -28,7 +39,7 @@ type (
 		ValidateAppID(ctx context.Context, appID string) error
 	}
 
-	SessionService interface {
+	UserSessionService interface {
 		DeleteUserSessions(ctx context.Context, user entity.User) error
 	}
 
@@ -52,23 +63,12 @@ type (
 	}
 )
 
-type UserUsecase struct {
-	log            *slog.Logger
-	requestIDMgr   ContextManager
-	appIDMgr       ContextManager
-	appValidator   AppValidator
-	sessionService SessionService
-	userService    DomainUserService
-	passwordMgr    PasswordManager
-	identityMgr    IdentityManager
-}
-
 func NewUserUsecase(
 	log *slog.Logger,
 	reqIDMgr ContextManager,
 	appIDMgr ContextManager,
 	av AppValidator,
-	ss SessionService,
+	ss UserSessionService,
 	us DomainUserService,
 	pm PasswordManager,
 	im IdentityManager,

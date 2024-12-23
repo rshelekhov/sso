@@ -1,1 +1,125 @@
 package domain
+
+import "errors"
+
+var (
+	ErrRequestIDNotFoundInContext        = errors.New("request ID not found in context")
+	ErrAppIDNotFoundInContext            = errors.New("app ID not found in context")
+	ErrFailedToLogWithMethodAndRequestID = errors.New("failed to log with method and request ID")
+	ErrFailedToExtractAppIDFromContext   = errors.New("failed to extract app ID from context")
+
+	// ===========================================================================
+	// App validator service errors
+	// ===========================================================================
+
+	ErrAppNotFound = errors.New("app not found")
+
+	// ===========================================================================
+	// Session service errors
+	// ===========================================================================
+
+	ErrFailedToGetDeviceID           = errors.New("failed to get device ID")
+	ErrFailedToGetKeyID              = errors.New("failed to get key ID")
+	ErrFailedToCheckSessionAndDevice = errors.New("failed to check session and device")
+	ErrFailedToCreateAccessToken     = errors.New("failed to create access token")
+	ErrFailedToCreateUserSession     = errors.New("failed to create user session")
+	ErrFailedToUpdateLastVisitedAt   = errors.New("failed to update last visited at")
+	ErrSessionExpired                = errors.New("session expired")
+	ErrSessionNotFound               = errors.New("session not found")
+	ErrUserDeviceNotFound            = errors.New("user device not found")
+	ErrFailedToDeleteRefreshToken    = errors.New("failed to delete refresh token")
+	ErrFailedToDeleteSession         = errors.New("failed to delete session")
+	ErrFailedToValidateAppID         = errors.New("failed to validate app ID")
+	ErrFailedToRegisterDevice        = errors.New("failed to register device")
+
+	// ===========================================================================
+	// User service errors
+	// ===========================================================================
+
+	ErrUserNotFound        = errors.New("user not found")
+	ErrFailedToGetUserByID = errors.New("failed to get user by ID")
+
+	// ===========================================================================
+	// Token service errors
+	// ===========================================================================
+
+	ErrAppIDIsNotAllowed                = errors.New("appID is not allowed")
+	ErrEmptyKidIsNotAllowed             = errors.New("kid is not allowed")
+	ErrFailedToGetPrivateKey            = errors.New("failed to get private key")
+	ErrFailedToParsePrivateKey          = errors.New("failed to parse private key")
+	ErrFailedToSignToken                = errors.New("failed to sign token")
+	ErrPasswordIsNotAllowed             = errors.New("password is not allowed")
+	ErrHashIsNotAllowed                 = errors.New("hash is not allowed")
+	ErrFailedToGenerateSalt             = errors.New("failed to generate salt")
+	ErrUnsupportedPasswordHashType      = errors.New("unsupported password hash type")
+	ErrFailedToHashPassword             = errors.New("failed to hash password")
+	ErrInvalidArgonHashString           = errors.New("invalid argon hash string")
+	ErrUnSupportedArgon2Version         = errors.New("unsupported Argon2 version")
+	ErrUserIDNotFoundInContext          = errors.New("user id not found in context")
+	ErrFailedToParseTokenClaims         = errors.New("failed to parse token claims")
+	ErrNoTokenFoundInContext            = errors.New("token not found in context")
+	ErrFailedToParseTokenWithClaims     = errors.New("failed to parse token with claims")
+	ErrUnknownTypeOfPublicKey           = errors.New("unknown type of public key")
+	ErrFailedToExtractUserIDFromContext = errors.New("failed to extract user ID from context")
+
+	// ===========================================================================
+	// Verification service errors
+	// ===========================================================================
+
+	ErrFailedToCreateVerificationToken   = errors.New("failed to create verification token")
+	ErrFailedToSaveVerificationToken     = errors.New("failed to save verification token")
+	ErrFailedToGenerateVerificationToken = errors.New("failed to generate verification token")
+	ErrFailedToProcessToken              = errors.New("failed to process token")
+	ErrVerificationTokenNotFound         = errors.New("token not found")
+	ErrFailedToGetVerificationTokenData  = errors.New("failed to get verification token data")
+	ErrFailedToDeleteVerificationToken   = errors.New("failed to delete verification token")
+
+	// ===========================================================================
+	// App usecase errors
+	// ===========================================================================
+
+	ErrAppNameIsEmpty                    = errors.New("app name is empty")
+	ErrAppAlreadyExists                  = errors.New("app already exists")
+	ErrFailedToGenerateSecretHash        = errors.New("failed to generate secret hash")
+	ErrFailedToRegisterApp               = errors.New("failed to register app")
+	ErrFailedToGenerateAndSavePrivateKey = errors.New("failed to generate and save private key")
+	ErrFailedToDeleteApp                 = errors.New("failed to delete app")
+
+	// ===========================================================================
+	// Auth usecase errors
+	// ===========================================================================
+
+	ErrUserAlreadyExists              = errors.New("user already exists")
+	ErrFailedToReplaceSoftDeletedUser = errors.New("failed to replace soft deleted user")
+	ErrFailedToCreateUser             = errors.New("failed to create user")
+	ErrFailedToGetUserByEmail         = errors.New("failed to get user by email")
+	ErrInvalidCredentials             = errors.New("invalid credentials")
+	ErrFailedToVerifyPassword         = errors.New("failed to verify password")
+	ErrFailedToSendEmail              = errors.New("failed to send email")
+	ErrFailedToSendVerificationEmail  = errors.New("failed to send verification email")
+	ErrFailedToSendResetPasswordEmail = errors.New("failed to send reset password email")
+	ErrFailedToMarkEmailVerified      = errors.New("failed to mark email as verified")
+	ErrFailedToGetPublicKey           = errors.New("failed to get public key")
+	ErrFailedToGetJWKS                = errors.New("failed to get jwks")
+
+	// ===========================================================================
+	// User usecase errors
+	// ===========================================================================
+
+	ErrFailedToGetUser                = errors.New("failed to get user")
+	ErrFailedToGetUserData            = errors.New("failed to get user data")
+	ErrFailedToUpdateUser             = errors.New("failed to update user")
+	ErrPasswordsDoNotMatch            = errors.New("passwords do not match")
+	ErrNoPasswordChangesDetected      = errors.New("no password changes detected")
+	ErrFailedToCheckPasswordHashMatch = errors.New("failed to check password hash match")
+	ErrFailedToGeneratePasswordHash   = errors.New("failed to generate password hash")
+	ErrFailedToGetUserStatusByEmail   = errors.New("failed to get user status by email")
+	ErrNoEmailChangesDetected         = errors.New("no email changes detected")
+	ErrEmailAlreadyTaken              = errors.New("email already taken")
+	ErrFailedToCheckIfUserExists      = errors.New("failed to check if user exists")
+	ErrUnknownUserStatus              = errors.New("unknown user status")
+	ErrFailedToCleanupUserData        = errors.New("failed to cleanup user data")
+	ErrFailedToDeleteUser             = errors.New("failed to delete user")
+	ErrFailedToDeleteAllUserSessions  = errors.New("failed to delete all sessions")
+	ErrFailedToDeleteUserTokens       = errors.New("failed to delete tokens")
+)

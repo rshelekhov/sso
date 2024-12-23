@@ -1,8 +1,8 @@
-package config
+package settings
 
 import (
 	"fmt"
-	"github.com/rshelekhov/sso/pkg/storage/keys"
+	"github.com/rshelekhov/sso/src/infrastructure/storage/key"
 )
 
 // KeyStorageType – what use for store private keys
@@ -32,27 +32,27 @@ type KeyStorageS3Params struct {
 	Endpoint       string `mapstructure:"KEY_STORAGE_S3_ENDPOINT"`
 }
 
-func ToKeysConfig(ks KeyStorage) (keys.Config, error) {
+func ToKeysConfig(ks KeyStorage) (key.Config, error) {
 	const op = "settings.KeyStorage.ToKeysConfig"
 
 	storageType, err := validateAndConvertStorageType(ks.Type)
 	if err != nil {
-		return keys.Config{}, fmt.Errorf("%s: %w", op, err)
+		return key.Config{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return keys.Config{
+	return key.Config{
 		Type:  storageType,
 		Local: convertLocalParams(ks.Local),
 		S3:    convertS3Params(ks.S3),
 	}, nil
 }
 
-func validateAndConvertStorageType(storageType KeyStorageType) (keys.KeyStorageType, error) {
+func validateAndConvertStorageType(storageType KeyStorageType) (key.StorageType, error) {
 	switch storageType {
 	case KeyStorageTypeLocal:
-		return keys.KeyStorageTypeLocal, nil
+		return key.StorageTypeLocal, nil
 	case KeyStorageTypeS3:
-		return keys.KeyStorageTypeS3, nil
+		return key.StorageTypeS3, nil
 	case "":
 		return "", fmt.Errorf("key storage type is empty")
 	default:
@@ -60,22 +60,22 @@ func validateAndConvertStorageType(storageType KeyStorageType) (keys.KeyStorageT
 	}
 }
 
-func convertLocalParams(params *KeyStorageLocalParams) *keys.KeyStorageLocalParams {
+func convertLocalParams(params *KeyStorageLocalParams) *key.StorageLocalParams {
 	if params == nil {
 		return nil
 	}
 
-	return &keys.KeyStorageLocalParams{
+	return &key.StorageLocalParams{
 		Path: params.Path,
 	}
 }
 
-func convertS3Params(params *KeyStorageS3Params) *keys.KeyStorageS3Params {
+func convertS3Params(params *KeyStorageS3Params) *key.StorageS3Params {
 	if params == nil {
 		return nil
 	}
 
-	return &keys.KeyStorageS3Params{
+	return &key.StorageS3Params{
 		Region:         params.Region,
 		Bucket:         params.Bucket,
 		AccessKey:      params.AccessKey,

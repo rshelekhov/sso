@@ -5,14 +5,14 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"github.com/rshelekhov/sso/internal/domain/service/token/mocks"
+	"github.com/rshelekhov/sso/src/domain/service/token/mocks"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 const appID = "test-app-id"
 
-func setup(t *testing.T) (*mocks.KeyStorage, Service, *rsa.PrivateKey, []byte) {
+func setup(t *testing.T) (*mocks.KeyStorage, *Service, *rsa.PrivateKey, []byte) {
 	mockKeyStorage := new(mocks.KeyStorage)
 
 	cfg := Config{

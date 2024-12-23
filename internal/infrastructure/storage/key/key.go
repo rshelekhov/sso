@@ -2,21 +2,17 @@ package key
 
 import (
 	"fmt"
-	"github.com/rshelekhov/sso/internal/infrastructure/storage/key/fs"
-	"github.com/rshelekhov/sso/internal/infrastructure/storage/key/s3"
+	"github.com/rshelekhov/sso/src/domain/service/token"
+	"github.com/rshelekhov/sso/src/infrastructure/storage/key/fs"
+	"github.com/rshelekhov/sso/src/infrastructure/storage/key/s3"
 )
-
-type Storage interface {
-	SavePrivateKey(appID string, privateKeyPEM []byte) error
-	GetPrivateKey(appID string) ([]byte, error)
-}
 
 var (
 	ErrLocalKeyStorageSettingsEmpty = fmt.Errorf("local key storage settings are empty")
 	ErrS3KeyStorageSettingsEmpty    = fmt.Errorf("s3 key storage settings are empty")
 )
 
-func NewStorage(cfg Config) (Storage, error) {
+func NewStorage(cfg Config) (token.KeyStorage, error) {
 	switch cfg.Type {
 	case StorageTypeLocal:
 		return newLocalKeyStorage(cfg)
@@ -27,7 +23,7 @@ func NewStorage(cfg Config) (Storage, error) {
 	}
 }
 
-func newLocalKeyStorage(cfg Config) (Storage, error) {
+func newLocalKeyStorage(cfg Config) (token.KeyStorage, error) {
 	if cfg.Local == nil {
 		return nil, ErrLocalKeyStorageSettingsEmpty
 	}
@@ -39,7 +35,7 @@ func newLocalKeyStorage(cfg Config) (Storage, error) {
 	return fs.NewKeyStorage(localConfig)
 }
 
-func newS3KeyStorage(cfg Config) (Storage, error) {
+func newS3KeyStorage(cfg Config) (token.KeyStorage, error) {
 	if cfg.S3 == nil {
 		return nil, ErrS3KeyStorageSettingsEmpty
 	}

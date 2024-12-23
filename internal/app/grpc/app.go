@@ -3,15 +3,17 @@ package grpcapp
 import (
 	"context"
 	"fmt"
+	"github.com/rshelekhov/jwtauth"
+	"github.com/rshelekhov/sso/pkg/middleware"
+	"github.com/rshelekhov/sso/src/domain/service/appvalidator"
+	"github.com/rshelekhov/sso/src/domain/usecase"
 	"log/slog"
 	"net"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
-	authgrpc "github.com/rshelekhov/sso/internal/grpc/controller"
-	"github.com/rshelekhov/sso/internal/lib/grpc/interceptor/localerror"
-	"github.com/rshelekhov/sso/internal/lib/grpc/interceptor/requestid"
-	"github.com/rshelekhov/sso/internal/port"
+	authgrpc "github.com/rshelekhov/sso/src/controller/grpc"
+	"github.com/rshelekhov/sso/src/lib/grpc/interceptor/localerror"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -25,8 +27,13 @@ type App struct {
 
 func New(
 	log *slog.Logger,
-	appUsecase port.AppUsecase,
-	authUsecases port.AuthUsecase,
+	requestIDMgr middleware.Manager,
+	appIDMgr middleware.Manager,
+	appValidator appvalidator.Validator,
+	jwtMiddleware jwtauth.Middleware,
+	appUsecase usecase.AppProvider,
+	authUsecase usecase.AuthProvider,
+	userUsecase usecase.UserProvider,
 	port string,
 ) *App {
 	loggingOpts := []logging.Option{
@@ -49,13 +56,24 @@ func New(
 		grpc.ChainUnaryInterceptor(
 			recovery.UnaryServerInterceptor(recoveryOpts...),
 			logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
-			requestid.UnaryServerInterceptor(),
+			requestIDMgr.UnaryServerInterceptor(),
+			appIDMgr.UnaryServerInterceptor(),
+			jwtMiddleware.UnaryServerInterceptor(),
 			localerror.UnaryServerInterceptor(),
 		),
 	)
 
-	// Auth controller
-	authgrpc.RegisterController(gRPCServer, log, appUsecase, authUsecases)
+	// Auth grpc
+	authgrpc.RegisterController(
+		gRPCServer,
+		log,
+		requestIDMgr,
+		appIDMgr,
+		appValidator,
+		appUsecase,
+		authUsecase,
+		userUsecase,
+	)
 
 	return &App{
 		log:        log,

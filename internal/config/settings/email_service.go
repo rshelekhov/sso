@@ -1,15 +1,20 @@
 package settings
 
-// EmailServiceType - how to send email to clients
-type EmailServiceType string
-
-const (
-	EmailServiceMailgun EmailServiceType = "mailgun"
-	EmailServiceMock    EmailServiceType = "mock"
+import (
+	"fmt"
+	"github.com/rshelekhov/sso/src/infrastructure/service/mail"
 )
 
-type EmailService struct {
-	Type    EmailServiceType `mapstructure:"EMAIL_SERVICE_TYPE" envDefault:"mock"`
+// MailServiceType - how to send email to clients
+type MailServiceType string
+
+const (
+	MailServiceMailgun MailServiceType = "mailgun"
+	MailServiceMock    MailServiceType = "mock"
+)
+
+type MailService struct {
+	Type    MailServiceType `mapstructure:"EMAIL_SERVICE_TYPE" envDefault:"mock"`
 	Mailgun *MailgunParams
 }
 
@@ -17,4 +22,41 @@ type MailgunParams struct {
 	Domain        string `mapstructure:"EMAIL_MAILGUN_DOMAIN"`
 	PrivateAPIKey string `mapstructure:"EMAIL_MAILGUN_PRIVATE_API_KEY"`
 	Sender        string `mapstructure:"EMAIL_SENDER"`
+}
+
+func ToMailConfig(cfg MailService) (mail.Config, error) {
+	const op = "settings.MailService.ToMailConfig"
+
+	serviceType, err := validateAndConvertMailServiceType(cfg.Type)
+	if err != nil {
+		return mail.Config{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	mailConfig := mail.Config{
+		Type: serviceType,
+	}
+
+	if serviceType == mail.EmailServiceMailgun {
+		// We checked that config fields are not empty when parsed env file
+		mailConfig.Mailgun = &mail.MailgunParams{
+			Domain: cfg.Mailgun.Domain,
+			APIKey: cfg.Mailgun.PrivateAPIKey,
+			Sender: cfg.Mailgun.Sender,
+		}
+	}
+
+	return mailConfig, nil
+}
+
+func validateAndConvertMailServiceType(serviceType MailServiceType) (mail.EmailServiceType, error) {
+	switch serviceType {
+	case MailServiceMailgun:
+		return mail.EmailServiceMailgun, nil
+	case MailServiceMock:
+		return mail.EmailServiceMock, nil
+	case "":
+		return "", fmt.Errorf("mail session type is empty")
+	default:
+		return "", fmt.Errorf("unknown mail session type: %s", serviceType)
+	}
 }

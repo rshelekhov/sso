@@ -1,12 +1,8 @@
-package model
+package entity
 
 import "time"
 
 type (
-	JWKSRequestData struct {
-		AppID string
-	}
-
 	JWK struct {
 		Alg string `json:"alg,omitempty"` // The specific cryptographic algorithm used with the key.
 		Kty string `json:"kty,omitempty"` // The family of cryptographic algorithms used with the key.

@@ -8,3 +8,6 @@ SET deleted_at = $1
 WHERE id = $2
   AND secret = $3
     AND deleted_at IS NULL;
+
+-- name: CheckAppIDExists :one
+SELECT EXISTS(SELECT 1 FROM apps WHERE id = $1);

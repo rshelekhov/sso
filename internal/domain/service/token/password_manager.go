@@ -3,7 +3,7 @@ package token
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/src/domain"
 	"io"
 )
 

@@ -1,4 +1,4 @@
-package app
+package usecase
 
 import (
 	"context"
@@ -7,9 +7,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/domain"
-	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"github.com/rshelekhov/sso/src/domain"
+	"github.com/rshelekhov/sso/src/domain/entity"
+	"github.com/rshelekhov/sso/src/infrastructure/storage"
 	"log/slog"
 	"time"
 
@@ -17,8 +17,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type AppUsecase struct {
+	log        *slog.Logger
+	keyManager KeyManager
+	storage    AppStorage
+}
+
 type (
-	Usecase interface {
+	AppProvider interface {
 		RegisterApp(ctx context.Context, appName string) error
 		DeleteApp(ctx context.Context, appID, secretHash string) error
 	}
@@ -28,32 +34,26 @@ type (
 		PublicKey(appID string) (interface{}, error)
 	}
 
-	Storage interface {
+	AppStorage interface {
 		RegisterApp(ctx context.Context, data entity.AppData) error
 		DeleteApp(ctx context.Context, data entity.AppData) error
 	}
 )
 
-type appUsecase struct {
-	log        *slog.Logger
-	keyManager KeyManager
-	storage    Storage
-}
-
 func NewAppUsecase(
 	log *slog.Logger,
 	km KeyManager,
-	storage Storage,
-) Usecase {
-	return &appUsecase{
+	storage AppStorage,
+) *AppUsecase {
+	return &AppUsecase{
 		log:        log,
 		keyManager: km,
 		storage:    storage,
 	}
 }
 
-func (u *appUsecase) RegisterApp(ctx context.Context, appName string) error {
-	const method = "usecase.appUsecase.RegisterApp"
+func (u *AppUsecase) RegisterApp(ctx context.Context, appName string) error {
+	const method = "usecase.AppUsecase.RegisterApp"
 
 	log := u.log.With(slog.String("method", method))
 
@@ -119,8 +119,8 @@ func (u *appUsecase) RegisterApp(ctx context.Context, appName string) error {
 	return nil
 }
 
-func (u *appUsecase) DeleteApp(ctx context.Context, appID, secretHash string) error {
-	const method = "usecase.appUsecase.RegisterApp"
+func (u *AppUsecase) DeleteApp(ctx context.Context, appID, secretHash string) error {
+	const method = "usecase.AppUsecase.RegisterApp"
 
 	log := u.log.With(slog.String("method", method))
 
@@ -149,8 +149,8 @@ func (u *appUsecase) DeleteApp(ctx context.Context, appID, secretHash string) er
 	return nil
 }
 
-func (u *appUsecase) generateAndHashSecret(name string) (string, error) {
-	const method = "usecase.appUsecase.generateAndHashSecret"
+func (u *AppUsecase) generateAndHashSecret(name string) (string, error) {
+	const method = "usecase.AppUsecase.generateAndHashSecret"
 
 	if name == "" {
 		return "", fmt.Errorf("%s: %w", method, domain.ErrAppNameIsEmpty)

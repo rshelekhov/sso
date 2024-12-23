@@ -1,45 +1,68 @@
-package controller
+package grpc
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
-	"github.com/rshelekhov/sso/internal/model"
+	"github.com/rshelekhov/sso/src/lib/constant/le"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 const emptyValue = ""
 
-func validateAppID(appID string) error {
-	if appID == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrAppIDIsRequired.Error())
-	}
-	return nil
-}
+var (
+	ErrEmailIsRequired                             = errors.New("email is required")
+	ErrPasswordIsRequired                          = errors.New("password is required")
+	ErrUserAgentIsRequired                         = errors.New("user agent is required")
+	ErrIPIsRequired                                = errors.New("ip is required")
+	ErrEmailVerificationEndpointIsRequired         = errors.New("email verification endpoint is required")
+	ErrVerificationTokenIsRequired                 = errors.New("verification token is required")
+	ErrResetPasswordConfirmationEndpointIsRequired = errors.New("reset password confirmation endpoint is required")
+	ErrResetPasswordTokenIsRequired                = errors.New("reset password token is required")
+	ErrRefreshTokenIsRequired                      = errors.New("refresh token is required")
+	ErrCurrentPasswordIsRequired                   = errors.New("current password is required")
+)
 
 func validateUserCredentials(email, password string) error {
+	var errMessages []string
+
 	if email == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrEmailIsRequired.Error())
+		errMessages = append(errMessages, ErrEmailIsRequired.Error())
 	}
+
 	if password == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrPasswordIsRequired.Error())
+		errMessages = append(errMessages, ErrPasswordIsRequired.Error())
 	}
+
+	if len(errMessages) > 0 {
+		return fmt.Errorf("%s", strings.Join(errMessages, "; "))
+	}
+
 	return nil
 }
 
 func validateUserDeviceData(userAgent, ip string) error {
+	var errMessages []string
+
 	if userAgent == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrUserAgentIsRequired.Error())
+		errMessages = append(errMessages, ErrUserAgentIsRequired.Error())
 	}
+
 	if ip == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrIPIsRequired.Error())
+		errMessages = append(errMessages, ErrIPIsRequired.Error())
 	}
+
+	if len(errMessages) > 0 {
+		return fmt.Errorf("%s", strings.Join(errMessages, "; "))
+	}
+
 	return nil
 }
 
-func validateRegisterAppData(req *ssov1.RegisterAppRequest) error {
+func validateRegisterAppRequest(req *ssov1.RegisterAppRequest) error {
 	appName := req.GetAppName()
 
 	if appName == emptyValue {
@@ -52,165 +75,128 @@ func validateRegisterAppData(req *ssov1.RegisterAppRequest) error {
 	return nil
 }
 
-func validateVerifyEmailData(req *ssov1.VerifyEmailRequest, data *model.VerifyEmailRequestData) error {
+func validateVerifyEmailRequest(req *ssov1.VerifyEmailRequest) error {
 	if req.GetToken() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrVerificationTokenIsRequired.Error())
+		return ErrVerificationTokenIsRequired
 	}
 
-	data.VerificationToken = req.GetToken()
 	return nil
 }
 
-func validateLoginData(req *ssov1.LoginRequest, data *model.UserRequestData) error {
+func validateLoginRequest(req *ssov1.LoginRequest) error {
+	var errMessages []string
+
 	if err := validateUserCredentials(req.GetEmail(), req.GetPassword()); err != nil {
-		return err
-	}
-	if err := validateAppID(req.GetAppId()); err != nil {
-		return err
+		errMessages = append(errMessages, err.Error())
 	}
 	if err := validateUserDeviceData(req.UserDeviceData.GetUserAgent(), req.UserDeviceData.GetIp()); err != nil {
-		return err
+		errMessages = append(errMessages, err.Error())
 	}
 
-	data.Email = req.GetEmail()
-	data.Password = req.GetPassword()
-	data.AppID = req.GetAppId()
-	data.UserDevice.UserAgent = req.UserDeviceData.GetUserAgent()
-	data.UserDevice.IP = req.UserDeviceData.GetIp()
+	if len(errMessages) > 0 {
+		return fmt.Errorf("%s", strings.Join(errMessages, "; "))
+	}
 
 	return nil
 }
 
-func validateRegisterData(req *ssov1.RegisterUserRequest, data *model.UserRequestData) error {
+func validateRegisterUserRequest(req *ssov1.RegisterUserRequest) error {
+	var errMessages []string
+
 	if err := validateUserCredentials(req.GetEmail(), req.GetPassword()); err != nil {
-		return err
-	}
-	if err := validateAppID(req.GetAppId()); err != nil {
-		return err
+		errMessages = append(errMessages, err.Error())
 	}
 	if err := validateUserDeviceData(req.UserDeviceData.GetUserAgent(), req.UserDeviceData.GetIp()); err != nil {
-		return err
+		errMessages = append(errMessages, err.Error())
 	}
 
-	data.Email = req.GetEmail()
-	data.Password = req.GetPassword()
-	data.AppID = req.GetAppId()
-	data.UserDevice.UserAgent = req.UserDeviceData.GetUserAgent()
-	data.UserDevice.IP = req.UserDeviceData.GetIp()
+	if req.GetVerificationUrl() == emptyValue {
+		errMessages = append(errMessages, ErrEmailVerificationEndpointIsRequired.Error())
+	}
+
+	if len(errMessages) > 0 {
+		return fmt.Errorf("%s", strings.Join(errMessages, "; "))
+	}
 
 	return nil
 }
 
-func validateLogout(req *ssov1.LogoutRequest, data *model.UserRequestData) error {
-	if err := validateAppID(req.GetAppId()); err != nil {
-		return err
-	}
+func validateLogoutRequest(req *ssov1.LogoutRequest) error {
 	if err := validateUserDeviceData(req.UserDeviceData.GetUserAgent(), req.UserDeviceData.GetIp()); err != nil {
 		return err
 	}
 
-	data.AppID = req.GetAppId()
-	data.UserDevice.UserAgent = req.UserDeviceData.GetUserAgent()
-	data.UserDevice.IP = req.UserDeviceData.GetIp()
-
 	return nil
 }
 
-func validateResetPasswordData(req *ssov1.ResetPasswordRequest, data *model.ResetPasswordRequestData) error {
+func validateResetPasswordRequest(req *ssov1.ResetPasswordRequest) error {
+	var errMessages []string
+
 	if req.GetEmail() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrEmailIsRequired.Error())
-	}
-	if err := validateAppID(req.GetAppId()); err != nil {
-		return err
+		errMessages = append(errMessages, ErrEmailIsRequired.Error())
 	}
 
-	data.Email = req.GetEmail()
-	data.AppID = req.GetAppId()
+	if req.GetConfirmUrl() == emptyValue {
+		errMessages = append(errMessages, ErrResetPasswordConfirmationEndpointIsRequired.Error())
+	}
+
+	if len(errMessages) > 0 {
+		return fmt.Errorf("%s", strings.Join(errMessages, "; "))
+	}
 
 	return nil
 }
 
-func validateChangePasswordData(req *ssov1.ChangePasswordRequest, data *model.ChangePasswordRequestData) error {
+func validateChangePasswordRequest(req *ssov1.ChangePasswordRequest) error {
+	var errMessages []string
+
 	if req.GetToken() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrResetPasswordTokenIsRequired.Error())
+		errMessages = append(errMessages, ErrResetPasswordTokenIsRequired.Error())
 	}
+
 	if req.GetUpdatedPassword() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrPasswordIsRequired.Error())
-	}
-	if err := validateAppID(req.GetAppId()); err != nil {
-		return err
+		errMessages = append(errMessages, ErrPasswordIsRequired.Error())
 	}
 
-	data.ResetPasswordToken = req.GetToken()
-	data.UpdatedPassword = req.GetUpdatedPassword()
-	data.AppID = req.GetAppId()
+	if len(errMessages) > 0 {
+		return fmt.Errorf("%s", strings.Join(errMessages, "; "))
+	}
 
 	return nil
 }
 
-func validateRefresh(req *ssov1.RefreshRequest, data *model.RefreshTokenRequestData) error {
+func validateRefreshRequest(req *ssov1.RefreshRequest) error {
+	var errMessages []string
+
 	if req.GetRefreshToken() == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrRefreshTokenIsRequired.Error())
+		errMessages = append(errMessages, ErrRefreshTokenIsRequired.Error())
 	}
-	if err := validateAppID(req.GetAppId()); err != nil {
-		return err
-	}
+
 	if err := validateUserDeviceData(req.UserDeviceData.GetUserAgent(), req.UserDeviceData.GetIp()); err != nil {
-		return err
+		errMessages = append(errMessages, err.Error())
 	}
 
-	data.RefreshToken = req.GetRefreshToken()
-	data.AppID = req.GetAppId()
-	data.UserDevice.UserAgent = req.UserDeviceData.GetUserAgent()
-	data.UserDevice.IP = req.UserDeviceData.GetIp()
+	if len(errMessages) > 0 {
+		return fmt.Errorf("%s", strings.Join(errMessages, "; "))
+	}
 
 	return nil
 }
 
-func validateGetJWKS(req *ssov1.GetJWKSRequest, data *model.JWKSRequestData) error {
-	if err := validateAppID(req.GetAppId()); err != nil {
-		return err
-	}
+func validateUpdateUserRequest(req *ssov1.UpdateUserRequest) error {
+	var errMessages []string
 
-	data.AppID = req.GetAppId()
-
-	return nil
-}
-
-func validateGetUser(req *ssov1.GetUserRequest, data *model.UserRequestData) error {
-	if err := validateAppID(req.GetAppId()); err != nil {
-		return err
-	}
-
-	data.AppID = req.GetAppId()
-
-	return nil
-}
-
-func validateUpdateUser(req *ssov1.UpdateUserRequest, data *model.UserRequestData) error {
-	if err := validateAppID(req.GetAppId()); err != nil {
-		return err
-	}
-
-	data.Email = req.GetEmail()
-	data.Password = req.GetCurrentPassword()
-	data.UpdatedPassword = req.GetUpdatedPassword()
-	data.AppID = req.GetAppId()
+	password := req.GetCurrentPassword()
+	updatedPassword := req.GetUpdatedPassword()
 
 	// If UpdatedPassword is not empty, ensure Password is not empty
-	if data.UpdatedPassword != emptyValue && data.Password == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrCurrentPasswordIsRequired.Error())
+	if updatedPassword != emptyValue && password == emptyValue {
+		errMessages = append(errMessages, ErrCurrentPasswordIsRequired.Error())
 	}
 
-	return nil
-}
-
-func validateDeleteUser(req *ssov1.DeleteUserRequest, data *model.UserRequestData) error {
-	if err := validateAppID(req.GetAppId()); err != nil {
-		return err
+	if len(errMessages) > 0 {
+		return fmt.Errorf("%s", strings.Join(errMessages, "; "))
 	}
-
-	data.AppID = req.GetAppId()
 
 	return nil
 }

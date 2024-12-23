@@ -12,6 +12,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const checkAppIDExists = `-- name: CheckAppIDExists :one
+SELECT EXISTS(SELECT 1 FROM apps WHERE id = $1)
+`
+
+func (q *Queries) CheckAppIDExists(ctx context.Context, id string) (bool, error) {
+	row := q.db.QueryRow(ctx, checkAppIDExists, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const deleteApp = `-- name: DeleteApp :exec
 UPDATE apps
 SET deleted_at = $1

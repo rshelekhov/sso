@@ -16,6 +16,7 @@ type Service struct {
 	keyStorage               KeyStorage
 }
 
+//go:generate go run github.com/vektra/mockery/v2@v2.20.2 --name=KeyStorage --filename=mock_key_storage.go
 type KeyStorage interface {
 	SavePrivateKey(appID string, privateKeyPEM []byte) error
 	GetPrivateKey(appID string) ([]byte, error)

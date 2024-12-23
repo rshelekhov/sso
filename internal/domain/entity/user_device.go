@@ -1,9 +1,12 @@
-package model
+package entity
 
-import "time"
+import (
+	"github.com/segmentio/ksuid"
+	"time"
+)
 
 type (
-	Device struct {
+	UserDevice struct {
 		ID            string    `db:"id"`
 		UserID        string    `db:"user_id"`
 		AppID         string    `db:"app_id"`
@@ -14,8 +17,20 @@ type (
 		DetachedAt    time.Time `db:"detached_at"`
 	}
 
-	DeviceRequestData struct {
+	UserDeviceRequestData struct {
 		UserAgent string
 		IP        string
 	}
 )
+
+func NewUserDevice(session SessionRequestData) UserDevice {
+	return UserDevice{
+		ID:            ksuid.New().String(),
+		UserID:        session.UserID,
+		AppID:         session.AppID,
+		UserAgent:     session.UserDevice.UserAgent,
+		IP:            session.UserDevice.IP,
+		Detached:      false,
+		LastVisitedAt: time.Now(),
+	}
+}

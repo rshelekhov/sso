@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const createUserSession = `-- name: CreateUserSession :exec
+const createUserSession = `-- name: CreateSession :exec
 INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, last_visited_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
@@ -155,20 +155,20 @@ func (q *Queries) RegisterDevice(ctx context.Context, arg RegisterDeviceParams) 
 	return err
 }
 
-const updateLastLoginAt = `-- name: UpdateLastLoginAt :exec
+const updateLastVisitedAt = `-- name: UpdateLastVisitedAt :exec
 UPDATE user_devices
 SET last_visited_at = $1
 WHERE id = $2
   AND app_id = $3
 `
 
-type UpdateLastLoginAtParams struct {
+type UpdateLastVisitedAtParams struct {
 	LastVisitedAt time.Time `db:"last_visited_at"`
 	ID            string    `db:"id"`
 	AppID         string    `db:"app_id"`
 }
 
-func (q *Queries) UpdateLastLoginAt(ctx context.Context, arg UpdateLastLoginAtParams) error {
-	_, err := q.db.Exec(ctx, updateLastLoginAt, arg.LastVisitedAt, arg.ID, arg.AppID)
+func (q *Queries) UpdateLastVisitedAt(ctx context.Context, arg UpdateLastVisitedAtParams) error {
+	_, err := q.db.Exec(ctx, updateLastVisitedAt, arg.LastVisitedAt, arg.ID, arg.AppID)
 	return err
 }

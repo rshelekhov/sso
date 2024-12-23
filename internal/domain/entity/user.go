@@ -1,6 +1,9 @@
-package model
+package entity
 
-import "time"
+import (
+	"github.com/segmentio/ksuid"
+	"time"
+)
 
 type userStatusType string
 
@@ -30,12 +33,18 @@ type (
 		Email           string
 		Password        string
 		UpdatedPassword string
-		AppID           string
-		UserDevice      DeviceRequestData
-	}
-
-	LogoutRequestData struct {
-		AppID      string
-		UserDevice DeviceRequestData
+		UserDevice      UserDeviceRequestData
 	}
 )
+
+func NewUser(email, hash, appID string) User {
+	return User{
+		ID:           ksuid.New().String(),
+		Email:        email,
+		PasswordHash: hash,
+		AppID:        appID,
+		Verified:     false,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
+	"github.com/rshelekhov/sso/src/lib/constant/le"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

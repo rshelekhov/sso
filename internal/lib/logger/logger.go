@@ -5,8 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/rshelekhov/sso/internal/lib/constant/key"
-	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogpretty"
+	"github.com/rshelekhov/sso/src/lib/logger/handler/slogpretty"
 )
 
 const (
@@ -70,12 +69,4 @@ func SetupLogger(env string) *slog.Logger {
 	log := slog.New(handler)
 
 	return log
-}
-
-// TODO: use this method for errors!
-func Err(err error) slog.Attr {
-	return slog.Attr{
-		Key:   key.Error,
-		Value: slog.StringValue(err.Error()),
-	}
 }
