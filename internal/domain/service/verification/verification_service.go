@@ -6,9 +6,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/src/domain"
-	"github.com/rshelekhov/sso/src/domain/entity"
-	"github.com/rshelekhov/sso/src/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"time"
 )
 
@@ -39,7 +39,7 @@ func (s *Service) CreateToken(
 	entity.VerificationToken,
 	error,
 ) {
-	const method = "Service.verification.CreateToken"
+	const method = "service.verification.CreateToken"
 
 	verificationTokenString, err := generateToken()
 	if err != nil {
@@ -56,7 +56,7 @@ func (s *Service) CreateToken(
 }
 
 func (s *Service) GetTokenData(ctx context.Context, token string) (entity.VerificationToken, error) {
-	const method = "Service.verification.GetTokenData"
+	const method = "service.verification.GetTokenData"
 
 	tokenData, err := s.storage.GetVerificationTokenData(ctx, token)
 	if err != nil {
@@ -71,7 +71,7 @@ func (s *Service) GetTokenData(ctx context.Context, token string) (entity.Verifi
 }
 
 func (s *Service) DeleteToken(ctx context.Context, token string) error {
-	const method = "Service.verification.DeleteToken"
+	const method = "service.verification.DeleteToken"
 
 	if err := s.storage.DeleteVerificationToken(ctx, token); err != nil {
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToDeleteVerificationToken, err)
