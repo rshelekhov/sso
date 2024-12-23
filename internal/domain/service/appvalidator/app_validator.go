@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/src/domain"
-	"github.com/rshelekhov/sso/src/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 )
 
 type AppValidator struct {
@@ -16,7 +16,6 @@ type Validator interface {
 	ValidateAppID(ctx context.Context, appID string) error
 }
 
-//go:generate go run github.com/vektra/mockery/v2@v2.20.2 --name=Storage --filename=mock_app_storage.go
 type Storage interface {
 	CheckAppIDExists(ctx context.Context, appID string) error
 }

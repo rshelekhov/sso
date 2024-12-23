@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rshelekhov/sso/src/domain"
+	"github.com/rshelekhov/sso/internal/domain"
 	"strings"
 )
 

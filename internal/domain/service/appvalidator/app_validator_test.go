@@ -3,9 +3,9 @@ package appvalidator
 import (
 	"context"
 	"errors"
-	"github.com/rshelekhov/sso/src/domain"
-	"github.com/rshelekhov/sso/src/domain/service/appvalidator/mocks"
-	"github.com/rshelekhov/sso/src/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/domain/service/appvalidator/mocks"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/stretchr/testify/require"
 	"testing"
 )

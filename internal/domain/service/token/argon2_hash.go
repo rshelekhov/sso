@@ -4,7 +4,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
-	"github.com/rshelekhov/sso/src/domain"
+	"github.com/rshelekhov/sso/internal/domain"
 	"golang.org/x/crypto/argon2"
 	"strings"
 )

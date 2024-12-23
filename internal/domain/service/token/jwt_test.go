@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rshelekhov/sso/src/domain"
+	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/stretchr/testify/require"
 	"testing"
 )

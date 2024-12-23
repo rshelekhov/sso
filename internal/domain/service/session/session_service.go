@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/src/domain"
-	"github.com/rshelekhov/sso/src/domain/entity"
-	"github.com/rshelekhov/sso/src/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"time"
 )
 
-//go:generate go run github.com/vektra/mockery/v2@v2.32.0 --name=JWTManager --filename=mock_jwt_manager.go
 type JWTManager interface {
 	NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error)
 	NewRefreshToken() string
@@ -22,7 +21,6 @@ type JWTManager interface {
 	RefreshTokenCookiePath() string
 }
 
-//go:generate go run github.com/vektra/mockery/v2@v2.32.0 --name=Storage --filename=mock_user_storage.go
 type Storage interface {
 	CreateSession(ctx context.Context, session entity.Session) error
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error)

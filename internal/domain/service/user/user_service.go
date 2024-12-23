@@ -4,16 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/src/domain"
-	"github.com/rshelekhov/sso/src/domain/entity"
-	"github.com/rshelekhov/sso/src/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 )
 
 type User struct {
 	storage Storage
 }
 
-//go:generate go run github.com/vektra/mockery/v2@v2.20.2 --name=Storage --filename=mock_user_storage.go
 type Storage interface {
 	GetUserByID(ctx context.Context, appID, userID string) (entity.User, error)
 	GetUserByEmail(ctx context.Context, appID, email string) (entity.User, error)
