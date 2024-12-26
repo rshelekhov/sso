@@ -1,30 +1,30 @@
-package usecase
+package user
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/src/domain"
-	"github.com/rshelekhov/sso/src/domain/entity"
-	"github.com/rshelekhov/sso/src/lib/constant/le"
-	"github.com/rshelekhov/sso/src/lib/e"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/lib/constant/le"
+	"github.com/rshelekhov/sso/internal/lib/e"
 	"log/slog"
 	"time"
 )
 
-type UserUsecase struct {
-	log            *slog.Logger
-	requestIDMgr   ContextManager
-	appIDMgr       ContextManager
-	appValidator   AppValidator
-	sessionService UserSessionService
-	userService    DomainUserService
-	passwordMgr    PasswordManager
-	identityMgr    IdentityManager
+type User struct {
+	log          *slog.Logger
+	requestIDMgr ContextManager
+	appIDMgr     ContextManager
+	appValidator AppValidator
+	sessionMgr   SessionManager
+	userMgr      UserdataManager
+	passwordMgr  PasswordManager
+	identityMgr  IdentityManager
 }
 
 type (
-	UserProvider interface {
+	Usecase interface {
 		GetUserByID(ctx context.Context, appID string) (entity.User, error)
 		UpdateUser(ctx context.Context, appID string, data *entity.UserRequestData) error
 		DeleteUser(ctx context.Context, appID string) error
@@ -39,11 +39,11 @@ type (
 		ValidateAppID(ctx context.Context, appID string) error
 	}
 
-	UserSessionService interface {
+	SessionManager interface {
 		DeleteUserSessions(ctx context.Context, user entity.User) error
 	}
 
-	DomainUserService interface {
+	UserdataManager interface {
 		GetUserByID(ctx context.Context, appID, userID string) (entity.User, error)
 		GetUserData(ctx context.Context, appID, userID string) (entity.User, error)
 		GetUserStatusByEmail(ctx context.Context, email string) (string, error)
@@ -63,30 +63,30 @@ type (
 	}
 )
 
-func NewUserUsecase(
+func NewUsecase(
 	log *slog.Logger,
 	reqIDMgr ContextManager,
 	appIDMgr ContextManager,
 	av AppValidator,
-	ss UserSessionService,
-	us DomainUserService,
+	ss SessionManager,
+	us UserdataManager,
 	pm PasswordManager,
 	im IdentityManager,
-) *UserUsecase {
-	return &UserUsecase{
-		log:            log,
-		requestIDMgr:   reqIDMgr,
-		appIDMgr:       appIDMgr,
-		appValidator:   av,
-		sessionService: ss,
-		userService:    us,
-		passwordMgr:    pm,
-		identityMgr:    im,
+) *User {
+	return &User{
+		log:          log,
+		requestIDMgr: reqIDMgr,
+		appIDMgr:     appIDMgr,
+		appValidator: av,
+		sessionMgr:   ss,
+		userMgr:      us,
+		passwordMgr:  pm,
+		identityMgr:  im,
 	}
 }
 
-func (u *UserUsecase) GetUserByID(ctx context.Context, appID string) (entity.User, error) {
-	const method = "usecase.UserUsecase.GetUser"
+func (u *User) GetUserByID(ctx context.Context, appID string) (entity.User, error) {
+	const method = "usecase.User.GetUser"
 
 	log := u.log.With(slog.String("method", method))
 
@@ -96,7 +96,7 @@ func (u *UserUsecase) GetUserByID(ctx context.Context, appID string) (entity.Use
 		return entity.User{}, domain.ErrFailedToExtractUserIDFromContext
 	}
 
-	userData, err := u.userService.GetUserByID(ctx, appID, userID)
+	userData, err := u.userMgr.GetUserByID(ctx, appID, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.HandleError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
@@ -111,8 +111,8 @@ func (u *UserUsecase) GetUserByID(ctx context.Context, appID string) (entity.Use
 	return userData, nil
 }
 
-func (u *UserUsecase) UpdateUser(ctx context.Context, appID string, data *entity.UserRequestData) error {
-	const method = "usecase.UserUsecase.UpdateUser"
+func (u *User) UpdateUser(ctx context.Context, appID string, data *entity.UserRequestData) error {
+	const method = "usecase.User.UpdateUser"
 
 	log := u.log.With(slog.String("method", method))
 
@@ -122,7 +122,7 @@ func (u *UserUsecase) UpdateUser(ctx context.Context, appID string, data *entity
 		return domain.ErrFailedToExtractUserIDFromContext
 	}
 
-	userDataFromDB, err := u.userService.GetUserData(ctx, appID, userID)
+	userDataFromDB, err := u.userMgr.GetUserData(ctx, appID, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.HandleError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
@@ -142,8 +142,8 @@ func (u *UserUsecase) UpdateUser(ctx context.Context, appID string, data *entity
 	return nil
 }
 
-func (u *UserUsecase) DeleteUser(ctx context.Context, appID string) error {
-	const method = "usecase.UserUsecase.DeleteUser"
+func (u *User) DeleteUser(ctx context.Context, appID string) error {
+	const method = "usecase.User.DeleteUser"
 
 	log := u.log.With(slog.String("method", method))
 
@@ -160,7 +160,7 @@ func (u *UserUsecase) DeleteUser(ctx context.Context, appID string) error {
 	}
 
 	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
-		userStatus, err := u.userService.GetUserStatusByID(ctx, userData.ID)
+		userStatus, err := u.userMgr.GetUserStatusByID(ctx, userData.ID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCheckIfUserExists, err)
 		}
@@ -186,7 +186,7 @@ func (u *UserUsecase) DeleteUser(ctx context.Context, appID string) error {
 	return nil
 }
 
-func (u *UserUsecase) updateUserFields(
+func (u *User) updateUserFields(
 	ctx context.Context,
 	appID string,
 	data *entity.UserRequestData,
@@ -207,7 +207,7 @@ func (u *UserUsecase) updateUserFields(
 		return err
 	}
 
-	err := u.userService.UpdateUser(ctx, updatedUser)
+	err := u.userMgr.UpdateUser(ctx, updatedUser)
 	if err != nil {
 		return err
 	}
@@ -215,12 +215,12 @@ func (u *UserUsecase) updateUserFields(
 	return nil
 }
 
-func (u *UserUsecase) handlePasswordUpdate(
+func (u *User) handlePasswordUpdate(
 	data *entity.UserRequestData,
 	userDataFromDB entity.User,
 	updatedUser *entity.User,
 ) error {
-	const method = "usecase.UserUsecase.handlePasswordUpdate"
+	const method = "usecase.User.handlePasswordUpdate"
 
 	if data.UpdatedPassword == "" {
 		return nil
@@ -246,8 +246,8 @@ func (u *UserUsecase) handlePasswordUpdate(
 	return nil
 }
 
-func (u *UserUsecase) validateCurrentPassword(hash, password string) error {
-	const method = "usecase.UserUsecase.validateCurrentPassword"
+func (u *User) validateCurrentPassword(hash, password string) error {
+	const method = "usecase.User.validateCurrentPassword"
 
 	matched, err := u.passwordMgr.PasswordMatch(hash, password)
 	if err != nil {
@@ -261,8 +261,8 @@ func (u *UserUsecase) validateCurrentPassword(hash, password string) error {
 	return nil
 }
 
-func (u *UserUsecase) validatePasswordChanged(hash, password string) error {
-	const method = "usecase.UserUsecase.validatePasswordChanged"
+func (u *User) validatePasswordChanged(hash, password string) error {
+	const method = "usecase.User.validatePasswordChanged"
 
 	matched, err := u.passwordMgr.PasswordMatch(hash, password)
 	if err != nil {
@@ -276,8 +276,8 @@ func (u *UserUsecase) validatePasswordChanged(hash, password string) error {
 	return nil
 }
 
-func (u *UserUsecase) handleEmailUpdate(ctx context.Context, userDataFromDB entity.User, updatedUser *entity.User) error {
-	const method = "usecase.UserUsecase.handleEmailUpdate"
+func (u *User) handleEmailUpdate(ctx context.Context, userDataFromDB entity.User, updatedUser *entity.User) error {
+	const method = "usecase.User.handleEmailUpdate"
 
 	if updatedUser.Email == "" {
 		return nil
@@ -287,7 +287,7 @@ func (u *UserUsecase) handleEmailUpdate(ctx context.Context, userDataFromDB enti
 		return domain.ErrNoEmailChangesDetected
 	}
 
-	userStatus, err := u.userService.GetUserStatusByEmail(ctx, updatedUser.Email)
+	userStatus, err := u.userMgr.GetUserStatusByEmail(ctx, updatedUser.Email)
 	if err != nil {
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToGetUserStatusByEmail, err)
 	}
@@ -299,16 +299,16 @@ func (u *UserUsecase) handleEmailUpdate(ctx context.Context, userDataFromDB enti
 	return nil
 }
 
-func (u *UserUsecase) cleanupUserData(ctx context.Context, user entity.User) error {
-	if err := u.userService.DeleteUser(ctx, user); err != nil {
+func (u *User) cleanupUserData(ctx context.Context, user entity.User) error {
+	if err := u.userMgr.DeleteUser(ctx, user); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteUser, err)
 	}
 
-	if err := u.sessionService.DeleteUserSessions(ctx, user); err != nil {
+	if err := u.sessionMgr.DeleteUserSessions(ctx, user); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteAllUserSessions, err)
 	}
 
-	if err := u.userService.DeleteUserTokens(ctx, user.AppID, user.ID); err != nil {
+	if err := u.userMgr.DeleteUserTokens(ctx, user.AppID, user.ID); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteUserTokens, err)
 	}
 

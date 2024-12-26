@@ -1,4 +1,4 @@
-package usecase
+package app
 
 import (
 	"context"
@@ -7,9 +7,9 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/src/domain"
-	"github.com/rshelekhov/sso/src/domain/entity"
-	"github.com/rshelekhov/sso/src/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"log/slog"
 	"time"
 
@@ -17,14 +17,14 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AppUsecase struct {
-	log        *slog.Logger
-	keyManager KeyManager
-	storage    AppStorage
+type App struct {
+	log     *slog.Logger
+	keyMgr  KeyManager
+	storage Storage
 }
 
 type (
-	AppProvider interface {
+	Usecase interface {
 		RegisterApp(ctx context.Context, appName string) error
 		DeleteApp(ctx context.Context, appID, secretHash string) error
 	}
@@ -34,26 +34,26 @@ type (
 		PublicKey(appID string) (interface{}, error)
 	}
 
-	AppStorage interface {
+	Storage interface {
 		RegisterApp(ctx context.Context, data entity.AppData) error
 		DeleteApp(ctx context.Context, data entity.AppData) error
 	}
 )
 
-func NewAppUsecase(
+func NewUsecase(
 	log *slog.Logger,
 	km KeyManager,
-	storage AppStorage,
-) *AppUsecase {
-	return &AppUsecase{
-		log:        log,
-		keyManager: km,
-		storage:    storage,
+	storage Storage,
+) *App {
+	return &App{
+		log:     log,
+		keyMgr:  km,
+		storage: storage,
 	}
 }
 
-func (u *AppUsecase) RegisterApp(ctx context.Context, appName string) error {
-	const method = "usecase.AppUsecase.RegisterApp"
+func (u *App) RegisterApp(ctx context.Context, appName string) error {
+	const method = "usecase.App.RegisterApp"
 
 	log := u.log.With(slog.String("method", method))
 
@@ -92,7 +92,7 @@ func (u *AppUsecase) RegisterApp(ctx context.Context, appName string) error {
 		return domain.ErrFailedToRegisterApp
 	}
 
-	if err = u.keyManager.GenerateAndSavePrivateKey(appID); err != nil {
+	if err = u.keyMgr.GenerateAndSavePrivateKey(appID); err != nil {
 		log.LogAttrs(ctx, slog.LevelError, domain.ErrFailedToGenerateAndSavePrivateKey.Error(),
 			slog.String("appID", appID),
 			slog.Any("error", err),
@@ -119,8 +119,8 @@ func (u *AppUsecase) RegisterApp(ctx context.Context, appName string) error {
 	return nil
 }
 
-func (u *AppUsecase) DeleteApp(ctx context.Context, appID, secretHash string) error {
-	const method = "usecase.AppUsecase.RegisterApp"
+func (u *App) DeleteApp(ctx context.Context, appID, secretHash string) error {
+	const method = "usecase.App.RegisterApp"
 
 	log := u.log.With(slog.String("method", method))
 
@@ -149,8 +149,8 @@ func (u *AppUsecase) DeleteApp(ctx context.Context, appID, secretHash string) er
 	return nil
 }
 
-func (u *AppUsecase) generateAndHashSecret(name string) (string, error) {
-	const method = "usecase.AppUsecase.generateAndHashSecret"
+func (u *App) generateAndHashSecret(name string) (string, error) {
+	const method = "usecase.App.generateAndHashSecret"
 
 	if name == "" {
 		return "", fmt.Errorf("%s: %w", method, domain.ErrAppNameIsEmpty)

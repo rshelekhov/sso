@@ -1,11 +1,11 @@
-package user
+package userdata
 
 import (
 	"context"
 	"errors"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/domain/service/user/mocks"
+	"github.com/rshelekhov/sso/internal/domain/service/userdata/mocks"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -39,7 +39,7 @@ func TestGetUserByID(t *testing.T) {
 		require.Equal(t, expectedUser, user)
 	})
 
-	t.Run("Error – User not found", func(t *testing.T) {
+	t.Run("Error – UserData not found", func(t *testing.T) {
 		mockUserStorage.
 			On("GetUserByID", ctx, appID, userID).
 			Once().
@@ -89,7 +89,7 @@ func TestGetUserByEmail(t *testing.T) {
 		require.Equal(t, expectedUser, user)
 	})
 
-	t.Run("Error – User not found", func(t *testing.T) {
+	t.Run("Error – UserData not found", func(t *testing.T) {
 		mockUserStorage.
 			On("GetUserByEmail", ctx, appID, email).
 			Once().
@@ -138,7 +138,7 @@ func TestGetUserData(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Error – User not found", func(t *testing.T) {
+	t.Run("Error – UserData not found", func(t *testing.T) {
 		mockUserStorage.
 			On("GetUserData", ctx, appID, userID).
 			Once().
@@ -184,7 +184,7 @@ func TestUpdateUser(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Error – User not found", func(t *testing.T) {
+	t.Run("Error – UserData not found", func(t *testing.T) {
 		mockUserStorage.
 			On("UpdateUser", ctx, updatedUserData).
 			Once().
@@ -224,7 +224,7 @@ func TestGetUserStatusByEmail(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Error – User not found", func(t *testing.T) {
+	t.Run("Error – UserData not found", func(t *testing.T) {
 		mockUserStorage.
 			On("GetUserStatusByEmail", ctx, email).
 			Once().
@@ -266,7 +266,7 @@ func TestGetUserStatusByID(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Error – User not found", func(t *testing.T) {
+	t.Run("Error – UserData not found", func(t *testing.T) {
 		mockUserStorage.
 			On("GetUserStatusByID", ctx, userID).
 			Once().
@@ -311,7 +311,7 @@ func TestDeleteUser(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Error – User not found", func(t *testing.T) {
+	t.Run("Error – UserData not found", func(t *testing.T) {
 		mockUserStorage.
 			On("DeleteUser", ctx, deletedUser).
 			Once().

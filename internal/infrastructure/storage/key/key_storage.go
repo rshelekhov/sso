@@ -2,9 +2,9 @@ package key
 
 import (
 	"fmt"
-	"github.com/rshelekhov/sso/src/domain/service/token"
-	"github.com/rshelekhov/sso/src/infrastructure/storage/key/fs"
-	"github.com/rshelekhov/sso/src/infrastructure/storage/key/s3"
+	"github.com/rshelekhov/sso/internal/domain/service/token"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/key/fs"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/key/s3"
 )
 
 var (
