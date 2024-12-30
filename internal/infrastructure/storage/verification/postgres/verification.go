@@ -6,28 +6,35 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rshelekhov/sso/src/domain/entity"
-	"github.com/rshelekhov/sso/src/infrastructure/storage"
-	"github.com/rshelekhov/sso/src/infrastructure/storage/verification/postgres/sqlc"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/verification/postgres/sqlc"
 )
 
-type Storage struct {
+type VerificationStorage struct {
 	*pgxpool.Pool
 	*sqlc.Queries
 }
 
-func NewVerificationStorage(pool *pgxpool.Pool) *Storage {
-	return &Storage{
+func NewVerificationStorage(pool *pgxpool.Pool) *VerificationStorage {
+	return &VerificationStorage{
 		Pool:    pool,
 		Queries: sqlc.New(pool),
 	}
 }
 
-func (s *Storage) SaveVerificationToken(ctx context.Context, data entity.VerificationToken) error {
+func (s *VerificationStorage) SaveVerificationToken(ctx context.Context, data entity.VerificationToken) error {
 	const method = "verification.postgres.SaveVerificationToken"
 
 	if err := s.Queries.SaveVerificationToken(ctx, sqlc.SaveVerificationTokenParams{
-		Token: data.Token,
+		Token:       data.Token,
+		UserID:      data.UserID,
+		AppID:       data.AppID,
+		Endpoint:    data.Endpoint,
+		Recipient:   data.Email,
+		TokenTypeID: int32(data.Type),
+		CreatedAt:   data.CreatedAt,
+		ExpiresAt:   data.ExpiresAt,
 	}); err != nil {
 		return fmt.Errorf("%s: failed to save verification token: %w", method, err)
 	}
@@ -35,7 +42,7 @@ func (s *Storage) SaveVerificationToken(ctx context.Context, data entity.Verific
 	return nil
 }
 
-func (s *Storage) GetVerificationTokenData(ctx context.Context, token string) (entity.VerificationToken, error) {
+func (s *VerificationStorage) GetVerificationTokenData(ctx context.Context, token string) (entity.VerificationToken, error) {
 	const method = "verification.postgres.GetTokenData"
 
 	tokenData, err := s.Queries.GetVerificationTokenData(ctx, token)
@@ -57,7 +64,7 @@ func (s *Storage) GetVerificationTokenData(ctx context.Context, token string) (e
 	}, nil
 }
 
-func (s *Storage) DeleteVerificationToken(ctx context.Context, token string) error {
+func (s *VerificationStorage) DeleteVerificationToken(ctx context.Context, token string) error {
 	const method = "verification.postgres.DeleteToken"
 
 	if err := s.Queries.DeleteVerificationToken(ctx, token); err != nil {

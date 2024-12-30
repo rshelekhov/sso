@@ -7,25 +7,25 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rshelekhov/sso/src/domain/entity"
-	"github.com/rshelekhov/sso/src/infrastructure/storage"
-	"github.com/rshelekhov/sso/src/infrastructure/storage/user/postgres/sqlc"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/user/postgres/sqlc"
 	"strconv"
 )
 
-type Storage struct {
+type UserStorage struct {
 	*pgxpool.Pool
 	*sqlc.Queries
 }
 
-func NewUserStorage(pool *pgxpool.Pool) *Storage {
-	return &Storage{
+func NewUserStorage(pool *pgxpool.Pool) *UserStorage {
+	return &UserStorage{
 		Pool:    pool,
 		Queries: sqlc.New(pool),
 	}
 }
 
-func (s *Storage) GetUserByID(ctx context.Context, appID, userID string) (entity.User, error) {
+func (s *UserStorage) GetUserByID(ctx context.Context, appID, userID string) (entity.User, error) {
 	const method = "user.postgres.GetUserByID"
 
 	user, err := s.Queries.GetUserByID(ctx, sqlc.GetUserByIDParams{
@@ -47,7 +47,7 @@ func (s *Storage) GetUserByID(ctx context.Context, appID, userID string) (entity
 	}, nil
 }
 
-func (s *Storage) GetUserByEmail(ctx context.Context, appID, email string) (entity.User, error) {
+func (s *UserStorage) GetUserByEmail(ctx context.Context, appID, email string) (entity.User, error) {
 	const method = "user.postgres.GetUserByEmail"
 
 	user, err := s.Queries.GetUserByEmail(ctx, sqlc.GetUserByEmailParams{
@@ -69,7 +69,7 @@ func (s *Storage) GetUserByEmail(ctx context.Context, appID, email string) (enti
 	}, nil
 }
 
-func (s *Storage) GetUserData(ctx context.Context, appID, userID string) (entity.User, error) {
+func (s *UserStorage) GetUserData(ctx context.Context, appID, userID string) (entity.User, error) {
 	const method = "user.postgres.GetUserData"
 
 	user, err := s.Queries.GetUserData(ctx, sqlc.GetUserDataParams{
@@ -92,7 +92,7 @@ func (s *Storage) GetUserData(ctx context.Context, appID, userID string) (entity
 	}, nil
 }
 
-func (s *Storage) UpdateUser(ctx context.Context, user entity.User) error {
+func (s *UserStorage) UpdateUser(ctx context.Context, user entity.User) error {
 	const method = "user.postgres.UpdateUser"
 
 	// Prepare the dynamic update query based on the provided fields
@@ -129,7 +129,7 @@ func (s *Storage) UpdateUser(ctx context.Context, user entity.User) error {
 	return nil
 }
 
-func (s *Storage) DeleteUser(ctx context.Context, user entity.User) error {
+func (s *UserStorage) DeleteUser(ctx context.Context, user entity.User) error {
 	const method = "user.postgres.DeleteUser"
 
 	if err := s.Queries.DeleteUser(ctx, sqlc.DeleteUserParams{
@@ -150,7 +150,7 @@ func (s *Storage) DeleteUser(ctx context.Context, user entity.User) error {
 }
 
 // GetUserStatusByEmail returns the status of the user with the given email
-func (s *Storage) GetUserStatusByEmail(ctx context.Context, email string) (string, error) {
+func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, email string) (string, error) {
 	const method = "user.postgres.GetUserStatusByEmail"
 
 	status, err := s.Queries.GetUserStatusByEmail(ctx, email)
@@ -165,7 +165,7 @@ func (s *Storage) GetUserStatusByEmail(ctx context.Context, email string) (strin
 }
 
 // GetUserStatusByID returns the status of the user with the given userID
-func (s *Storage) GetUserStatusByID(ctx context.Context, userID string) (string, error) {
+func (s *UserStorage) GetUserStatusByID(ctx context.Context, userID string) (string, error) {
 	const method = "user.postgres.GetUserStatusByID"
 
 	status, err := s.Queries.GetUserStatusByID(ctx, userID)
@@ -179,7 +179,7 @@ func (s *Storage) GetUserStatusByID(ctx context.Context, userID string) (string,
 	return status, nil
 }
 
-func (s *Storage) DeleteAllTokens(ctx context.Context, appID, userID string) error {
+func (s *UserStorage) DeleteAllTokens(ctx context.Context, appID, userID string) error {
 	const method = "user.postgres.DeleteAllTokens"
 
 	if err := s.Queries.DeleteAllTokens(ctx, sqlc.DeleteAllTokensParams{

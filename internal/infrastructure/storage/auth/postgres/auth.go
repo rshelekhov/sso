@@ -5,23 +5,23 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rshelekhov/sso/src/domain/entity"
-	"github.com/rshelekhov/sso/src/infrastructure/storage/auth/postgres/sqlc"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/auth/postgres/sqlc"
 )
 
-type Storage struct {
+type AuthStorage struct {
 	*pgxpool.Pool
 	*sqlc.Queries
 }
 
-func NewAuthStorage(pool *pgxpool.Pool) *Storage {
-	return &Storage{
+func NewAuthStorage(pool *pgxpool.Pool) *AuthStorage {
+	return &AuthStorage{
 		Pool:    pool,
 		Queries: sqlc.New(pool),
 	}
 }
 
-func (s *Storage) Transaction(ctx context.Context, fn func(storage *Storage) error) error {
+func (s *AuthStorage) Transaction(ctx context.Context, fn func(storage *AuthStorage) error) error {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func (s *Storage) Transaction(ctx context.Context, fn func(storage *Storage) err
 }
 
 // ReplaceSoftDeletedUser replaces a soft deleted user with the given user
-func (s *Storage) ReplaceSoftDeletedUser(ctx context.Context, user entity.User) error {
+func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.User) error {
 	const method = "auth.postgres.ReplaceSoftDeletedUser"
 
 	if err := s.Queries.RegisterUser(ctx, sqlc.RegisterUserParams{
@@ -64,7 +64,7 @@ func (s *Storage) ReplaceSoftDeletedUser(ctx context.Context, user entity.User) 
 }
 
 // RegisterUser creates a new user
-func (s *Storage) RegisterUser(ctx context.Context, user entity.User) error {
+func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error {
 	const method = "auth.postgres.insertNewUser"
 
 	if err := s.Queries.RegisterUser(ctx, sqlc.RegisterUserParams{
@@ -84,7 +84,7 @@ func (s *Storage) RegisterUser(ctx context.Context, user entity.User) error {
 	return nil
 }
 
-func (s *Storage) MarkEmailVerified(ctx context.Context, userID, appID string) error {
+func (s *AuthStorage) MarkEmailVerified(ctx context.Context, userID, appID string) error {
 	const method = "auth.postgres.MarkEmailVerified"
 
 	if err := s.Queries.MarkEmailVerified(ctx, sqlc.MarkEmailVerifiedParams{

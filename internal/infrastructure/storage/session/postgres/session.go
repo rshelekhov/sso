@@ -6,24 +6,24 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rshelekhov/sso/src/domain/entity"
-	"github.com/rshelekhov/sso/src/infrastructure/storage"
-	"github.com/rshelekhov/sso/src/infrastructure/storage/session/postgres/sqlc"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/session/postgres/sqlc"
 )
 
-type Storage struct {
+type SessionStorage struct {
 	*pgxpool.Pool
 	*sqlc.Queries
 }
 
-func NewSessionStorage(pool *pgxpool.Pool) *Storage {
-	return &Storage{
+func NewSessionStorage(pool *pgxpool.Pool) *SessionStorage {
+	return &SessionStorage{
 		Pool:    pool,
 		Queries: sqlc.New(pool),
 	}
 }
 
-func (s *Storage) CreateSession(ctx context.Context, session entity.Session) error {
+func (s *SessionStorage) CreateSession(ctx context.Context, session entity.Session) error {
 	const method = "user.storage.CreateSession"
 
 	if err := s.Queries.CreateUserSession(ctx, sqlc.CreateUserSessionParams{
@@ -40,7 +40,7 @@ func (s *Storage) CreateSession(ctx context.Context, session entity.Session) err
 	return nil
 }
 
-func (s *Storage) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error) {
+func (s *SessionStorage) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error) {
 	const method = "user.storage.GetSessionByRefreshToken"
 
 	// TODO: add constraint that user can have only active sessions for 5 devices
@@ -62,7 +62,7 @@ func (s *Storage) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 	}, nil
 }
 
-func (s *Storage) UpdateLastVisitedAt(ctx context.Context, session entity.Session) error {
+func (s *SessionStorage) UpdateLastVisitedAt(ctx context.Context, session entity.Session) error {
 	const method = "user.storage.UpdateLastVisitedAt"
 
 	if err := s.Queries.UpdateLastVisitedAt(ctx, sqlc.UpdateLastVisitedAtParams{
@@ -75,7 +75,7 @@ func (s *Storage) UpdateLastVisitedAt(ctx context.Context, session entity.Sessio
 	return nil
 }
 
-func (s *Storage) DeleteRefreshToken(ctx context.Context, refreshToken string) error {
+func (s *SessionStorage) DeleteRefreshToken(ctx context.Context, refreshToken string) error {
 	const method = "user.storage.DeleteRefreshToken"
 
 	if err := s.Queries.DeleteRefreshTokenFromSession(ctx, refreshToken); err != nil {
@@ -85,7 +85,7 @@ func (s *Storage) DeleteRefreshToken(ctx context.Context, refreshToken string) e
 	return nil
 }
 
-func (s *Storage) DeleteSession(ctx context.Context, session entity.Session) error {
+func (s *SessionStorage) DeleteSession(ctx context.Context, session entity.Session) error {
 	const method = "user.storage.DeleteSession"
 
 	if err := s.Queries.DeleteSession(ctx, sqlc.DeleteSessionParams{
@@ -102,7 +102,7 @@ func (s *Storage) DeleteSession(ctx context.Context, session entity.Session) err
 	return nil
 }
 
-func (s *Storage) DeleteAllSessions(ctx context.Context, userID, appID string) error {
+func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID, appID string) error {
 	const method = "user.storage.DeleteAllSessions"
 
 	if err := s.Queries.DeleteAllSessions(ctx, sqlc.DeleteAllSessionsParams{
@@ -118,7 +118,7 @@ func (s *Storage) DeleteAllSessions(ctx context.Context, userID, appID string) e
 	return nil
 }
 
-func (s *Storage) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
+func (s *SessionStorage) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
 	const method = "user.storage.GetUserDeviceID"
 
 	deviceID, err := s.Queries.GetUserDeviceID(ctx, sqlc.GetUserDeviceIDParams{
@@ -135,7 +135,7 @@ func (s *Storage) GetUserDeviceID(ctx context.Context, userID, userAgent string)
 	return deviceID, nil
 }
 
-func (s *Storage) RegisterDevice(ctx context.Context, device entity.UserDevice) error {
+func (s *SessionStorage) RegisterDevice(ctx context.Context, device entity.UserDevice) error {
 	const method = "user.storage.RegisterDevice"
 
 	if err := s.Queries.RegisterDevice(ctx, sqlc.RegisterDeviceParams{

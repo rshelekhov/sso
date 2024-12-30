@@ -8,18 +8,18 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rshelekhov/sso/src/domain/entity"
-	"github.com/rshelekhov/sso/src/infrastructure/storage"
-	"github.com/rshelekhov/sso/src/infrastructure/storage/app/postgres/sqlc"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/app/postgres/sqlc"
 )
 
-type Storage struct {
+type AppStorage struct {
 	*pgxpool.Pool
 	*sqlc.Queries
 }
 
-func NewAppStorage(pool *pgxpool.Pool) *Storage {
-	return &Storage{
+func NewAppStorage(pool *pgxpool.Pool) *AppStorage {
+	return &AppStorage{
 		Pool:    pool,
 		Queries: sqlc.New(pool),
 	}
@@ -27,7 +27,7 @@ func NewAppStorage(pool *pgxpool.Pool) *Storage {
 
 const UniqueViolationErrorCode = "23505"
 
-func (s *Storage) RegisterApp(ctx context.Context, data entity.AppData) error {
+func (s *AppStorage) RegisterApp(ctx context.Context, data entity.AppData) error {
 	const method = "user.storage.RegisterApp"
 
 	if err := s.Queries.InsertApp(ctx, sqlc.InsertAppParams{
@@ -47,7 +47,7 @@ func (s *Storage) RegisterApp(ctx context.Context, data entity.AppData) error {
 	return nil
 }
 
-func (s *Storage) DeleteApp(ctx context.Context, data entity.AppData) error {
+func (s *AppStorage) DeleteApp(ctx context.Context, data entity.AppData) error {
 	const method = "user.storage.DeleteApp"
 
 	if err := s.Queries.DeleteApp(ctx, sqlc.DeleteAppParams{
@@ -66,7 +66,7 @@ func (s *Storage) DeleteApp(ctx context.Context, data entity.AppData) error {
 	return nil
 }
 
-func (s *Storage) CheckAppIDExists(ctx context.Context, appID string) error {
+func (s *AppStorage) CheckAppIDExists(ctx context.Context, appID string) error {
 	const method = "user.storage.CheckAppIDExists"
 
 	appIDExists, err := s.Queries.CheckAppIDExists(ctx, appID)
