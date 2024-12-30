@@ -1,1 +1,269 @@
 package app
+
+import (
+	"fmt"
+	"github.com/rshelekhov/jwtauth"
+	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
+	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/sso/internal/config/settings"
+	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
+	"github.com/rshelekhov/sso/internal/domain/service/session"
+	"github.com/rshelekhov/sso/internal/domain/service/token"
+	"github.com/rshelekhov/sso/internal/domain/service/userdata"
+	"github.com/rshelekhov/sso/internal/domain/service/verification"
+	"github.com/rshelekhov/sso/internal/domain/usecase/app"
+	"github.com/rshelekhov/sso/internal/domain/usecase/auth"
+	"github.com/rshelekhov/sso/internal/domain/usecase/user"
+	"github.com/rshelekhov/sso/internal/infrastructure/service/mail"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	appDB "github.com/rshelekhov/sso/internal/infrastructure/storage/app"
+	authDB "github.com/rshelekhov/sso/internal/infrastructure/storage/auth"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
+	sessionDB "github.com/rshelekhov/sso/internal/infrastructure/storage/session"
+	userDB "github.com/rshelekhov/sso/internal/infrastructure/storage/user"
+	verificationDB "github.com/rshelekhov/sso/internal/infrastructure/storage/verification"
+	"github.com/rshelekhov/sso/pkg/middleware"
+	"github.com/rshelekhov/sso/pkg/middleware/appid"
+	"github.com/rshelekhov/sso/pkg/middleware/requestid"
+	"log/slog"
+)
+
+type Builder struct {
+	logger *slog.Logger
+	cfg    *config.ServerSettings
+
+	storages *Storages
+	managers *Managers
+	services *Services
+	usecases *Usecases
+}
+
+type Storages struct {
+	dbConn       *storage.DBConnection
+	app          appDB.Storage
+	auth         auth.Storage
+	session      session.Storage
+	user         userdata.Storage
+	verification verification.Storage
+	key          token.KeyStorage
+}
+
+type Managers struct {
+	requestID    middleware.Manager
+	appIDManager middleware.Manager
+	jwt          jwtauth.Manager
+}
+
+type Services struct {
+	appValidator *appvalidator.AppValidator
+	token        *token.Service
+	session      *session.Session
+	user         *userdata.UserData
+	verification *verification.Service
+	mail         *mail.Service
+}
+
+type Usecases struct {
+	app  *app.App
+	auth *auth.Auth
+	user *user.User
+}
+
+func newBuilder(logger *slog.Logger, cfg *config.ServerSettings) *Builder {
+	return &Builder{
+		logger: logger,
+		cfg:    cfg,
+	}
+}
+
+func (b *Builder) BuildStorages() error {
+	b.storages = &Storages{}
+	var err error
+
+	b.storages.dbConn, err = newDBConnection(b.cfg.Storage)
+	if err != nil {
+		return fmt.Errorf("failed to init database connection: %w", err)
+	}
+
+	b.storages.app, err = appDB.NewStorage(b.storages.dbConn)
+	if err != nil {
+		return fmt.Errorf("failed to init app storage: %w", err)
+	}
+
+	b.storages.auth, err = authDB.NewStorage(b.storages.dbConn)
+	if err != nil {
+		return fmt.Errorf("failed to init auth storage: %w", err)
+	}
+
+	b.storages.session, err = sessionDB.NewStorage(b.storages.dbConn)
+	if err != nil {
+		return fmt.Errorf("failed to init session storage: %w", err)
+	}
+
+	b.storages.user, err = userDB.NewStorage(b.storages.dbConn)
+	if err != nil {
+		return fmt.Errorf("failed to init user storage: %w", err)
+	}
+
+	b.storages.verification, err = verificationDB.NewStorage(b.storages.dbConn)
+	if err != nil {
+		return fmt.Errorf("failed to init verification storage: %w", err)
+	}
+
+	b.storages.key, err = newKeyStorage(b.cfg.KeyStorage)
+	if err != nil {
+		return fmt.Errorf("failed to init key storage: %w", err)
+	}
+
+	return nil
+}
+
+func (b *Builder) BuildManagers() {
+	b.managers = &Managers{}
+
+	b.managers.requestID = requestid.NewManager()
+	b.managers.appIDManager = appid.NewManager()
+	b.managers.jwt = jwtauth.NewManager(b.cfg.JWT.JWKSURL)
+}
+
+func (b *Builder) BuildServices() error {
+	b.services = &Services{}
+	var err error
+
+	b.services.appValidator = appvalidator.NewService(b.storages.app)
+
+	b.services.token, err = newTokenService(b.cfg.JWT, b.cfg.PasswordHash, b.storages.key)
+	if err != nil {
+		return fmt.Errorf("failed to init token service: %w", err)
+	}
+
+	b.services.session = session.NewService(b.services.token, b.storages.session)
+	b.services.user = userdata.NewService(b.storages.user)
+	b.services.verification = verification.NewService(b.cfg.VerificationService.TokenExpiryTime, b.storages.verification)
+
+	b.services.mail, err = newMailService(b.cfg.MailService)
+	if err != nil {
+		return fmt.Errorf("failed to init mail service: %w", err)
+	}
+
+	return nil
+}
+
+func (b *Builder) BuildUsecases() {
+	b.usecases = &Usecases{}
+
+	b.usecases.app = app.NewUsecase(
+		b.logger,
+		b.services.token,
+		b.storages.app,
+	)
+
+	b.usecases.auth = auth.NewUsecase(
+		b.logger,
+		b.services.session,
+		b.services.user,
+		b.services.mail,
+		b.services.token,
+		b.services.verification,
+		b.storages.auth,
+	)
+
+	b.usecases.user = user.NewUsecase(
+		b.logger,
+		b.managers.requestID,
+		b.managers.appIDManager,
+		b.services.appValidator,
+		b.services.session,
+		b.services.user,
+		b.services.token,
+		b.services.token,
+	)
+}
+
+func (b *Builder) Build() (*App, error) {
+	if err := b.BuildStorages(); err != nil {
+		return nil, err
+	}
+
+	b.BuildManagers()
+
+	if err := b.BuildServices(); err != nil {
+		return nil, err
+	}
+
+	b.BuildUsecases()
+
+	grpcServer := grpcapp.New(
+		b.logger,
+		b.managers.requestID,
+		b.managers.appIDManager,
+		b.services.appValidator,
+		b.managers.jwt,
+		b.usecases.app,
+		b.usecases.auth,
+		b.usecases.user,
+		b.cfg.GRPCServer.Port,
+	)
+
+	return &App{
+		GRPCServer: grpcServer,
+	}, nil
+}
+
+func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
+	storageConfig, err := settings.ToStorageConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	dbConnection, err := storage.NewDBConnection(storageConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbConnection, nil
+}
+
+func newKeyStorage(cfg settings.KeyStorage) (token.KeyStorage, error) {
+	keyStorageConfig, err := settings.ToKeyStorageConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	keyStorage, err := key.NewStorage(keyStorageConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return keyStorage, nil
+}
+
+func newMailService(cfg settings.MailService) (*mail.Service, error) {
+	mailConfig, err := settings.ToMailConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return mail.NewService(mailConfig), nil
+}
+
+func newTokenService(jwt settings.JWT, passwordHash settings.PasswordHashParams, keyStorage token.KeyStorage) (*token.Service, error) {
+	jwtConfig, err := settings.ToJWTConfig(jwt)
+	if err != nil {
+		return nil, err
+	}
+
+	passwordHashConfig, err := settings.ToPasswordHashConfig(passwordHash)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenService := token.NewService(token.Config{
+		JWT:                jwtConfig,
+		PasswordHashParams: passwordHashConfig,
+	},
+		keyStorage,
+	)
+
+	return tokenService, nil
+}
