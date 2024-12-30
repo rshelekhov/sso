@@ -2,27 +2,24 @@ package app
 
 import (
 	"github.com/rshelekhov/jwtauth"
+	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
+	"github.com/rshelekhov/sso/internal/domain/service/session"
+	"github.com/rshelekhov/sso/internal/domain/service/userdata"
+	"github.com/rshelekhov/sso/internal/domain/service/verification"
+	"github.com/rshelekhov/sso/internal/domain/usecase/app"
+	"github.com/rshelekhov/sso/internal/domain/usecase/auth"
+	"github.com/rshelekhov/sso/internal/domain/usecase/user"
+	appDB "github.com/rshelekhov/sso/internal/infrastructure/storage/app"
+	authDB "github.com/rshelekhov/sso/internal/infrastructure/storage/auth"
+	sessionDB "github.com/rshelekhov/sso/internal/infrastructure/storage/session"
+	userDB "github.com/rshelekhov/sso/internal/infrastructure/storage/user"
+	verificationDB "github.com/rshelekhov/sso/internal/infrastructure/storage/verification"
 	"github.com/rshelekhov/sso/pkg/middleware/appid"
 	"github.com/rshelekhov/sso/pkg/middleware/requestid"
-	"github.com/rshelekhov/sso/pkg/storage/postgres"
-	"github.com/rshelekhov/sso/src/config/settings"
-	"github.com/rshelekhov/sso/src/domain/service/appvalidator"
-	"github.com/rshelekhov/sso/src/domain/service/session"
-	"github.com/rshelekhov/sso/src/domain/service/token"
-	"github.com/rshelekhov/sso/src/domain/service/user"
-	"github.com/rshelekhov/sso/src/domain/service/verification"
-	"github.com/rshelekhov/sso/src/domain/usecase"
-	"github.com/rshelekhov/sso/src/infrastructure/service/mail"
-	postgres3 "github.com/rshelekhov/sso/src/infrastructure/storage/app/postgres"
-	postgres2 "github.com/rshelekhov/sso/src/infrastructure/storage/auth/postgres"
-	"github.com/rshelekhov/sso/src/infrastructure/storage/key"
-	postgres4 "github.com/rshelekhov/sso/src/infrastructure/storage/session/postgres"
-	postgres5 "github.com/rshelekhov/sso/src/infrastructure/storage/user/postgres"
-	postgres6 "github.com/rshelekhov/sso/src/infrastructure/storage/verification/postgres"
 	"log/slog"
 
-	grpcapp "github.com/rshelekhov/sso/src/app/grpc"
-	"github.com/rshelekhov/sso/src/config"
+	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
+	"github.com/rshelekhov/sso/internal/config"
 )
 
 type App struct {
@@ -30,27 +27,42 @@ type App struct {
 }
 
 func New(log *slog.Logger, cfg *config.ServerSettings) *App {
-	// Initialize storages
-	pg, err := postgres.New(cfg)
+	// Initialize main storage
+	dbConn, err := newDBConnection(cfg.Storage)
 	if err != nil {
-		log.Error("failed to init storage", slog.Any("error", err))
+		log.Error("failed to init database connection", slog.Any("error", err))
 	}
 
-	log.Debug("storage initiated")
-
 	// Initialize storages
-	appStorage := postgres3.NewAppStorage(pg)
-	authStorage := postgres2.NewAuthStorage(pg)
-	sessionStorage := postgres4.NewSessionStorage(pg)
-	userStorage := postgres5.NewUserStorage(pg)
-	verificationStorage := postgres6.NewVerificationStorage(pg)
+	appStorage, err := appDB.NewStorage(dbConn)
+	if err != nil {
+		log.Error("failed to init app storage", slog.Any("error", err))
+	}
+
+	authStorage, err := authDB.NewStorage(dbConn)
+	if err != nil {
+		log.Error("failed to init auth storage", slog.Any("error", err))
+	}
+
+	sessionStorage, err := sessionDB.NewStorage(dbConn)
+	if err != nil {
+		log.Error("failed to init session storage", slog.Any("error", err))
+	}
+
+	userStorage, err := userDB.NewStorage(dbConn)
+	if err != nil {
+		log.Error("failed to init user storage", slog.Any("error", err))
+	}
+
+	verificationStorage, err := verificationDB.NewStorage(dbConn)
+	if err != nil {
+		log.Error("failed to init verification storage", slog.Any("error", err))
+	}
 
 	keyStorage, err := newKeyStorage(cfg.KeyStorage)
 	if err != nil {
 		log.Error("failed to init key storage", slog.Any("error", err))
 	}
-
-	log.Debug("key storage initiated")
 
 	mailService, err := newMailService(cfg.MailService)
 	if err != nil {
@@ -75,29 +87,29 @@ func New(log *slog.Logger, cfg *config.ServerSettings) *App {
 	}
 
 	sessionService := session.NewService(tokenService, sessionStorage)
-	userService := user.NewService(userStorage)
+	userDataService := userdata.NewService(userStorage)
 	verificationService := verification.NewService(cfg.VerificationService.TokenExpiryTime, verificationStorage)
 
 	// Initialize usecases
-	appUsecase := usecase.NewAppUsecase(log, tokenService, appStorage)
+	appUsecase := app.NewUsecase(log, tokenService, appStorage)
 
-	authUsecases := usecase.NewAuthUsecase(
+	authUsecases := auth.NewUsecase(
 		log,
 		sessionService,
-		userService,
+		userDataService,
 		mailService,
 		tokenService,
 		verificationService,
 		authStorage,
 	)
 
-	userUsecase := usecase.NewUserUsecase(
+	userUsecase := user.NewUsecase(
 		log,
 		requestIDManager,
 		appIDManager,
 		appValidator,
 		sessionService,
-		userService,
+		userDataService,
 		tokenService,
 		tokenService,
 	)
@@ -118,48 +130,4 @@ func New(log *slog.Logger, cfg *config.ServerSettings) *App {
 	return &App{
 		GRPCServer: grpcServer,
 	}
-}
-
-func newKeyStorage(cfg settings.KeyStorage) (token.KeyStorage, error) {
-	keysConfig, err := settings.ToKeysConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	keyStorage, err := key.NewStorage(keysConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	return keyStorage, nil
-}
-
-func newMailService(cfg settings.MailService) (*mail.Service, error) {
-	mailConfig, err := settings.ToMailConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return mail.NewService(mailConfig), nil
-}
-
-func newTokenService(jwt settings.JWT, passwordHash settings.PasswordHashParams, keyStorage token.KeyStorage) (*token.Service, error) {
-	jwtConfig, err := settings.ToJWTConfig(jwt)
-	if err != nil {
-		return nil, err
-	}
-
-	passwordHashConfig, err := settings.ToPasswordHashConfig(passwordHash)
-	if err != nil {
-		return nil, err
-	}
-
-	tokenService := token.NewService(token.Config{
-		JWT:                jwtConfig,
-		PasswordHashParams: passwordHashConfig,
-	},
-		keyStorage,
-	)
-
-	return tokenService, nil
 }
