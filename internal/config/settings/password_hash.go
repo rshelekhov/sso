@@ -2,7 +2,7 @@ package settings
 
 import (
 	"fmt"
-	"github.com/rshelekhov/sso/src/domain/service/token"
+	"github.com/rshelekhov/sso/internal/domain/service/token"
 )
 
 // PasswordHashType - how to hash password

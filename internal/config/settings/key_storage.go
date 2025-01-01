@@ -2,10 +2,9 @@ package settings
 
 import (
 	"fmt"
-	"github.com/rshelekhov/sso/src/infrastructure/storage/key"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
 )
 
-// KeyStorageType – what use for store private keys
 type KeyStorageType string
 
 const (
@@ -32,10 +31,10 @@ type KeyStorageS3Params struct {
 	Endpoint       string `mapstructure:"KEY_STORAGE_S3_ENDPOINT"`
 }
 
-func ToKeysConfig(ks KeyStorage) (key.Config, error) {
-	const op = "settings.KeyStorage.ToKeysConfig"
+func ToKeyStorageConfig(ks KeyStorage) (key.Config, error) {
+	const op = "settings.KeyStorage.ToKeyStorageConfig"
 
-	storageType, err := validateAndConvertStorageType(ks.Type)
+	storageType, err := validateAndConvertKeyStorageType(ks.Type)
 	if err != nil {
 		return key.Config{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -47,7 +46,7 @@ func ToKeysConfig(ks KeyStorage) (key.Config, error) {
 	}, nil
 }
 
-func validateAndConvertStorageType(storageType KeyStorageType) (key.StorageType, error) {
+func validateAndConvertKeyStorageType(storageType KeyStorageType) (key.StorageType, error) {
 	switch storageType {
 	case KeyStorageTypeLocal:
 		return key.StorageTypeLocal, nil

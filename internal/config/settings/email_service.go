@@ -2,7 +2,7 @@ package settings
 
 import (
 	"fmt"
-	"github.com/rshelekhov/sso/src/infrastructure/service/mail"
+	"github.com/rshelekhov/sso/internal/infrastructure/service/mail"
 )
 
 // MailServiceType - how to send email to clients
