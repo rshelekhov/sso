@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/rshelekhov/sso/src/config/settings"
+	"github.com/rshelekhov/sso/internal/config/settings"
 
 	"github.com/spf13/viper"
 )
@@ -40,42 +40,41 @@ func MustLoadPath(configPath string) *ServerSettings {
 		log.Fatalf("error unmarshalling config file into struct: %s: ", err)
 	}
 
-	loadPasswordHashConfig(&cfg)
+	loadStorageConfig(&cfg)
 	loadKeyStorageConfig(&cfg)
+	loadPasswordHashConfig(&cfg)
 
 	return &cfg
 }
 
-// Load password hash configuration based on type
-func loadPasswordHashConfig(cfg *ServerSettings) {
-	switch cfg.PasswordHash.Type {
-	case settings.PasswordHashDefault, settings.PasswordHashArgon2:
-		cfg.PasswordHash.Argon = loadArgon2Config()
-	case settings.PasswordHashBcrypt:
-		cfg.PasswordHash.Bcrypt = loadBcryptConfig()
+// Load storage configuration based on type
+func loadStorageConfig(cfg *ServerSettings) {
+	switch cfg.Storage.Type {
+	case settings.StorageTypeMongo:
+		cfg.Storage.Mongo = loadMongoConfig()
+	case settings.StorageTypePostgres:
+		cfg.Storage.Postgres = loadPostgresConfig()
 	default:
-		log.Fatalf("unknown password hash type: %s", cfg.PasswordHash.Type)
+		log.Fatalf("unknown storage type: %s", cfg.Storage.Type)
 	}
 }
 
-// Load Argon2 configuration
-func loadArgon2Config() *settings.PasswordHashArgon2Params {
-	var argon settings.PasswordHashArgon2Params
-	err := viper.Unmarshal(&argon)
+func loadMongoConfig() *settings.MongoParams {
+	var mongo settings.MongoParams
+	err := viper.Unmarshal(&mongo)
 	if err != nil {
-		log.Fatalf("error unmarshalling config file into struct with settings for password hash argon2: %s: ", err)
+		log.Fatalf("error unmarshalling config file into struct with settings for mongo: %s: ", err)
 	}
-	return &argon
+	return &mongo
 }
 
-// Load Bcrypt configuration
-func loadBcryptConfig() *settings.PasswordHashBcryptParams {
-	var bcrypt settings.PasswordHashBcryptParams
-	err := viper.Unmarshal(&bcrypt)
+func loadPostgresConfig() *settings.PostgresParams {
+	var postgres settings.PostgresParams
+	err := viper.Unmarshal(&postgres)
 	if err != nil {
-		log.Fatalf("error unmarshalling config file into struct with settings for password hash bcrypt: %s: ", err)
+		log.Fatalf("error unmarshalling config file into struct with settings for postgres: %s: ", err)
 	}
-	return &bcrypt
+	return &postgres
 }
 
 // Load key storage configuration based on type
@@ -90,7 +89,6 @@ func loadKeyStorageConfig(cfg *ServerSettings) {
 	}
 }
 
-// Load local key storage configuration
 func loadKeyStorageLocalConfig() *settings.KeyStorageLocalParams {
 	var local settings.KeyStorageLocalParams
 	err := viper.Unmarshal(&local)
@@ -100,7 +98,6 @@ func loadKeyStorageLocalConfig() *settings.KeyStorageLocalParams {
 	return &local
 }
 
-// Load s3 key storage configuration
 func loadKeyStorageS3Config() *settings.KeyStorageS3Params {
 	var s3 settings.KeyStorageS3Params
 	err := viper.Unmarshal(&s3)
@@ -108,6 +105,36 @@ func loadKeyStorageS3Config() *settings.KeyStorageS3Params {
 		log.Fatalf("error unmarshalling config file into struct with settings for key s3 storage: %s: ", err)
 	}
 	return &s3
+}
+
+// Load password hash configuration based on type
+func loadPasswordHashConfig(cfg *ServerSettings) {
+	switch cfg.PasswordHash.Type {
+	case settings.PasswordHashDefault, settings.PasswordHashArgon2:
+		cfg.PasswordHash.Argon = loadArgon2Config()
+	case settings.PasswordHashBcrypt:
+		cfg.PasswordHash.Bcrypt = loadBcryptConfig()
+	default:
+		log.Fatalf("unknown password hash type: %s", cfg.PasswordHash.Type)
+	}
+}
+
+func loadArgon2Config() *settings.PasswordHashArgon2Params {
+	var argon settings.PasswordHashArgon2Params
+	err := viper.Unmarshal(&argon)
+	if err != nil {
+		log.Fatalf("error unmarshalling config file into struct with settings for password hash argon2: %s: ", err)
+	}
+	return &argon
+}
+
+func loadBcryptConfig() *settings.PasswordHashBcryptParams {
+	var bcrypt settings.PasswordHashBcryptParams
+	err := viper.Unmarshal(&bcrypt)
+	if err != nil {
+		log.Fatalf("error unmarshalling config file into struct with settings for password hash bcrypt: %s: ", err)
+	}
+	return &bcrypt
 }
 
 // fetchConfigPath fetches config path from command line flag or environment variable.
