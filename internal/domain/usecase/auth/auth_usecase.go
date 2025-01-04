@@ -18,12 +18,11 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
 )
 
 type Auth struct {
 	log             *slog.Logger
+	txMgr           TransactionManager
 	sessionMgr      SessionManager
 	userMgr         UserdataManager
 	mailService     MailService
@@ -56,7 +55,7 @@ type (
 		GetUserByEmail(ctx context.Context, appID, email string) (entity.User, error)
 		GetUserStatusByEmail(ctx context.Context, email string) (string, error)
 		GetUserData(ctx context.Context, appID, userID string) (entity.User, error)
-		UpdateUser(ctx context.Context, user entity.User) error
+		UpdateUserData(ctx context.Context, user entity.User) error
 	}
 
 	MailService interface {
@@ -81,6 +80,10 @@ type (
 		DeleteToken(ctx context.Context, token string) error
 	}
 
+	TransactionManager interface {
+		WithinTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+	}
+
 	Storage interface {
 		ReplaceSoftDeletedUser(ctx context.Context, user entity.User) error
 		RegisterUser(ctx context.Context, user entity.User) error
@@ -90,6 +93,7 @@ type (
 
 func NewUsecase(
 	log *slog.Logger,
+	tm TransactionManager,
 	ss SessionManager,
 	us UserdataManager,
 	ms MailService,
@@ -99,6 +103,7 @@ func NewUsecase(
 ) *Auth {
 	return &Auth{
 		log:             log,
+		txMgr:           tm,
 		sessionMgr:      ss,
 		userMgr:         us,
 		mailService:     ms,
@@ -138,18 +143,18 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 		return entity.SessionTokens{}, err
 	}
 
+	sessionReqData := entity.SessionRequestData{
+		UserID: userData.ID,
+		AppID:  userData.AppID,
+		UserDevice: entity.UserDeviceRequestData{
+			UserAgent: reqData.UserDevice.UserAgent,
+			IP:        reqData.UserDevice.IP,
+		},
+	}
+
 	tokenData := entity.SessionTokens{}
 
-	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
-		sessionReqData := entity.SessionRequestData{
-			UserID: userData.ID,
-			AppID:  userData.AppID,
-			UserDevice: entity.UserDeviceRequestData{
-				UserAgent: reqData.UserDevice.UserAgent,
-				IP:        reqData.UserDevice.IP,
-			},
-		}
-
+	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		tokenData, err = u.sessionMgr.CreateSession(ctx, sessionReqData)
 		if err != nil {
 			e.HandleError(ctx, log, domain.ErrFailedToCreateUserSession, err, slog.Any("userID", userData.ID))
@@ -158,7 +163,7 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 
 		return nil
 	}); err != nil {
-		e.HandleError(ctx, log, le.ErrFailedToCommitTransaction, err, slog.Any("userID", userData.ID))
+		e.HandleError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", userData.ID))
 		return entity.SessionTokens{}, err
 	}
 
@@ -188,7 +193,7 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 
 	authTokenData := entity.SessionTokens{}
 
-	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
+	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		userStatus, err := u.userMgr.GetUserStatusByEmail(ctx, newUser.Email)
 		if err != nil {
 			return err
@@ -239,7 +244,7 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 
 		return nil
 	}); err != nil {
-		e.HandleError(ctx, log, le.ErrFailedToCommitTransaction, err, slog.Any("userID", newUser.ID))
+		e.HandleError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", newUser.ID))
 		return entity.SessionTokens{}, err
 	}
 
@@ -257,7 +262,7 @@ func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) error 
 		slog.String("method", method),
 	)
 
-	if err := u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
+	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		tokenData, err := u.handleTokenProcessing(ctx, verificationToken, entity.EmailTemplateTypeVerifyEmail)
 		if err != nil {
 			e.HandleError(ctx, log, domain.ErrFailedToProcessToken, err, slog.Any("token", verificationToken))
@@ -276,7 +281,7 @@ func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) error 
 
 		return nil
 	}); err != nil {
-		e.HandleError(ctx, log, le.ErrFailedToCommitTransaction, err)
+		e.HandleError(ctx, log, domain.ErrFailedToCommitTransaction, err)
 		return err
 	}
 
@@ -328,7 +333,7 @@ func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity
 		slog.String("method", method),
 	)
 
-	if err := u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
+	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		tokenData, err := u.handleTokenProcessing(ctx, reqData.ResetPasswordToken, entity.EmailTemplateTypeResetPassword)
 		if err != nil {
 			e.HandleError(ctx, log, domain.ErrFailedToProcessToken, err, slog.Any("token", reqData.ResetPasswordToken))
@@ -353,7 +358,7 @@ func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity
 
 		return nil
 	}); err != nil {
-		e.HandleError(ctx, log, le.ErrFailedToCommitTransaction, err)
+		e.HandleError(ctx, log, domain.ErrFailedToCommitTransaction, err)
 		return err
 	}
 
@@ -625,7 +630,7 @@ func (u *Auth) checkPasswordHashAndUpdate(
 		UpdatedAt:    time.Now(),
 	}
 
-	if err = u.userMgr.UpdateUser(ctx, updatedUser); err != nil {
+	if err = u.userMgr.UpdateUserData(ctx, updatedUser); err != nil {
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToUpdateUser, err)
 	}
 

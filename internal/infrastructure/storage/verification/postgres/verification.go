@@ -8,25 +8,28 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/verification/postgres/sqlc"
 )
 
 type VerificationStorage struct {
-	*pgxpool.Pool
-	*sqlc.Queries
+	pool    *pgxpool.Pool
+	txMgr   transaction.PostgresManager
+	queries *sqlc.Queries
 }
 
-func NewVerificationStorage(pool *pgxpool.Pool) *VerificationStorage {
+func NewVerificationStorage(pool *pgxpool.Pool, txMgr transaction.PostgresManager) *VerificationStorage {
 	return &VerificationStorage{
-		Pool:    pool,
-		Queries: sqlc.New(pool),
+		pool:    pool,
+		txMgr:   txMgr,
+		queries: sqlc.New(pool),
 	}
 }
 
 func (s *VerificationStorage) SaveVerificationToken(ctx context.Context, data entity.VerificationToken) error {
 	const method = "verification.postgres.SaveVerificationToken"
 
-	if err := s.Queries.SaveVerificationToken(ctx, sqlc.SaveVerificationTokenParams{
+	params := sqlc.SaveVerificationTokenParams{
 		Token:       data.Token,
 		UserID:      data.UserID,
 		AppID:       data.AppID,
@@ -35,8 +38,22 @@ func (s *VerificationStorage) SaveVerificationToken(ctx context.Context, data en
 		TokenTypeID: int32(data.Type),
 		CreatedAt:   data.CreatedAt,
 		ExpiresAt:   data.ExpiresAt,
-	}); err != nil {
-		return fmt.Errorf("%s: failed to save verification token: %w", method, err)
+	}
+
+	// Save verification token within transaction
+	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
+		return s.queries.WithTx(tx).SaveVerificationToken(ctx, params)
+	})
+
+	if err != nil {
+		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+			// Save verification token without transaction
+			if err := s.queries.SaveVerificationToken(ctx, params); err != nil {
+				return fmt.Errorf("%s: failed to save verification token: %w", method, err)
+			}
+		} else {
+			return fmt.Errorf("%s: failed to save verification token: %w", method, err)
+		}
 	}
 
 	return nil
@@ -45,7 +62,7 @@ func (s *VerificationStorage) SaveVerificationToken(ctx context.Context, data en
 func (s *VerificationStorage) GetVerificationTokenData(ctx context.Context, token string) (entity.VerificationToken, error) {
 	const method = "verification.postgres.GetTokenData"
 
-	tokenData, err := s.Queries.GetVerificationTokenData(ctx, token)
+	tokenData, err := s.queries.GetVerificationTokenData(ctx, token)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entity.VerificationToken{}, storage.ErrVerificationTokenNotFound
@@ -67,8 +84,20 @@ func (s *VerificationStorage) GetVerificationTokenData(ctx context.Context, toke
 func (s *VerificationStorage) DeleteVerificationToken(ctx context.Context, token string) error {
 	const method = "verification.postgres.DeleteToken"
 
-	if err := s.Queries.DeleteVerificationToken(ctx, token); err != nil {
-		return fmt.Errorf("%s: failed to delete verification token: %w", method, err)
+	// Delete verification token withing transaction
+	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
+		return s.queries.WithTx(tx).DeleteVerificationToken(ctx, token)
+	})
+
+	if err != nil {
+		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+			// Delete verification token without transaction
+			if err := s.queries.DeleteVerificationToken(ctx, token); err != nil {
+				return fmt.Errorf("%s: failed to delete verification token: %w", method, err)
+			}
+		} else {
+			return fmt.Errorf("%s: failed to delete verification token: %w", method, err)
+		}
 	}
 
 	return nil

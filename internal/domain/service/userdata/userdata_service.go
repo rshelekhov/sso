@@ -72,7 +72,7 @@ func (d *UserData) GetUserData(ctx context.Context, appID, userID string) (entit
 	return user, nil
 }
 
-func (d *UserData) UpdateUser(ctx context.Context, user entity.User) error {
+func (d *UserData) UpdateUserData(ctx context.Context, user entity.User) error {
 	const method = "service.user.UpdateUser"
 
 	if err := d.storage.UpdateUser(ctx, user); err != nil {

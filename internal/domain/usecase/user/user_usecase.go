@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
 	"github.com/rshelekhov/sso/internal/lib/e"
 	"log/slog"
 	"time"
@@ -14,6 +13,7 @@ import (
 
 type User struct {
 	log          *slog.Logger
+	txMgr        TransactionManager
 	requestIDMgr ContextManager
 	appIDMgr     ContextManager
 	appValidator AppValidator
@@ -48,7 +48,7 @@ type (
 		GetUserData(ctx context.Context, appID, userID string) (entity.User, error)
 		GetUserStatusByEmail(ctx context.Context, email string) (string, error)
 		GetUserStatusByID(ctx context.Context, userID string) (string, error)
-		UpdateUser(ctx context.Context, user entity.User) error
+		UpdateUserData(ctx context.Context, user entity.User) error
 		DeleteUser(ctx context.Context, user entity.User) error
 		DeleteUserTokens(ctx context.Context, appID, userID string) error
 	}
@@ -61,10 +61,15 @@ type (
 	IdentityManager interface {
 		ExtractUserIDFromContext(ctx context.Context, appID string) (string, error)
 	}
+
+	TransactionManager interface {
+		WithinTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+	}
 )
 
 func NewUsecase(
 	log *slog.Logger,
+	tm TransactionManager,
 	reqIDMgr ContextManager,
 	appIDMgr ContextManager,
 	av AppValidator,
@@ -75,6 +80,7 @@ func NewUsecase(
 ) *User {
 	return &User{
 		log:          log,
+		txMgr:        tm,
 		requestIDMgr: reqIDMgr,
 		appIDMgr:     appIDMgr,
 		appValidator: av,
@@ -159,7 +165,7 @@ func (u *User) DeleteUser(ctx context.Context, appID string) error {
 		DeletedAt: time.Now(),
 	}
 
-	if err = u.storage.Transaction(ctx, func(_ port.AuthStorage) error {
+	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		userStatus, err := u.userMgr.GetUserStatusByID(ctx, userData.ID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCheckIfUserExists, err)
@@ -177,7 +183,7 @@ func (u *User) DeleteUser(ctx context.Context, appID string) error {
 			return fmt.Errorf("%w: %s", domain.ErrUnknownUserStatus, userStatus)
 		}
 	}); err != nil {
-		e.HandleError(ctx, log, le.ErrFailedToCommitTransaction, err, slog.Any("userID", userData.ID))
+		e.HandleError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", userData.ID))
 		return err
 	}
 
@@ -207,7 +213,7 @@ func (u *User) updateUserFields(
 		return err
 	}
 
-	err := u.userMgr.UpdateUser(ctx, updatedUser)
+	err := u.userMgr.UpdateUserData(ctx, updatedUser)
 	if err != nil {
 		return err
 	}
