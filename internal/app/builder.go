@@ -20,6 +20,7 @@ import (
 	authDB "github.com/rshelekhov/sso/internal/infrastructure/storage/auth"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
 	sessionDB "github.com/rshelekhov/sso/internal/infrastructure/storage/session"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
 	userDB "github.com/rshelekhov/sso/internal/infrastructure/storage/user"
 	verificationDB "github.com/rshelekhov/sso/internal/infrastructure/storage/verification"
 	"github.com/rshelekhov/sso/pkg/middleware"
@@ -40,6 +41,7 @@ type Builder struct {
 
 type Storages struct {
 	dbConn       *storage.DBConnection
+	trMgr        transaction.Manager
 	app          appDB.Storage
 	auth         auth.Storage
 	session      session.Storage
@@ -85,27 +87,32 @@ func (b *Builder) BuildStorages() error {
 		return fmt.Errorf("failed to init database connection: %w", err)
 	}
 
+	b.storages.trMgr, err = transaction.NewManager(b.storages.dbConn)
+	if err != nil {
+		return fmt.Errorf("failed to init transaction manager: %w", err)
+	}
+
 	b.storages.app, err = appDB.NewStorage(b.storages.dbConn)
 	if err != nil {
 		return fmt.Errorf("failed to init app storage: %w", err)
 	}
 
-	b.storages.auth, err = authDB.NewStorage(b.storages.dbConn)
+	b.storages.auth, err = authDB.NewStorage(b.storages.dbConn, b.storages.trMgr)
 	if err != nil {
 		return fmt.Errorf("failed to init auth storage: %w", err)
 	}
 
-	b.storages.session, err = sessionDB.NewStorage(b.storages.dbConn)
+	b.storages.session, err = sessionDB.NewStorage(b.storages.dbConn, b.storages.trMgr)
 	if err != nil {
 		return fmt.Errorf("failed to init session storage: %w", err)
 	}
 
-	b.storages.user, err = userDB.NewStorage(b.storages.dbConn)
+	b.storages.user, err = userDB.NewStorage(b.storages.dbConn, b.storages.trMgr)
 	if err != nil {
 		return fmt.Errorf("failed to init user storage: %w", err)
 	}
 
-	b.storages.verification, err = verificationDB.NewStorage(b.storages.dbConn)
+	b.storages.verification, err = verificationDB.NewStorage(b.storages.dbConn, b.storages.trMgr)
 	if err != nil {
 		return fmt.Errorf("failed to init verification storage: %w", err)
 	}
@@ -160,6 +167,7 @@ func (b *Builder) BuildUsecases() {
 
 	b.usecases.auth = auth.NewUsecase(
 		b.logger,
+		b.storages.trMgr,
 		b.services.session,
 		b.services.user,
 		b.services.mail,
@@ -170,6 +178,7 @@ func (b *Builder) BuildUsecases() {
 
 	b.usecases.user = user.NewUsecase(
 		b.logger,
+		b.storages.trMgr,
 		b.managers.requestID,
 		b.managers.appIDManager,
 		b.services.appValidator,
@@ -238,15 +247,6 @@ func newKeyStorage(cfg settings.KeyStorage) (token.KeyStorage, error) {
 	return keyStorage, nil
 }
 
-func newMailService(cfg settings.MailService) (*mail.Service, error) {
-	mailConfig, err := settings.ToMailConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return mail.NewService(mailConfig), nil
-}
-
 func newTokenService(jwt settings.JWT, passwordHash settings.PasswordHashParams, keyStorage token.KeyStorage) (*token.Service, error) {
 	jwtConfig, err := settings.ToJWTConfig(jwt)
 	if err != nil {
@@ -266,4 +266,13 @@ func newTokenService(jwt settings.JWT, passwordHash settings.PasswordHashParams,
 	)
 
 	return tokenService, nil
+}
+
+func newMailService(cfg settings.MailService) (*mail.Service, error) {
+	mailConfig, err := settings.ToMailConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return mail.NewService(mailConfig), nil
 }
