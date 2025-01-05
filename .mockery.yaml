@@ -29,3 +29,29 @@ packages:
       dir: internal/domain/service/verification/mocks
     interfaces:
       Storage:
+  github.com/rshelekhov/sso/internal/domain/usecase/app:
+    config:
+      dir: internal/domain/usecase/app/mocks
+    interfaces:
+      KeyManager:
+      Storage:
+  github.com/rshelekhov/sso/internal/domain/usecase/auth:
+    config:
+      dir: internal/domain/usecase/auth/mocks
+    interfaces:
+      SessionManager:
+      UserdataManager:
+      MailService:
+      TokenManager:
+      VerificationManager:
+      Storage:
+  github.com/rshelekhov/sso/internal/domain/usecase/user:
+    config:
+      dir: internal/domain/usecase/user/mocks
+    interfaces:
+      ContextManager:
+      AppValidator:
+      SessionManager:
+      UserdataManager:
+      PasswordManager:
+      IdentityManager:
