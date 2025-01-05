@@ -180,7 +180,7 @@ func TestUpdateUser(t *testing.T) {
 			Once().
 			Return(nil)
 
-		err := userService.UpdateUser(ctx, updatedUserData)
+		err := userService.UpdateUserData(ctx, updatedUserData)
 		require.NoError(t, err)
 	})
 
@@ -190,7 +190,7 @@ func TestUpdateUser(t *testing.T) {
 			Once().
 			Return(storage.ErrUserNotFound)
 
-		err := userService.UpdateUser(ctx, updatedUserData)
+		err := userService.UpdateUserData(ctx, updatedUserData)
 		require.ErrorIs(t, err, domain.ErrUserNotFound)
 	})
 
@@ -200,7 +200,7 @@ func TestUpdateUser(t *testing.T) {
 			Once().
 			Return(errors.New("storage error"))
 
-		err := userService.UpdateUser(ctx, updatedUserData)
+		err := userService.UpdateUserData(ctx, updatedUserData)
 		require.Error(t, err)
 	})
 }
