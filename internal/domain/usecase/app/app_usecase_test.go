@@ -47,6 +47,7 @@ func TestRegisterApp(t *testing.T) {
 			appName: "existing-app",
 			mockBehavior: func(storageMock *mocks.Storage, keyManagerMock *mocks.KeyManager) {
 				storageMock.EXPECT().RegisterApp(ctx, mock.AnythingOfType("entity.AppData")).
+					Once().
 					Return(storage.ErrAppAlreadyExists)
 			},
 			expectedError: domain.ErrAppAlreadyExists,
@@ -56,6 +57,7 @@ func TestRegisterApp(t *testing.T) {
 			appName: "failed-app",
 			mockBehavior: func(storageMock *mocks.Storage, keyManagerMock *mocks.KeyManager) {
 				storageMock.EXPECT().RegisterApp(ctx, mock.AnythingOfType("entity.AppData")).
+					Once().
 					Return(errors.New("storage error"))
 			},
 			expectedError: domain.ErrFailedToRegisterApp,
@@ -65,13 +67,16 @@ func TestRegisterApp(t *testing.T) {
 			appName: "key-failed-app",
 			mockBehavior: func(storageMock *mocks.Storage, keyManagerMock *mocks.KeyManager) {
 				storageMock.EXPECT().RegisterApp(ctx, mock.AnythingOfType("entity.AppData")).
+					Once().
 					Return(nil)
 
 				keyManagerMock.EXPECT().GenerateAndSavePrivateKey(mock.AnythingOfType("string")).
+					Once().
 					Return(errors.New("key generation error"))
 
 				// Expect DeleteApp to be called for rollback
 				storageMock.EXPECT().DeleteApp(ctx, mock.AnythingOfType("entity.AppData")).
+					Once().
 					Return(nil)
 			},
 			expectedError: domain.ErrFailedToGenerateAndSavePrivateKey,
@@ -95,6 +100,7 @@ func TestRegisterApp(t *testing.T) {
 		})
 	}
 }
+
 func TestDeleteApp(t *testing.T) {
 	ctx := context.Background()
 
@@ -112,7 +118,9 @@ func TestDeleteApp(t *testing.T) {
 			mockBehavior: func(storageMock *mocks.Storage) {
 				storageMock.EXPECT().DeleteApp(ctx, mock.MatchedBy(func(data entity.AppData) bool {
 					return data.ID == "test-app-id" && data.Secret == "test-secret-hash"
-				})).Return(nil)
+				})).
+					Once().
+					Return(nil)
 			},
 			expectedError: nil,
 		},
@@ -122,6 +130,7 @@ func TestDeleteApp(t *testing.T) {
 			secretHash: "test-secret-hash",
 			mockBehavior: func(storageMock *mocks.Storage) {
 				storageMock.EXPECT().DeleteApp(ctx, mock.AnythingOfType("entity.AppData")).
+					Once().
 					Return(storage.ErrAppNotFound)
 			},
 			expectedError: domain.ErrAppNotFound,
@@ -132,6 +141,7 @@ func TestDeleteApp(t *testing.T) {
 			secretHash: "test-secret-hash",
 			mockBehavior: func(storageMock *mocks.Storage) {
 				storageMock.EXPECT().DeleteApp(ctx, mock.AnythingOfType("entity.AppData")).
+					Once().
 					Return(errors.New("storage error"))
 			},
 			expectedError: domain.ErrFailedToDeleteApp,
