@@ -16,7 +16,7 @@ type Service struct {
 	templatesPath string
 }
 
-const defaultTemplatesPath = "./static/email_templates"
+const DefaultTemplatesPath = "../../../../static/email_templates"
 
 func NewService(cfg Config) *Service {
 	var client EmailClient
@@ -30,7 +30,7 @@ func NewService(cfg Config) *Service {
 
 	return &Service{
 		client:        client,
-		templatesPath: defaultTemplatesPath,
+		templatesPath: DefaultTemplatesPath,
 	}
 }
 
