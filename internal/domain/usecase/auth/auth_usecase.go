@@ -38,7 +38,7 @@ type (
 		RegisterUser(ctx context.Context, appID string, reqData *entity.UserRequestData, confirmEmailEndpoint string) (entity.SessionTokens, error)
 		VerifyEmail(ctx context.Context, verificationToken string) (entity.VerificationResult, error)
 		ResetPassword(ctx context.Context, appID string, reqData *entity.ResetPasswordRequestData, changePasswordEndpoint string) error
-		ChangePassword(ctx context.Context, appID string, reqData *entity.ChangePasswordRequestData) error
+		ChangePassword(ctx context.Context, appID string, reqData *entity.ChangePasswordRequestData) (entity.ChangingPasswordResult, error)
 		LogoutUser(ctx context.Context, appID string, reqData *entity.UserDeviceRequestData) error
 		RefreshTokens(ctx context.Context, appID string, reqData *entity.RefreshTokenRequestData) (entity.SessionTokens, error)
 		GetJWKS(ctx context.Context, appID string) (entity.JWKS, error)
@@ -323,12 +323,14 @@ func (u *Auth) ResetPassword(ctx context.Context, appID string, reqData *entity.
 	return nil
 }
 
-func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity.ChangePasswordRequestData) error {
+func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity.ChangePasswordRequestData) (entity.ChangingPasswordResult, error) {
 	const method = "usecase.Auth.ChangePassword"
 
 	log := u.log.With(
 		slog.String("method", method),
 	)
+
+	result := entity.ChangingPasswordResult{}
 
 	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		tokenData, err := u.handleTokenProcessing(ctx, reqData.ResetPasswordToken, entity.EmailTemplateTypeResetPassword)
@@ -336,28 +338,30 @@ func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity
 			return fmt.Errorf("%w: %w", domain.ErrFailedToProcessToken, err)
 		}
 
-		if tokenData.Token == reqData.ResetPasswordToken {
-			// It means that reset password token was not expired and not generated new token with email resent
-			userDataFromDB, err := u.userMgr.GetUserData(ctx, appID, tokenData.UserID)
-			if err != nil {
-				return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
-			}
-
-			if err = u.checkPasswordHashAndUpdate(ctx, appID, userDataFromDB, reqData); err != nil {
-				return fmt.Errorf("%w: %w", domain.ErrFailedToCheckPasswordHashAndUpdate, err)
-			}
-
-			log.Info("password changed", slog.String("userID", userDataFromDB.ID))
+		if tokenData.Token != reqData.ResetPasswordToken {
+			result.TokenExpired = true
+			log.Info("token expired, a new email with a new token has been sent to the user", slog.Any("userID", tokenData.UserID))
 			return nil
 		}
+
+		userDataFromDB, err := u.userMgr.GetUserData(ctx, appID, tokenData.UserID)
+		if err != nil {
+			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
+		}
+
+		if err = u.checkPasswordHashAndUpdate(ctx, appID, userDataFromDB, reqData); err != nil {
+			return fmt.Errorf("%w: %w", domain.ErrFailedToCheckPasswordHashAndUpdate, err)
+		}
+
+		log.Info("password changed", slog.String("userID", userDataFromDB.ID))
 
 		return nil
 	}); err != nil {
 		e.HandleError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("token", reqData.ResetPasswordToken))
-		return err
+		return entity.ChangingPasswordResult{}, err
 	}
 
-	return nil
+	return result, nil
 }
 
 func (u *Auth) LogoutUser(ctx context.Context, appID string, reqData *entity.UserDeviceRequestData) error {
@@ -563,11 +567,7 @@ func (u *Auth) handleTokenProcessing(
 ) (entity.VerificationToken, error) {
 	tokenData, err := u.verificationMgr.GetTokenData(ctx, token)
 	if err != nil {
-		if errors.Is(err, storage.ErrVerificationTokenNotFound) {
-			return entity.VerificationToken{}, fmt.Errorf("%w: %w", domain.ErrVerificationTokenNotFound, err)
-		}
-
-		return entity.VerificationToken{}, fmt.Errorf("%w: %w", domain.ErrFailedToGetVerificationTokenData, err)
+		return entity.VerificationToken{}, err
 	}
 
 	if tokenData.ExpiresAt.Before(time.Now()) {
