@@ -8,16 +8,17 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/domain"
-	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/infrastructure/storage"
-	"github.com/rshelekhov/sso/internal/lib/e"
 	"html/template"
 	"log/slog"
 	"math/big"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/lib/e"
 )
 
 type Auth struct {
@@ -35,7 +36,7 @@ type (
 	Usecase interface {
 		Login(ctx context.Context, appID string, reqData *entity.UserRequestData) (entity.SessionTokens, error)
 		RegisterUser(ctx context.Context, appID string, reqData *entity.UserRequestData, confirmEmailEndpoint string) (entity.SessionTokens, error)
-		VerifyEmail(ctx context.Context, verificationToken string) error
+		VerifyEmail(ctx context.Context, verificationToken string) (entity.VerificationResult, error)
 		ResetPassword(ctx context.Context, appID string, reqData *entity.ResetPasswordRequestData, changePasswordEndpoint string) error
 		ChangePassword(ctx context.Context, appID string, reqData *entity.ChangePasswordRequestData) error
 		LogoutUser(ctx context.Context, appID string, reqData *entity.UserDeviceRequestData) error
@@ -115,7 +116,7 @@ func NewUsecase(
 
 // Login checks if user with given credentials exists in the system
 func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequestData) (entity.SessionTokens, error) {
-	const method = "usecase.appUsecase.Login"
+	const method = "usecase.Auth.Login"
 
 	log := u.log.With(
 		slog.String("method", method),
@@ -157,7 +158,6 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		tokenData, err = u.sessionMgr.CreateSession(ctx, sessionReqData)
 		if err != nil {
-			e.HandleError(ctx, log, domain.ErrFailedToCreateUserSession, err, slog.Any("userID", userData.ID))
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
 		}
 
@@ -176,7 +176,7 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 
 // RegisterUser creates new user in the system and returns jwtoken
 func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.UserRequestData, verifyEmailEndpoint string) (entity.SessionTokens, error) {
-	const method = "usecase.appUsecase.RegisterUser"
+	const method = "usecase.Auth.RegisterUser"
 
 	log := u.log.With(
 		slog.String("method", method),
@@ -196,7 +196,7 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		userStatus, err := u.userMgr.GetUserStatusByEmail(ctx, newUser.Email)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByEmail, err)
 		}
 
 		switch userStatus {
@@ -204,13 +204,11 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 			return domain.ErrUserAlreadyExists
 		case entity.UserStatusSoftDeleted.String():
 			if err = u.storage.ReplaceSoftDeletedUser(ctx, newUser); err != nil {
-				e.HandleError(ctx, log, domain.ErrFailedToReplaceSoftDeletedUser, err)
-				return err
+				return fmt.Errorf("%w: %w", domain.ErrFailedToReplaceSoftDeletedUser, err)
 			}
 		case entity.UserStatusNotFound.String():
 			if err = u.storage.RegisterUser(ctx, newUser); err != nil {
-				e.HandleError(ctx, log, domain.ErrFailedToCreateUser, err)
-				return err
+				return fmt.Errorf("%w: %w", domain.ErrFailedToRegisterUser, err)
 			}
 		default:
 			return fmt.Errorf("%w: %s", domain.ErrUnknownUserStatus, userStatus)
@@ -227,19 +225,16 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 
 		authTokenData, err = u.sessionMgr.CreateSession(ctx, sessionReqData)
 		if err != nil {
-			e.HandleError(ctx, log, domain.ErrFailedToCreateUserSession, err, slog.Any("userID", newUser.ID))
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
 		}
 
 		tokenData, err := u.verificationMgr.CreateToken(ctx, newUser, verifyEmailEndpoint, entity.TokenTypeVerifyEmail)
 		if err != nil {
-			e.HandleError(ctx, log, domain.ErrFailedToCreateVerificationToken, err)
-			return err
+			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateVerificationToken, err)
 		}
 
 		if err = u.sendEmailWithToken(ctx, tokenData, entity.EmailTemplateTypeVerifyEmail); err != nil {
-			e.HandleError(ctx, log, domain.ErrFailedToSendVerificationEmail, err)
-			return err
+			return fmt.Errorf("%w: %w", domain.ErrFailedToSendVerificationEmail, err)
 		}
 
 		return nil
@@ -255,41 +250,43 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 	return authTokenData, nil
 }
 
-func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) error {
-	const method = "usecase.appUsecase.VerifyEmail"
+func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) (entity.VerificationResult, error) {
+	const method = "usecase.Auth.VerifyEmail"
 
 	log := u.log.With(
 		slog.String("method", method),
 	)
 
+	result := entity.VerificationResult{}
+
 	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		tokenData, err := u.handleTokenProcessing(ctx, verificationToken, entity.EmailTemplateTypeVerifyEmail)
 		if err != nil {
-			e.HandleError(ctx, log, domain.ErrFailedToProcessToken, err, slog.Any("token", verificationToken))
 			return fmt.Errorf("%w: %w", domain.ErrFailedToProcessToken, err)
 		}
 
-		if tokenData.Token == verificationToken {
-			// It means that verification token was not expired and not generated new token with email resent
-			if err = u.storage.MarkEmailVerified(ctx, tokenData.UserID, tokenData.AppID); err != nil {
-				e.HandleError(ctx, log, domain.ErrFailedToMarkEmailVerified, err, slog.Any("verificationToken", verificationToken))
-				return err
-			}
-			log.Info("email verified", slog.String("userID", tokenData.UserID))
+		if tokenData.Token != verificationToken {
+			result.TokenExpired = true
+			log.Info("token expired, a new email with a new token has been sent to the user", slog.Any("userID", tokenData.UserID))
 			return nil
 		}
 
+		if err = u.storage.MarkEmailVerified(ctx, tokenData.UserID, tokenData.AppID); err != nil {
+			return fmt.Errorf("%w: %w", domain.ErrFailedToMarkEmailVerified, err)
+		}
+
+		log.Info("email verified", slog.String("userID", tokenData.UserID))
 		return nil
 	}); err != nil {
-		e.HandleError(ctx, log, domain.ErrFailedToCommitTransaction, err)
-		return err
+		e.HandleError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("verificationToken", verificationToken))
+		return entity.VerificationResult{}, err
 	}
 
-	return nil
+	return result, nil
 }
 
 func (u *Auth) ResetPassword(ctx context.Context, appID string, reqData *entity.ResetPasswordRequestData, changePasswordEndpoint string) error {
-	const method = "usecase.appUsecase.ResetPassword"
+	const method = "usecase.Auth.ResetPassword"
 
 	log := u.log.With(
 		slog.String("method", method),
@@ -327,7 +324,7 @@ func (u *Auth) ResetPassword(ctx context.Context, appID string, reqData *entity.
 }
 
 func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity.ChangePasswordRequestData) error {
-	const method = "usecase.appUsecase.ChangePassword"
+	const method = "usecase.Auth.ChangePassword"
 
 	log := u.log.With(
 		slog.String("method", method),
@@ -336,7 +333,6 @@ func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity
 	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		tokenData, err := u.handleTokenProcessing(ctx, reqData.ResetPasswordToken, entity.EmailTemplateTypeResetPassword)
 		if err != nil {
-			e.HandleError(ctx, log, domain.ErrFailedToProcessToken, err, slog.Any("token", reqData.ResetPasswordToken))
 			return fmt.Errorf("%w: %w", domain.ErrFailedToProcessToken, err)
 		}
 
@@ -344,12 +340,11 @@ func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity
 			// It means that reset password token was not expired and not generated new token with email resent
 			userDataFromDB, err := u.userMgr.GetUserData(ctx, appID, tokenData.UserID)
 			if err != nil {
-				e.HandleError(ctx, log, domain.ErrFailedToGetUserData, err, slog.Any("userID", tokenData.UserID))
-				return err
+				return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
 			}
 
 			if err = u.checkPasswordHashAndUpdate(ctx, appID, userDataFromDB, reqData); err != nil {
-				return err
+				return fmt.Errorf("%w: %w", domain.ErrFailedToCheckPasswordHashAndUpdate, err)
 			}
 
 			log.Info("password changed", slog.String("userID", userDataFromDB.ID))
@@ -358,7 +353,7 @@ func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity
 
 		return nil
 	}); err != nil {
-		e.HandleError(ctx, log, domain.ErrFailedToCommitTransaction, err)
+		e.HandleError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("token", reqData.ResetPasswordToken))
 		return err
 	}
 
@@ -366,7 +361,7 @@ func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity
 }
 
 func (u *Auth) LogoutUser(ctx context.Context, appID string, reqData *entity.UserDeviceRequestData) error {
-	const method = "usecase.appUsecase.LogoutUser"
+	const method = "usecase.Auth.LogoutUser"
 
 	log := u.log.With(
 		slog.String("method", method),
@@ -413,7 +408,7 @@ func (u *Auth) LogoutUser(ctx context.Context, appID string, reqData *entity.Use
 }
 
 func (u *Auth) RefreshTokens(ctx context.Context, appID string, reqData *entity.RefreshTokenRequestData) (entity.SessionTokens, error) {
-	const method = "usecase.appUsecase.RefreshTokens"
+	const method = "usecase.Auth.RefreshTokens"
 
 	log := u.log.With(
 		slog.String("method", method),
@@ -462,7 +457,7 @@ func (u *Auth) RefreshTokens(ctx context.Context, appID string, reqData *entity.
 }
 
 func (u *Auth) GetJWKS(ctx context.Context, appID string) (entity.JWKS, error) {
-	const method = "usecase.appUsecase.GetJWKS"
+	const method = "usecase.Auth.GetJWKS"
 
 	log := u.log.With(
 		slog.String("method", method),

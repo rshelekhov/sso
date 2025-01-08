@@ -1,5 +1,5 @@
 package entity
 
-type VerifyEmailRequestData struct {
-	VerificationToken string
+type VerificationResult struct {
+	TokenExpired bool
 }
