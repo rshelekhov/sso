@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
-	"time"
 )
 
 type JWTManager interface {
@@ -141,7 +142,7 @@ func (s *Session) DeleteUserSessions(ctx context.Context, user entity.User) erro
 	return nil
 }
 
-func (s *Session) prepareTokenConfig() (issuer string, accessTokenTTL time.Duration, refreshTokenTTL time.Duration) {
+func (s *Session) prepareTokenConfig() (issuer string, accessTokenTTL, refreshTokenTTL time.Duration) {
 	issuer = s.jwtMgr.Issuer()
 	accessTokenTTL = s.jwtMgr.AccessTokenTTL()
 	refreshTokenTTL = s.jwtMgr.RefreshTokenTTL()
@@ -216,7 +217,6 @@ func (s *Session) saveSession(ctx context.Context, session entity.Session) error
 }
 
 func (s *Session) prepareTokenResponse(accessToken string, session entity.Session) (entity.SessionTokens, error) {
-
 	cookieDomain := s.jwtMgr.RefreshTokenCookieDomain()
 	path := s.jwtMgr.RefreshTokenCookiePath()
 

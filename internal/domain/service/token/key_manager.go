@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+
 	"github.com/rshelekhov/sso/internal/domain"
 )
 

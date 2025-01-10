@@ -3,9 +3,10 @@ package token
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/internal/domain"
-	"strings"
 )
 
 func (s *Service) ExtractUserIDFromContext(ctx context.Context, appID string) (string, error) {

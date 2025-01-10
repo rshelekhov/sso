@@ -3,8 +3,9 @@ package token
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/domain"
 	"io"
+
+	"github.com/rshelekhov/sso/internal/domain"
 )
 
 func (s *Service) HashPassword(password string) (string, error) {

@@ -5,10 +5,11 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"time"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/segmentio/ksuid"
-	"time"
 )
 
 func (s *Service) NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error) {
