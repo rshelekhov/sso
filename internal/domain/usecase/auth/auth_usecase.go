@@ -131,7 +131,7 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 		}
 
 		e.HandleError(ctx, log, domain.ErrFailedToGetUserByEmail, err)
-		return entity.SessionTokens{}, err
+		return entity.SessionTokens{}, domain.ErrFailedToGetUserByEmail
 	}
 
 	if err = u.verifyPassword(ctx, userData, reqData.Password); err != nil {
@@ -141,7 +141,7 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 		}
 
 		e.HandleError(ctx, log, domain.ErrFailedToVerifyPassword, err, slog.Any("userID", userData.ID))
-		return entity.SessionTokens{}, err
+		return entity.SessionTokens{}, domain.ErrFailedToVerifyPassword
 	}
 
 	sessionReqData := entity.SessionRequestData{
@@ -301,18 +301,18 @@ func (u *Auth) ResetPassword(ctx context.Context, appID string, reqData *entity.
 		}
 
 		e.HandleError(ctx, u.log, domain.ErrFailedToGetUserByEmail, err, slog.Any("email", reqData.Email))
-		return err
+		return domain.ErrFailedToGetUserByEmail
 	}
 
 	tokenData, err := u.verificationMgr.CreateToken(ctx, userData, changePasswordEndpoint, entity.TokenTypeResetPassword)
 	if err != nil {
 		e.HandleError(ctx, log, domain.ErrFailedToCreateVerificationToken, err)
-		return err
+		return domain.ErrFailedToCreateVerificationToken
 	}
 
 	if err = u.sendEmailWithToken(ctx, tokenData, entity.EmailTemplateTypeResetPassword); err != nil {
 		e.HandleError(ctx, log, domain.ErrFailedToSendResetPasswordEmail, err)
-		return err
+		return domain.ErrFailedToSendResetPasswordEmail
 	}
 
 	log.Info("reset password email sent",
@@ -395,18 +395,18 @@ func (u *Auth) LogoutUser(ctx context.Context, appID string, reqData *entity.Use
 		}
 
 		e.HandleError(ctx, log, domain.ErrFailedToGetDeviceID, err)
-		return err
+		return domain.ErrFailedToGetDeviceID
+	}
+
+	if err = u.sessionMgr.DeleteSession(ctx, sessionReqData); err != nil {
+		e.HandleError(ctx, log, domain.ErrFailedToDeleteSession, err)
+		return domain.ErrFailedToDeleteSession
 	}
 
 	log.Info("user logged out",
 		slog.String("userID", sessionReqData.UserID),
 		slog.String("deviceID", sessionReqData.DeviceID),
 	)
-
-	if err = u.sessionMgr.DeleteSession(ctx, sessionReqData); err != nil {
-		e.HandleError(ctx, log, domain.ErrFailedToDeleteSession, err)
-		return domain.ErrFailedToDeleteSession
-	}
 
 	return nil
 }
@@ -431,13 +431,13 @@ func (u *Auth) RefreshTokens(ctx context.Context, appID string, reqData *entity.
 		e.HandleError(ctx, log, domain.ErrUserDeviceNotFound, err)
 		return entity.SessionTokens{}, domain.ErrUserDeviceNotFound
 	case err != nil:
-		e.HandleError(ctx, log, domain.ErrFailedToCheckSessionAndDevice, err)
-		return entity.SessionTokens{}, fmt.Errorf("%w: %w", domain.ErrFailedToCheckSessionAndDevice, err)
+		e.HandleError(ctx, log, domain.ErrFailedToGetSessionByRefreshToken, err)
+		return entity.SessionTokens{}, domain.ErrFailedToGetSessionByRefreshToken
 	}
 
 	if err = u.sessionMgr.DeleteRefreshToken(ctx, reqData.RefreshToken); err != nil {
 		e.HandleError(ctx, log, domain.ErrFailedToDeleteRefreshToken, err)
-		return entity.SessionTokens{}, err
+		return entity.SessionTokens{}, domain.ErrFailedToDeleteRefreshToken
 	}
 
 	sessionReqData := entity.SessionRequestData{
@@ -452,7 +452,7 @@ func (u *Auth) RefreshTokens(ctx context.Context, appID string, reqData *entity.
 	tokenData, err := u.sessionMgr.CreateSession(ctx, sessionReqData)
 	if err != nil {
 		e.HandleError(ctx, log, domain.ErrFailedToCreateUserSession, err, slog.Any("userID", userSession.UserID))
-		return entity.SessionTokens{}, fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
+		return entity.SessionTokens{}, domain.ErrFailedToCreateUserSession
 	}
 
 	log.Info("tokens created", slog.Any("userID", userSession.UserID))
@@ -470,13 +470,13 @@ func (u *Auth) GetJWKS(ctx context.Context, appID string) (entity.JWKS, error) {
 	publicKey, err := u.tokenMgr.PublicKey(appID)
 	if err != nil {
 		e.HandleError(ctx, log, domain.ErrFailedToGetPublicKey, err)
-		return entity.JWKS{}, err
+		return entity.JWKS{}, domain.ErrFailedToGetPublicKey
 	}
 
 	kid, err := u.tokenMgr.Kid(appID)
 	if err != nil {
 		e.HandleError(ctx, log, domain.ErrFailedToGetKeyID, err)
-		return entity.JWKS{}, err
+		return entity.JWKS{}, domain.ErrFailedToGetKeyID
 	}
 
 	jwk := entity.JWK{
@@ -567,7 +567,7 @@ func (u *Auth) handleTokenProcessing(
 ) (entity.VerificationToken, error) {
 	tokenData, err := u.verificationMgr.GetTokenData(ctx, token)
 	if err != nil {
-		return entity.VerificationToken{}, err
+		return entity.VerificationToken{}, fmt.Errorf("%w: %w", domain.ErrFailedToGetVerificationTokenData, err)
 	}
 
 	if tokenData.ExpiresAt.Before(time.Now()) {

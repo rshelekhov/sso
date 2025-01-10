@@ -7,11 +7,12 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"log/slog"
+	"time"
+
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
-	"log/slog"
-	"time"
 
 	"github.com/segmentio/ksuid"
 	"golang.org/x/crypto/bcrypt"
