@@ -44,6 +44,7 @@ packages:
       MailService:
       TokenManager:
       VerificationManager:
+      TransactionManager:
       Storage:
   github.com/rshelekhov/sso/internal/domain/usecase/user:
     config:
@@ -55,3 +56,4 @@ packages:
       UserdataManager:
       PasswordManager:
       IdentityManager:
+      TransactionManager:
