@@ -186,7 +186,7 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 	hash, err := u.tokenMgr.HashPassword(reqData.Password)
 	if err != nil {
 		e.HandleError(ctx, log, domain.ErrFailedToGeneratePasswordHash, err)
-		return entity.SessionTokens{}, err
+		return entity.SessionTokens{}, domain.ErrFailedToGeneratePasswordHash
 	}
 
 	newUser := entity.NewUser(reqData.Email, hash, appID)
