@@ -133,7 +133,7 @@ func TestAuth_Login(t *testing.T) {
 			) {
 				userMgr.EXPECT().GetUserByEmail(ctx, appID, email).
 					Once().
-					Return(entity.User{}, fmt.Errorf("some error"))
+					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
 			expectedError:  domain.ErrFailedToGetUserByEmail,
 			expectedTokens: entity.SessionTokens{},
@@ -177,7 +177,7 @@ func TestAuth_Login(t *testing.T) {
 
 				userMgr.EXPECT().GetUserData(ctx, appID, userID).
 					Once().
-					Return(entity.User{}, fmt.Errorf("some error"))
+					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
 			expectedError:  domain.ErrFailedToVerifyPassword,
 			expectedTokens: entity.SessionTokens{},
@@ -201,7 +201,7 @@ func TestAuth_Login(t *testing.T) {
 
 				tokenMgr.EXPECT().PasswordMatch(hashedPassword, password).
 					Once().
-					Return(false, fmt.Errorf("some error"))
+					Return(false, fmt.Errorf("token manager error"))
 			},
 			expectedError:  domain.ErrFailedToVerifyPassword,
 			expectedTokens: entity.SessionTokens{},
@@ -239,9 +239,9 @@ func TestAuth_Login(t *testing.T) {
 						data.UserDevice.IP == ip
 				})).
 					Once().
-					Return(entity.SessionTokens{}, fmt.Errorf("some error"))
+					Return(entity.SessionTokens{}, fmt.Errorf("session manager error"))
 			},
-			expectedError:  fmt.Errorf("some error"),
+			expectedError:  domain.ErrFailedToCreateUserSession,
 			expectedTokens: entity.SessionTokens{},
 		},
 		{
@@ -267,10 +267,10 @@ func TestAuth_Login(t *testing.T) {
 
 				txMgr.EXPECT().WithinTransaction(ctx, mock.AnythingOfType("func(context.Context) error")).
 					RunAndReturn(func(ctx context.Context, fn func(context.Context) error) error {
-						return fmt.Errorf("some error")
+						return fmt.Errorf("transaction manager error")
 					})
 			},
-			expectedError:  fmt.Errorf("some error"),
+			expectedError:  fmt.Errorf("transaction manager error"),
 			expectedTokens: entity.SessionTokens{},
 		},
 	}
@@ -509,9 +509,9 @@ func TestAuth_RegisterUser(t *testing.T) {
 			) {
 				tokenMgr.EXPECT().HashPassword(password).
 					Once().
-					Return("", errors.New("failed to hash password"))
+					Return("", errors.New("token manager error"))
 			},
-			expectedError:  errors.New("failed to hash password"),
+			expectedError:  domain.ErrFailedToGeneratePasswordHash,
 			expectedTokens: entity.SessionTokens{},
 		},
 		{
@@ -538,7 +538,7 @@ func TestAuth_RegisterUser(t *testing.T) {
 
 				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
 					Once().
-					Return("", domain.ErrFailedToGetUserStatusByEmail)
+					Return("", fmt.Errorf("user manager error"))
 			},
 			expectedError:  domain.ErrFailedToGetUserStatusByEmail,
 			expectedTokens: entity.SessionTokens{},
@@ -571,7 +571,7 @@ func TestAuth_RegisterUser(t *testing.T) {
 
 				storage.EXPECT().ReplaceSoftDeletedUser(ctx, mock.AnythingOfType("entity.User")).
 					Once().
-					Return(domain.ErrFailedToReplaceSoftDeletedUser)
+					Return(fmt.Errorf("storage error"))
 			},
 			expectedError:  domain.ErrFailedToReplaceSoftDeletedUser,
 			expectedTokens: entity.SessionTokens{},
@@ -604,7 +604,7 @@ func TestAuth_RegisterUser(t *testing.T) {
 
 				storage.EXPECT().RegisterUser(ctx, mock.AnythingOfType("entity.User")).
 					Once().
-					Return(domain.ErrFailedToRegisterUser)
+					Return(fmt.Errorf("storage error"))
 			},
 			expectedError:  domain.ErrFailedToRegisterUser,
 			expectedTokens: entity.SessionTokens{},
@@ -674,7 +674,7 @@ func TestAuth_RegisterUser(t *testing.T) {
 
 				sessionMgr.EXPECT().CreateSession(ctx, mock.AnythingOfType("entity.SessionRequestData")).
 					Once().
-					Return(entity.SessionTokens{}, domain.ErrFailedToCreateUserSession)
+					Return(entity.SessionTokens{}, fmt.Errorf("session manager error"))
 			},
 			expectedError:  domain.ErrFailedToCreateUserSession,
 			expectedTokens: entity.SessionTokens{},
@@ -719,7 +719,7 @@ func TestAuth_RegisterUser(t *testing.T) {
 
 				verificationMgr.EXPECT().CreateToken(ctx, mock.AnythingOfType("entity.User"), endpoint, tokenType).
 					Once().
-					Return(entity.VerificationToken{}, domain.ErrFailedToCreateVerificationToken)
+					Return(entity.VerificationToken{}, fmt.Errorf("verification manager error"))
 			},
 			expectedError:  domain.ErrFailedToCreateVerificationToken,
 			expectedTokens: entity.SessionTokens{},
@@ -777,7 +777,7 @@ func TestAuth_RegisterUser(t *testing.T) {
 					email,
 				).
 					Once().
-					Return(domain.ErrFailedToSendVerificationEmail)
+					Return(fmt.Errorf("mail service error"))
 			},
 			expectedError:  domain.ErrFailedToSendVerificationEmail,
 			expectedTokens: entity.SessionTokens{},
@@ -1013,7 +1013,7 @@ func TestAuth_VerifyEmail(t *testing.T) {
 
 				verificationMgr.EXPECT().DeleteToken(ctx, tokenStr).
 					Once().
-					Return(fmt.Errorf("some error"))
+					Return(fmt.Errorf("verification manager error"))
 			},
 			expectedError: domain.ErrFailedToDeleteVerificationToken,
 		},
@@ -1040,7 +1040,7 @@ func TestAuth_VerifyEmail(t *testing.T) {
 
 				verificationMgr.EXPECT().CreateToken(ctx, userData, endpoint, tokenType).
 					Once().
-					Return(entity.VerificationToken{}, fmt.Errorf("some error"))
+					Return(entity.VerificationToken{}, fmt.Errorf("verification manager error"))
 			},
 			expectedError: domain.ErrFailedToCreateVerificationToken,
 		},
@@ -1075,7 +1075,7 @@ func TestAuth_VerifyEmail(t *testing.T) {
 
 				mailService.EXPECT().SendHTML(ctx, mock.AnythingOfType("string"), mock.AnythingOfType("string"), "test@example.com").
 					Once().
-					Return(fmt.Errorf("some error"))
+					Return(fmt.Errorf("mail service error"))
 			},
 			expectedError: domain.ErrFailedToSendEmail,
 		},
@@ -1098,7 +1098,7 @@ func TestAuth_VerifyEmail(t *testing.T) {
 
 				storage.EXPECT().MarkEmailVerified(ctx, expectedTokenData.UserID, expectedTokenData.AppID).
 					Once().
-					Return(fmt.Errorf("some error"))
+					Return(fmt.Errorf("storage error"))
 			},
 			expectedError: domain.ErrFailedToMarkEmailVerified,
 		},
@@ -1233,7 +1233,7 @@ func TestAuth_ResetPassword(t *testing.T) {
 			) {
 				userMgr.EXPECT().GetUserByEmail(ctx, appID, reqData.Email).
 					Once().
-					Return(entity.User{}, fmt.Errorf("some error"))
+					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
 			expectedError: domain.ErrFailedToGetUserByEmail,
 		},
@@ -1250,7 +1250,7 @@ func TestAuth_ResetPassword(t *testing.T) {
 
 				verificationMgr.EXPECT().CreateToken(ctx, userData, endpoint, tokenType).
 					Once().
-					Return(entity.VerificationToken{}, fmt.Errorf("some error"))
+					Return(entity.VerificationToken{}, fmt.Errorf("verification manager error"))
 			},
 			expectedError: domain.ErrFailedToCreateVerificationToken,
 		},
@@ -1280,7 +1280,7 @@ func TestAuth_ResetPassword(t *testing.T) {
 					reqData.Email,
 				).
 					Once().
-					Return(fmt.Errorf("some error"))
+					Return(fmt.Errorf("mail service error"))
 			},
 			expectedError: domain.ErrFailedToSendResetPasswordEmail,
 		},
@@ -1479,7 +1479,7 @@ func TestAuth_ChangePassword(t *testing.T) {
 
 				verificationMgr.EXPECT().GetTokenData(ctx, reqData.ResetPasswordToken).
 					Once().
-					Return(entity.VerificationToken{}, fmt.Errorf("some error"))
+					Return(entity.VerificationToken{}, fmt.Errorf("verification manager error"))
 			},
 			expectedError: domain.ErrFailedToGetVerificationTokenData,
 		},
@@ -1503,7 +1503,7 @@ func TestAuth_ChangePassword(t *testing.T) {
 
 				verificationMgr.EXPECT().DeleteToken(ctx, reqData.ResetPasswordToken).
 					Once().
-					Return(fmt.Errorf("some error"))
+					Return(fmt.Errorf("verification manager error"))
 			},
 			expectedError: domain.ErrFailedToDeleteVerificationToken,
 		},
@@ -1531,7 +1531,7 @@ func TestAuth_ChangePassword(t *testing.T) {
 
 				verificationMgr.EXPECT().CreateToken(ctx, userData, endpoint, tokenType).
 					Once().
-					Return(entity.VerificationToken{}, fmt.Errorf("some error"))
+					Return(entity.VerificationToken{}, fmt.Errorf("verification manager error"))
 			},
 			expectedError: domain.ErrFailedToCreateVerificationToken,
 		},
@@ -1572,7 +1572,7 @@ func TestAuth_ChangePassword(t *testing.T) {
 					userData.Email,
 				).
 					Once().
-					Return(fmt.Errorf("some error"))
+					Return(fmt.Errorf("mail service error"))
 			},
 			expectedError: domain.ErrFailedToSendEmail,
 		},
@@ -1596,7 +1596,7 @@ func TestAuth_ChangePassword(t *testing.T) {
 
 				userMgr.EXPECT().GetUserData(ctx, appID, userID).
 					Once().
-					Return(entity.User{}, fmt.Errorf("some error"))
+					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
 			expectedError: domain.ErrFailedToGetUserData,
 		},
@@ -1630,7 +1630,7 @@ func TestAuth_ChangePassword(t *testing.T) {
 
 				tokenMgr.EXPECT().PasswordMatch(hashedPassword, reqData.UpdatedPassword).
 					Once().
-					Return(false, fmt.Errorf("some error"))
+					Return(false, fmt.Errorf("token manager error"))
 			},
 			expectedError: domain.ErrFailedToCheckPasswordHashMatch,
 		},
@@ -1702,7 +1702,7 @@ func TestAuth_ChangePassword(t *testing.T) {
 
 				tokenMgr.EXPECT().HashPassword(reqData.UpdatedPassword).
 					Once().
-					Return("", fmt.Errorf("some error"))
+					Return("", fmt.Errorf("token manager error"))
 			},
 			expectedError: domain.ErrFailedToGeneratePasswordHash,
 		},
@@ -1748,7 +1748,7 @@ func TestAuth_ChangePassword(t *testing.T) {
 						u.AppID == userData.AppID
 				})).
 					Once().
-					Return(fmt.Errorf("some error"))
+					Return(fmt.Errorf("user manager error"))
 			},
 			expectedError: domain.ErrFailedToUpdateUser,
 		},
@@ -1879,7 +1879,7 @@ func TestAuth_LogoutUser(t *testing.T) {
 					UserDevice: userDeviceReqData,
 				}).
 					Once().
-					Return("", fmt.Errorf("some error"))
+					Return("", fmt.Errorf("session manager error"))
 			},
 			expectedError: domain.ErrFailedToGetDeviceID,
 		},
@@ -1905,7 +1905,7 @@ func TestAuth_LogoutUser(t *testing.T) {
 					UserDevice: userDeviceReqData,
 				}).
 					Once().
-					Return(fmt.Errorf("some error"))
+					Return(fmt.Errorf("session manager error"))
 			},
 			expectedError: domain.ErrFailedToDeleteSession,
 		},
