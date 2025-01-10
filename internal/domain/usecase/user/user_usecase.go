@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"time"
+
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/lib/e"
-	"log/slog"
-	"time"
 )
 
 type User struct {
@@ -108,6 +109,7 @@ func (u *User) GetUserByID(ctx context.Context, appID string) (entity.User, erro
 			e.HandleError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
 			return entity.User{}, domain.ErrUserNotFound
 		}
+
 		e.HandleError(ctx, log, domain.ErrFailedToGetUser, err, slog.Any("userID", userID))
 		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToGetUserByID, err)
 	}
@@ -134,6 +136,7 @@ func (u *User) UpdateUser(ctx context.Context, appID string, data *entity.UserRe
 			e.HandleError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
 			return domain.ErrUserNotFound
 		}
+
 		e.HandleError(ctx, log, domain.ErrFailedToGetUserData, err, slog.Any("userID", userID))
 		return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
 	}
@@ -168,7 +171,7 @@ func (u *User) DeleteUser(ctx context.Context, appID string) error {
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		userStatus, err := u.userMgr.GetUserStatusByID(ctx, userData.ID)
 		if err != nil {
-			return fmt.Errorf("%w: %w", domain.ErrFailedToCheckIfUserExists, err)
+			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByID, err)
 		}
 
 		switch userStatus {
@@ -215,7 +218,7 @@ func (u *User) updateUserFields(
 
 	err := u.userMgr.UpdateUserData(ctx, updatedUser)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %w", domain.ErrFailedToUpdateUser, err)
 	}
 
 	return nil
@@ -238,7 +241,7 @@ func (u *User) handlePasswordUpdate(
 	}
 
 	// Check if the new password does not match the current password
-	if err := u.validatePasswordChanged(userDataFromDB.PasswordHash, data.UpdatedPassword); err != nil {
+	if err := u.validateNewPassword(userDataFromDB.PasswordHash, data.UpdatedPassword); err != nil {
 		return err
 	}
 
@@ -267,8 +270,8 @@ func (u *User) validateCurrentPassword(hash, password string) error {
 	return nil
 }
 
-func (u *User) validatePasswordChanged(hash, password string) error {
-	const method = "usecase.User.validatePasswordChanged"
+func (u *User) validateNewPassword(hash, password string) error {
+	const method = "usecase.User.validateNewPassword"
 
 	matched, err := u.passwordMgr.PasswordMatch(hash, password)
 	if err != nil {
