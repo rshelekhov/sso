@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-func TestApp_RegisterApp(t *testing.T) {
+func TestAppUsecase_RegisterApp(t *testing.T) {
 	ctx := context.Background()
 
 	appName := "test-app"
@@ -122,7 +122,7 @@ func TestApp_RegisterApp(t *testing.T) {
 	}
 }
 
-func TestApp_DeleteApp(t *testing.T) {
+func TestAppUsecase_DeleteApp(t *testing.T) {
 	ctx := context.Background()
 
 	appID := "test-app-id"

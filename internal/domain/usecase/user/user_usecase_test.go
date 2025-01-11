@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func TestUser_GetUserByID(t *testing.T) {
+func TestUserUsecase_GetUserByID(t *testing.T) {
 	ctx := context.Background()
 	appID := "test-app-id"
 	userID := "test-user-id"
@@ -110,7 +110,7 @@ func TestUser_GetUserByID(t *testing.T) {
 	}
 }
 
-func TestUser_UpdateUser(t *testing.T) {
+func TestUserUsecase_UpdateUser(t *testing.T) {
 	ctx := context.Background()
 	appID := "test-app-id"
 	userID := "test-user-id"
@@ -544,7 +544,7 @@ func TestUser_UpdateUser(t *testing.T) {
 	}
 }
 
-func TestUser_DeleteUser(t *testing.T) {
+func TestUserUsecase_DeleteUser(t *testing.T) {
 	ctx := context.Background()
 	appID := "test-app-id"
 	userID := "test-user-id"

@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAuth_Login(t *testing.T) {
+func TestAuthUsecase_Login(t *testing.T) {
 	ctx := context.Background()
 
 	appID := "test-app-id"
@@ -303,7 +303,7 @@ func TestAuth_Login(t *testing.T) {
 	}
 }
 
-func TestAuth_RegisterUser(t *testing.T) {
+func TestAuthUsecase_RegisterUser(t *testing.T) {
 	ctx := context.Background()
 
 	appID := "test-app-id"
@@ -837,7 +837,7 @@ func TestAuth_RegisterUser(t *testing.T) {
 	}
 }
 
-func TestAuth_VerifyEmail(t *testing.T) {
+func TestAuthUsecase_VerifyEmail(t *testing.T) {
 	ctx := context.Background()
 
 	userID := "test-user-id"
@@ -1143,7 +1143,7 @@ func TestAuth_VerifyEmail(t *testing.T) {
 	}
 }
 
-func TestAuth_ResetPassword(t *testing.T) {
+func TestAuthUsecase_ResetPassword(t *testing.T) {
 	ctx := context.Background()
 
 	appID := "test-app-id"
@@ -1309,7 +1309,7 @@ func TestAuth_ResetPassword(t *testing.T) {
 	}
 }
 
-func TestAuth_ChangePassword(t *testing.T) {
+func TestAuthUsecase_ChangePassword(t *testing.T) {
 	ctx := context.Background()
 
 	userID := "test-user-id"
@@ -1795,7 +1795,7 @@ func TestAuth_ChangePassword(t *testing.T) {
 	}
 }
 
-func TestAuth_LogoutUser(t *testing.T) {
+func TestAuthUsecase_LogoutUser(t *testing.T) {
 	ctx := context.Background()
 
 	appID := "test-app-id"
@@ -1933,7 +1933,7 @@ func TestAuth_LogoutUser(t *testing.T) {
 	}
 }
 
-func TestAuth_RefreshTokens(t *testing.T) {
+func TestAuthUsecase_RefreshTokens(t *testing.T) {
 	ctx := context.Background()
 
 	userID := "test-user-id"
@@ -2103,7 +2103,7 @@ func TestAuth_RefreshTokens(t *testing.T) {
 	}
 }
 
-func TestAuth_GetJWKS(t *testing.T) {
+func TestAuthUsecase_GetJWKS(t *testing.T) {
 	ctx := context.Background()
 	appID := "test-app-id"
 
