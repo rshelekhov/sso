@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestPasswordHashBcrypt_HappyPath(t *testing.T) {
+func TestTokenService_PasswordHashBcrypt_HappyPath(t *testing.T) {
 	pass := "test-password"
 	params := defaultPasswordHashBcryptParams
 	pepper := []byte("pepper")
@@ -15,7 +15,7 @@ func TestPasswordHashBcrypt_HappyPath(t *testing.T) {
 	require.NotEmpty(t, hash)
 }
 
-func TestPasswordMatchBcrypt_HappyPath(t *testing.T) {
+func TestTokenService_PasswordMatchBcrypt_HappyPath(t *testing.T) {
 	pass := "test-password"
 	params := defaultPasswordHashBcryptParams
 	pepper := []byte("pepper")
@@ -28,7 +28,7 @@ func TestPasswordMatchBcrypt_HappyPath(t *testing.T) {
 	require.True(t, matched)
 }
 
-func TestPasswordMatchBcrypt_IncorrectPassword(t *testing.T) {
+func TestTokenService_PasswordMatchBcrypt_IncorrectPassword(t *testing.T) {
 	pass := "test-password"
 	params := defaultPasswordHashBcryptParams
 	pepper := []byte("pepper")

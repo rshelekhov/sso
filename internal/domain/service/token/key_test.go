@@ -24,8 +24,7 @@ func TestGenerateAndSavePrivateKey(t *testing.T) {
 
 	tokenService := NewService(cfg, mockKeyStorage)
 
-	mockKeyStorage.
-		On("SavePrivateKey", appID, mock.Anything).
+	mockKeyStorage.EXPECT().SavePrivateKey(appID, mock.Anything).
 		Once().
 		Return(nil)
 
@@ -37,8 +36,7 @@ func TestPublicKey(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockKeyStorage, tokenService, privateKey, privateKeyPEM := setup(t)
 
-		mockKeyStorage.
-			On("GetPrivateKey", appID).
+		mockKeyStorage.EXPECT().GetPrivateKey(appID).
 			Once().
 			Return(privateKeyPEM, nil)
 
@@ -70,7 +68,7 @@ func TestPublicKey(t *testing.T) {
 			Bytes: privateKeyBytes,
 		})
 
-		mockKeyStorage.On("GetPrivateKey", appID).Return(privateKeyPEM, nil)
+		mockKeyStorage.EXPECT().GetPrivateKey(appID).Return(privateKeyPEM, nil)
 
 		_, err = tokenService.PublicKey(appID)
 		require.NotEmpty(t, err)

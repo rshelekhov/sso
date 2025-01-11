@@ -14,173 +14,221 @@ import (
 	"time"
 )
 
-func TestCreateToken(t *testing.T) {
-	mockVerificationStorage := new(mocks.Storage)
-	tokenExpiryTime := 24 * time.Hour
-
-	verificationService := NewService(tokenExpiryTime, mockVerificationStorage)
-
+func TestVerificationService_CreateToken(t *testing.T) {
 	ctx := context.Background()
-	user := entity.User{
-		ID:    "test-user-id",
-		AppID: "test-app-id",
-		Email: "test-email@gmail.com",
+
+	tests := []struct {
+		name           string
+		mockBehavior   func(*mocks.Storage)
+		mockRandReader func() func([]byte) (int, error)
+		expectedError  error
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(verificationStorage *mocks.Storage) {
+				verificationStorage.EXPECT().SaveVerificationToken(ctx, mock.AnythingOfType("entity.VerificationToken")).
+					Once().
+					Return(nil)
+			},
+			mockRandReader: func() func([]byte) (int, error) {
+				return func(b []byte) (int, error) {
+					for i := range b {
+						b[i] = byte(i)
+					}
+					return len(b), nil
+				}
+			},
+			expectedError: nil,
+		},
+		{
+			name:         "Error – Failed to generate verification token",
+			mockBehavior: func(*mocks.Storage) {},
+			mockRandReader: func() func([]byte) (int, error) {
+				return func([]byte) (int, error) {
+					return 0, errors.New("random generation error")
+				}
+			},
+			expectedError: domain.ErrFailedToGenerateVerificationToken,
+		},
+		{
+			name: "Error – Failed to save verification token",
+			mockBehavior: func(verificationStorage *mocks.Storage) {
+				verificationStorage.EXPECT().SaveVerificationToken(ctx, mock.AnythingOfType("entity.VerificationToken")).
+					Once().
+					Return(errors.New("storage error"))
+			},
+			mockRandReader: func() func([]byte) (int, error) {
+				return func(b []byte) (int, error) {
+					for i := range b {
+						b[i] = byte(i)
+					}
+					return len(b), nil
+				}
+			},
+			expectedError: domain.ErrFailedToSaveVerificationToken,
+		},
 	}
-	verificationEndpoint := "https://example.com/verify"
-	tokenType := entity.TokenTypeVerifyEmail
 
-	originalRandReader := rand.Reader
-	defer func() {
-		rand.Reader = originalRandReader
-	}()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			user := entity.User{
+				ID:    "test-user-id",
+				AppID: "test-app-id",
+				Email: "test-email@gmail.com",
+			}
+			tokenType := entity.TokenTypeVerifyEmail
+			verificationEndpoint := "https://example.com/verify"
+			mockVerificationStorage := new(mocks.Storage)
+			tokenExpiryTime := 24 * time.Hour
+			verificationService := NewService(tokenExpiryTime, mockVerificationStorage)
 
-	t.Run("Success", func(t *testing.T) {
-		rand.Reader = mockRandReader{
-			readFunc: func(b []byte) (int, error) {
-				for i := range b {
-					b[i] = byte(i)
-				}
-				return len(b), nil
-			},
-		}
+			if tt.mockBehavior != nil {
+				tt.mockBehavior(mockVerificationStorage)
+			}
 
-		mockVerificationStorage.
-			On("SaveVerificationToken", ctx, mock.AnythingOfType("entity.VerificationToken")).
-			Once().
-			Return(nil)
+			if tt.mockRandReader != nil {
+				rand.Reader = mockRandReader{readFunc: tt.mockRandReader()}
+				defer func() { rand.Reader = rand.Reader }()
+			}
 
-		token, err := verificationService.CreateToken(ctx, user, verificationEndpoint, tokenType)
+			token, err := verificationService.CreateToken(ctx, user, verificationEndpoint, tokenType)
 
-		require.NoError(t, err)
-		require.NotEmpty(t, token.Token)
-		require.Equal(t, verificationEndpoint, token.Endpoint)
-		require.Equal(t, user.ID, token.UserID)
-		require.Equal(t, tokenType, token.Type)
-		require.False(t, token.ExpiresAt.IsZero())
-	})
-
-	t.Run("Error – Failed to generate verification token", func(t *testing.T) {
-		rand.Reader = mockRandReader{
-			readFunc: func(b []byte) (int, error) {
-				return 0, errors.New("random generation error")
-			},
-		}
-
-		token, err := verificationService.CreateToken(ctx, user, verificationEndpoint, tokenType)
-		require.Error(t, err)
-		require.ErrorIs(t, err, domain.ErrFailedToGenerateVerificationToken)
-		require.Empty(t, token)
-	})
-
-	t.Run("Error – Failed to save verification token", func(t *testing.T) {
-		rand.Reader = mockRandReader{
-			readFunc: func(b []byte) (int, error) {
-				for i := range b {
-					b[i] = byte(i)
-				}
-				return len(b), nil
-			},
-		}
-
-		mockVerificationStorage.
-			On("SaveVerificationToken", ctx, mock.AnythingOfType("entity.VerificationToken")).
-			Once().
-			Return(errors.New("storage error"))
-
-		token, err := verificationService.CreateToken(ctx, user, verificationEndpoint, tokenType)
-
-		require.Error(t, err)
-		require.ErrorIs(t, err, domain.ErrFailedToSaveVerificationToken)
-		require.Empty(t, token)
-	})
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.ErrorIs(t, err, tt.expectedError)
+				require.Empty(t, token)
+			} else {
+				require.NoError(t, err)
+				require.NotEmpty(t, token.Token)
+				require.Equal(t, verificationEndpoint, token.Endpoint)
+				require.Equal(t, user.ID, token.UserID)
+				require.Equal(t, tokenType, token.Type)
+				require.False(t, token.ExpiresAt.IsZero())
+			}
+		})
+	}
 }
 
-func TestGetTokenData(t *testing.T) {
-	mockVerificationStorage := new(mocks.Storage)
-	tokenExpiryTime := 24 * time.Hour
-
-	verificationService := NewService(tokenExpiryTime, mockVerificationStorage)
-
+func TestVerificationService_GetTokenData(t *testing.T) {
 	ctx := context.Background()
+	tokenStr := "test-verification-token"
 
-	t.Run("Success", func(t *testing.T) {
-		expectedTokenData := entity.VerificationToken{
-			Token:     "test-token",
-			UserID:    "test-user-id",
-			AppID:     "test-app-id",
-			Endpoint:  "https://example.com/verify",
-			Email:     "test-email@gmail.com",
-			Type:      entity.TokenTypeVerifyEmail,
-			ExpiresAt: time.Now().Add(tokenExpiryTime),
-		}
+	verificationToken := entity.VerificationToken{
+		Token:    tokenStr,
+		UserID:   "test-user-id",
+		AppID:    "test-app-id",
+		Endpoint: "https://example.com/verify",
+		Email:    "test-email@gmail.com",
+		Type:     entity.TokenTypeVerifyEmail,
+	}
 
-		mockVerificationStorage.
-			On("GetVerificationTokenData", ctx, "test-token").
-			Once().
-			Return(expectedTokenData, nil)
+	tests := []struct {
+		name          string
+		mockBehavior  func(*mocks.Storage)
+		expectedError error
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(verificationStorage *mocks.Storage) {
+				verificationStorage.EXPECT().GetVerificationTokenData(ctx, tokenStr).
+					Once().
+					Return(verificationToken, nil)
+			},
+			expectedError: nil,
+		},
+		{
+			name: "Error – Token not found",
+			mockBehavior: func(verificationStorage *mocks.Storage) {
+				verificationStorage.EXPECT().GetVerificationTokenData(ctx, tokenStr).
+					Once().
+					Return(entity.VerificationToken{}, storage.ErrVerificationTokenNotFound)
+			},
+			expectedError: domain.ErrVerificationTokenNotFound,
+		},
+		{
+			name: "Error – Failed to get verification token data",
+			mockBehavior: func(verificationStorage *mocks.Storage) {
+				verificationStorage.EXPECT().GetVerificationTokenData(ctx, tokenStr).
+					Once().
+					Return(entity.VerificationToken{}, errors.New("verification storage error"))
+			},
+			expectedError: domain.ErrFailedToGetVerificationTokenData,
+		},
+	}
 
-		token, err := verificationService.GetTokenData(ctx, "test-token")
-		require.Equal(t, expectedTokenData.Token, token.Token)
-		require.Equal(t, expectedTokenData.UserID, token.UserID)
-		require.Equal(t, expectedTokenData.AppID, token.AppID)
-		require.Equal(t, expectedTokenData.Endpoint, token.Endpoint)
-		require.Equal(t, expectedTokenData.Email, token.Email)
-		require.Equal(t, expectedTokenData.Type, token.Type)
-		require.Equal(t, expectedTokenData.ExpiresAt, token.ExpiresAt)
-		require.NoError(t, err)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockVerificationStorage := new(mocks.Storage)
+			tokenExpiryTime := 24 * time.Hour
+			verificationService := NewService(tokenExpiryTime, mockVerificationStorage)
 
-	t.Run("Error – Token not found", func(t *testing.T) {
-		mockVerificationStorage.
-			On("GetVerificationTokenData", ctx, "test-token").
-			Once().
-			Return(entity.VerificationToken{}, storage.ErrVerificationTokenNotFound)
+			if tt.mockBehavior != nil {
+				tt.mockBehavior(mockVerificationStorage)
+			}
 
-		token, err := verificationService.GetTokenData(ctx, "test-token")
-		require.Empty(t, token)
-		require.ErrorIs(t, err, domain.ErrVerificationTokenNotFound)
-	})
+			tokenData, err := verificationService.GetTokenData(ctx, tokenStr)
 
-	t.Run("Error – Failed to get verification token data", func(t *testing.T) {
-		mockVerificationStorage.
-			On("GetVerificationTokenData", ctx, "test-token").
-			Once().
-			Return(entity.VerificationToken{}, errors.New("storage error"))
-
-		token, err := verificationService.GetTokenData(ctx, "test-token")
-		require.Empty(t, token)
-		require.ErrorIs(t, err, domain.ErrFailedToGetVerificationTokenData)
-	})
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.ErrorIs(t, err, tt.expectedError)
+				require.Empty(t, tokenData)
+			} else {
+				require.NoError(t, err)
+				require.NotEmpty(t, tokenData)
+			}
+		})
+	}
 }
 
-func TestDeleteToken(t *testing.T) {
-	mockVerificationStorage := new(mocks.Storage)
-	tokenExpiryTime := 24 * time.Hour
-
-	verificationService := NewService(tokenExpiryTime, mockVerificationStorage)
-
+func TestVerificationService_DeleteToken(t *testing.T) {
 	ctx := context.Background()
+	tokenStr := "test-verification-token"
 
-	t.Run("Success", func(t *testing.T) {
-		mockVerificationStorage.
-			On("DeleteVerificationToken", ctx, "test-token").
-			Once().
-			Return(nil)
+	tests := []struct {
+		name          string
+		setup         func(*mocks.Storage)
+		expectedError error
+	}{
+		{
+			name: "Success",
+			setup: func(verificationStorage *mocks.Storage) {
+				verificationStorage.EXPECT().DeleteVerificationToken(ctx, tokenStr).
+					Once().
+					Return(nil)
+			},
+			expectedError: nil,
+		},
+		{
+			name: "Error – Failed to delete verification token",
+			setup: func(mockVerificationStorage *mocks.Storage) {
+				mockVerificationStorage.EXPECT().DeleteVerificationToken(ctx, tokenStr).
+					Once().
+					Return(errors.New("verification storage error"))
+			},
+			expectedError: domain.ErrFailedToDeleteVerificationToken,
+		},
+	}
 
-		err := verificationService.DeleteToken(ctx, "test-token")
-		require.NoError(t, err)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockVerificationStorage := new(mocks.Storage)
+			tokenExpiryTime := 24 * time.Hour
+			verificationService := NewService(tokenExpiryTime, mockVerificationStorage)
 
-	t.Run("Error – Failed to delete verification token", func(t *testing.T) {
-		mockVerificationStorage.
-			On("DeleteVerificationToken", ctx, "test-token").
-			Once().
-			Return(errors.New("storage error"))
+			if tt.setup != nil {
+				tt.setup(mockVerificationStorage)
+			}
 
-		err := verificationService.DeleteToken(ctx, "test-token")
-		require.Error(t, err)
-		require.ErrorIs(t, err, domain.ErrFailedToDeleteVerificationToken)
-	})
+			err := verificationService.DeleteToken(ctx, tokenStr)
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.ErrorIs(t, err, tt.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
 }
 
 type mockRandReader struct {

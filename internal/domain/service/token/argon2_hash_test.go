@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestPasswordHashArgon2_HappyPath(t *testing.T) {
+func TestTokenService_PasswordHashArgon2_HappyPath(t *testing.T) {
 	pass := "test-password"
 	params := defaultPasswordHashArgon2Params
 	salt := []byte("salt")
@@ -24,7 +24,7 @@ func TestPasswordHashArgon2_HappyPath(t *testing.T) {
 	assert.Contains(t, hash, base64.RawStdEncoding.EncodeToString(salt))
 }
 
-func TestPasswordMatchArgon2_HappyPath(t *testing.T) {
+func TestTokenService_PasswordMatchArgon2_HappyPath(t *testing.T) {
 	pass := "test-password"
 	params := defaultPasswordHashArgon2Params
 	salt := []byte("salt")
@@ -38,7 +38,7 @@ func TestPasswordMatchArgon2_HappyPath(t *testing.T) {
 	require.True(t, matched)
 }
 
-func TestPasswordMatchArgon2_IncorrectPassword(t *testing.T) {
+func TestTokenService_PasswordMatchArgon2_IncorrectPassword(t *testing.T) {
 	params := defaultPasswordHashArgon2Params
 	salt := []byte("salt")
 	pepper := []byte("pepper")
@@ -50,7 +50,7 @@ func TestPasswordMatchArgon2_IncorrectPassword(t *testing.T) {
 	require.False(t, matched)
 }
 
-func TestPasswordMatchArgon2_EmptyPassword(t *testing.T) {
+func TestTokenService_PasswordMatchArgon2_EmptyPassword(t *testing.T) {
 	params := defaultPasswordHashArgon2Params
 	salt := []byte("salt")
 	pepper := []byte("pepper")

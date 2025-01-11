@@ -9,53 +9,83 @@ import (
 	"testing"
 )
 
-func TestExtractUserIDFromContext(t *testing.T) {
+func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 	mockKeyStorage, tokenService, privateKey, privateKeyPEM := setup(t)
-	mockKeyStorage.On("GetPrivateKey", appID).Return(privateKeyPEM, nil)
 
-	claimKey := "user_id"
-	claimValue := "test-user-id"
+	tests := []struct {
+		name          string
+		setupContext  func() context.Context
+		mockBehavior  func()
+		expectedID    string
+		expectedError error
+	}{
+		{
+			name: "Success",
+			setupContext: func() context.Context {
+				return createContextWithToken(t, privateKey, jwt.MapClaims{
+					"user_id": "test-user-id",
+				})
+			},
+			mockBehavior: func() {
+				mockKeyStorage.EXPECT().GetPrivateKey(appID).
+					Once().
+					Return(privateKeyPEM, nil)
+			},
+			expectedID:    "test-user-id",
+			expectedError: nil,
+		},
+		{
+			name: "User ID not found",
+			setupContext: func() context.Context {
+				return createContextWithToken(t, privateKey, jwt.MapClaims{})
+			},
+			mockBehavior: func() {
+				mockKeyStorage.EXPECT().GetPrivateKey(appID).
+					Once().
+					Return(privateKeyPEM, nil)
+			},
+			expectedID:    "",
+			expectedError: domain.ErrUserIDNotFoundInContext,
+		},
+		{
+			name: "No token found in context",
+			setupContext: func() context.Context {
+				return context.Background()
+			},
+			mockBehavior:  func() {},
+			expectedID:    "",
+			expectedError: domain.ErrNoTokenFoundInContext,
+		},
+		{
+			name: "Invalid token",
+			setupContext: func() context.Context {
+				return context.WithValue(context.Background(), "access_token", "invalid-token")
+			},
+			mockBehavior:  func() {},
+			expectedID:    "",
+			expectedError: domain.ErrFailedToParseTokenWithClaims,
+		},
+	}
 
-	ctx := createContextWithToken(t, privateKey, jwt.MapClaims{
-		claimKey: claimValue,
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockBehavior()
+			ctx := tt.setupContext()
 
-	t.Run("Success", func(t *testing.T) {
-		userID, err := tokenService.ExtractUserIDFromContext(ctx, appID)
-		require.NoError(t, err)
-		require.Equal(t, claimValue, userID)
+			userID, err := tokenService.ExtractUserIDFromContext(ctx, appID)
 
-		mockKeyStorage.AssertExpectations(t)
-	})
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.ErrorIs(t, err, tt.expectedError)
+				require.Empty(t, userID)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedID, userID)
+			}
 
-	t.Run("User ID not found", func(t *testing.T) {
-		ctx = createContextWithToken(t, privateKey, jwt.MapClaims{})
-
-		userID, err := tokenService.ExtractUserIDFromContext(ctx, appID)
-		require.Error(t, err)
-		require.ErrorIs(t, err, domain.ErrUserIDNotFoundInContext)
-		require.Empty(t, userID)
-
-		mockKeyStorage.AssertExpectations(t)
-	})
-
-	t.Run("No token found in context", func(t *testing.T) {
-		emptyCtx := context.Background()
-
-		userID, err := tokenService.ExtractUserIDFromContext(emptyCtx, appID)
-		require.Error(t, err)
-		require.ErrorIs(t, err, domain.ErrNoTokenFoundInContext)
-		require.Empty(t, userID)
-	})
-
-	t.Run("Invalid token", func(t *testing.T) {
-		ctx = context.WithValue(context.Background(), "access_token", "invalid-token")
-
-		userID, err := tokenService.ExtractUserIDFromContext(ctx, appID)
-		require.Error(t, err)
-		require.ErrorIs(t, err, domain.ErrFailedToParseTokenWithClaims)
-		require.Empty(t, userID)
-	})
+			mockKeyStorage.AssertExpectations(t)
+		})
+	}
 }
 
 func createContextWithToken(t *testing.T, privateKey *rsa.PrivateKey, claims jwt.MapClaims) context.Context {

@@ -6,11 +6,12 @@ import (
 	"encoding/base64"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/domain/service/token/mocks"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-func TestNewAccessToken(t *testing.T) {
+func TestToken_NewAccessToken(t *testing.T) {
 	mockKeyStorage, tokenService, privateKey, privateKeyPEM := setup(t)
 
 	claimKey := "user_id"
@@ -19,74 +20,131 @@ func TestNewAccessToken(t *testing.T) {
 		claimKey: claimValue,
 	}
 
-	t.Run("Happy Path", func(t *testing.T) {
-		kid := "test-kid"
+	tests := []struct {
+		name          string
+		appID         string
+		kid           string
+		claims        map[string]interface{}
+		mockBehavior  func(mockKeyStorage *mocks.KeyStorage)
+		validateToken bool
+		expectedError error
+	}{
+		{
+			name:   "Success",
+			appID:  appID,
+			kid:    "test-kid",
+			claims: additionalClaims,
+			mockBehavior: func(mockKeyStorage *mocks.KeyStorage) {
+				mockKeyStorage.EXPECT().
+					GetPrivateKey(appID).
+					Once().
+					Return(privateKeyPEM, nil)
+			},
+			validateToken: true,
+			expectedError: nil,
+		},
+		{
+			name:          "Empty appID",
+			appID:         "",
+			kid:           "test-kid",
+			claims:        additionalClaims,
+			mockBehavior:  func(mockKeyStorage *mocks.KeyStorage) {},
+			expectedError: domain.ErrAppIDIsNotAllowed,
+		},
+		{
+			name:          "Empty kid",
+			appID:         appID,
+			kid:           "",
+			claims:        additionalClaims,
+			mockBehavior:  func(mockKeyStorage *mocks.KeyStorage) {},
+			expectedError: domain.ErrEmptyKidIsNotAllowed,
+		},
+	}
 
-		mockKeyStorage.
-			On("GetPrivateKey", appID).
-			Once().
-			Return(privateKeyPEM, nil)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockBehavior(mockKeyStorage)
 
-		tokenString, err := tokenService.NewAccessToken(appID, kid, additionalClaims)
-		require.NoError(t, err)
-		require.NotEmpty(t, tokenString)
+			tokenString, err := tokenService.NewAccessToken(tt.appID, tt.kid, tt.claims)
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return &privateKey.PublicKey, nil
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.ErrorIs(t, err, tt.expectedError)
+				require.Empty(t, tokenString)
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotEmpty(t, tokenString)
+
+			if tt.validateToken {
+				token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+					return &privateKey.PublicKey, nil
+				})
+				require.NoError(t, err)
+				require.True(t, token.Valid)
+
+				claims := token.Claims.(jwt.MapClaims)
+				require.Equal(t, claimValue, claims[claimKey])
+				require.Equal(t, tt.kid, token.Header["kid"])
+			}
 		})
-		require.NoError(t, err)
-		require.True(t, token.Valid)
-
-		claims := token.Claims.(jwt.MapClaims)
-		require.Equal(t, claimValue, claims[claimKey])
-		require.Equal(t, kid, token.Header["kid"])
-	})
-
-	t.Run("Empty appID", func(t *testing.T) {
-		emptyAppID := ""
-
-		tokenString, err := tokenService.NewAccessToken(emptyAppID, "test-kid", additionalClaims)
-		require.Error(t, err)
-		require.ErrorIs(t, err, domain.ErrAppIDIsNotAllowed)
-		require.Empty(t, tokenString)
-	})
-
-	t.Run("Empty kid", func(t *testing.T) {
-		kid := ""
-
-		tokenString, err := tokenService.NewAccessToken(appID, kid, additionalClaims)
-		require.Error(t, err)
-		require.ErrorIs(t, err, domain.ErrEmptyKidIsNotAllowed)
-		require.Empty(t, tokenString)
-	})
+	}
 }
 
-func TestGetKeyID(t *testing.T) {
+func TestToken_GetKeyID(t *testing.T) {
 	mockKeyStorage, tokenService, privateKey, privateKeyPEM := setup(t)
 
-	t.Run("valid appID", func(t *testing.T) {
-		mockKeyStorage.
-			On("GetPrivateKey", appID).
-			Once().
-			Return(privateKeyPEM, nil)
+	tests := []struct {
+		name          string
+		appID         string
+		mockBehavior  func(mockKeyStorage *mocks.KeyStorage)
+		expectedKID   string
+		expectedError error
+	}{
+		{
+			name:  "Success",
+			appID: appID,
+			mockBehavior: func(mockKeyStorage *mocks.KeyStorage) {
+				mockKeyStorage.EXPECT().
+					GetPrivateKey(appID).
+					Once().
+					Return(privateKeyPEM, nil)
+			},
+			expectedKID: func() string {
+				publicKey := &privateKey.PublicKey
+				der, err := x509.MarshalPKIXPublicKey(publicKey)
+				if err != nil {
+					t.Fatal(err)
+				}
+				s := sha1.Sum(der)
+				return base64.URLEncoding.EncodeToString(s[:])
+			}(),
+			expectedError: nil,
+		},
+		{
+			name:          "Empty appID",
+			appID:         "",
+			mockBehavior:  func(mockKeyStorage *mocks.KeyStorage) {},
+			expectedKID:   "",
+			expectedError: domain.ErrAppIDIsNotAllowed,
+		},
+	}
 
-		publicKey := &privateKey.PublicKey
-		der, err := x509.MarshalPKIXPublicKey(publicKey)
-		require.NoError(t, err)
-		s := sha1.Sum(der)
-		expectedKeyID := base64.URLEncoding.EncodeToString(s[:])
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mockBehavior(mockKeyStorage)
 
-		keyID, err := tokenService.Kid(appID)
-		require.NoError(t, err)
-		require.Equal(t, expectedKeyID, keyID)
-	})
+			keyID, err := tokenService.Kid(tt.appID)
 
-	t.Run("empty appID", func(t *testing.T) {
-		emptyAppID := ""
-
-		keyID, err := tokenService.Kid(emptyAppID)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), domain.ErrAppIDIsNotAllowed.Error())
-		require.Empty(t, keyID)
-	})
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.ErrorIs(t, err, tt.expectedError)
+				require.Empty(t, keyID)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedKID, keyID)
+			}
+		})
+	}
 }
