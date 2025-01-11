@@ -20,12 +20,15 @@ func NewVerificationStorage(client *mongo.Client, dbName string) *VerificationSt
 
 func (s *VerificationStorage) SaveVerificationToken(ctx context.Context, data entity.VerificationToken) error {
 	// TODO: implement
+	return nil
 }
 
 func (s *VerificationStorage) GetVerificationTokenData(ctx context.Context, token string) (entity.VerificationToken, error) {
 	// TODO: implement
+	return entity.VerificationToken{}, nil
 }
 
 func (s *VerificationStorage) DeleteVerificationToken(ctx context.Context, token string) error {
 	// TODO: implement
+	return nil
 }

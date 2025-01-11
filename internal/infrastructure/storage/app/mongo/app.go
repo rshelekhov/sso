@@ -20,12 +20,15 @@ func NewAppStorage(client *mongo.Client, dbName string) *AppStorage {
 
 func (s *AppStorage) RegisterApp(ctx context.Context, data entity.AppData) error {
 	// TODO: implement
+	return nil
 }
 
 func (s *AppStorage) DeleteApp(ctx context.Context, data entity.AppData) error {
 	// TODO: implement
+	return nil
 }
 
 func (s *AppStorage) CheckAppIDExists(ctx context.Context, appID string) error {
 	// TODO: implement
+	return nil
 }
