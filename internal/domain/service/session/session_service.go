@@ -71,7 +71,7 @@ func (s *Session) CreateSession(ctx context.Context, sessionReqData entity.Sessi
 		return entity.SessionTokens{}, fmt.Errorf("%s: %w", method, err)
 	}
 
-	tokenData, err := s.prepareTokenResponse(accessToken, session)
+	tokenData := s.prepareTokenResponse(accessToken, session)
 
 	return tokenData, nil
 }
@@ -99,7 +99,7 @@ func (s *Session) GetUserDeviceID(ctx context.Context, session entity.SessionReq
 
 	deviceID, err := s.storage.GetUserDeviceID(ctx, session.UserID, session.UserDevice.UserAgent)
 	if err != nil {
-		if !errors.Is(err, storage.ErrUserDeviceNotFound) {
+		if errors.Is(err, storage.ErrUserDeviceNotFound) {
 			return "", domain.ErrUserDeviceNotFound
 		}
 		return "", fmt.Errorf("%s: %w", method, err)
@@ -216,7 +216,7 @@ func (s *Session) saveSession(ctx context.Context, session entity.Session) error
 	return nil
 }
 
-func (s *Session) prepareTokenResponse(accessToken string, session entity.Session) (entity.SessionTokens, error) {
+func (s *Session) prepareTokenResponse(accessToken string, session entity.Session) entity.SessionTokens {
 	cookieDomain := s.jwtMgr.RefreshTokenCookieDomain()
 	path := s.jwtMgr.RefreshTokenCookiePath()
 
@@ -227,5 +227,5 @@ func (s *Session) prepareTokenResponse(accessToken string, session entity.Sessio
 		Path:         path,
 		ExpiresAt:    session.ExpiresAt,
 		HTTPOnly:     true,
-	}, nil
+	}
 }
