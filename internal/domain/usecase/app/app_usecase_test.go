@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/domain/usecase/app/mocks"
@@ -10,7 +12,6 @@ import (
 	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogdiscard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 func TestAppUsecase_RegisterApp(t *testing.T) {
@@ -29,9 +30,11 @@ func TestAppUsecase_RegisterApp(t *testing.T) {
 			appName: appName,
 			mockBehavior: func(storageMock *mocks.Storage, keyManagerMock *mocks.KeyManager) {
 				storageMock.EXPECT().RegisterApp(ctx, mock.AnythingOfType("entity.AppData")).
+					Once().
 					Return(nil)
 
 				keyManagerMock.EXPECT().GenerateAndSavePrivateKey(mock.AnythingOfType("string")).
+					Once().
 					Return(nil)
 			},
 			expectedError: nil,
