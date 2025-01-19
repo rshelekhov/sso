@@ -7,13 +7,16 @@ package main
 import (
 	"context"
 	"flag"
+	"log/slog"
 
 	"github.com/rshelekhov/sso/internal/config"
-	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
+	"github.com/rshelekhov/sso/internal/config/settings"
+	"github.com/rshelekhov/sso/internal/domain/service/token"
+	"github.com/rshelekhov/sso/internal/domain/usecase/app"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	appDB "github.com/rshelekhov/sso/internal/infrastructure/storage/app"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
 	"github.com/rshelekhov/sso/internal/lib/logger"
-	"github.com/rshelekhov/sso/internal/storage"
-	"github.com/rshelekhov/sso/internal/storage/postgres"
-	"github.com/rshelekhov/sso/internal/usecase"
 )
 
 func main() {
@@ -30,34 +33,79 @@ func main() {
 		panic("app name is required")
 	}
 
-	pg, err := postgres.NewStorage(cfg)
+	dbConn, err := newDBConnection(cfg.Storage)
 	if err != nil {
-		log.Error("failed to init storage", logger.Err(err))
+		log.Error("failed to init database connection", slog.Any("error", err))
 	}
 
-	appStorage := postgres.NewAppStorage(pg)
-
-	keyStorage, err := storage.NewKeyStorage(cfg.KeyStorage)
+	appStorage, err := appDB.NewStorage(dbConn)
 	if err != nil {
-		log.Error("failed to init key storage", logger.Err(err))
+		log.Error("failed to init app storage", slog.Any("error", err))
 	}
 
-	tokenService := jwtoken.NewService(
-		cfg.JWTAuth.Issuer,
-		cfg.JWTAuth.SigningMethod,
-		keyStorage,
-		cfg.PasswordHash,
-		cfg.JWTAuth.JWKSetTTL,
-		cfg.JWTAuth.AccessTokenTTL,
-		cfg.JWTAuth.RefreshTokenTTL,
-		cfg.JWTAuth.RefreshTokenCookieDomain,
-		cfg.JWTAuth.RefreshTokenCookiePath,
-	)
+	keyStorage, err := newKeyStorage(cfg.KeyStorage)
+	if err != nil {
+		log.Error("failed to init key storage", slog.Any("error", err))
+	}
 
-	appUsecase := usecase.NewAppUsecase(log, appStorage, tokenService)
+	tokenService, err := newTokenService(cfg.JWT, cfg.PasswordHash, keyStorage)
+	if err != nil {
+		log.Error("failed to init token service", slog.Any("error", err))
+	}
+
+	appUsecase := app.NewUsecase(log, tokenService, appStorage)
 
 	err = appUsecase.RegisterApp(context.Background(), appName)
 	if err != nil {
 		return
 	}
+}
+
+func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
+	storageConfig, err := settings.ToStorageConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	dbConnection, err := storage.NewDBConnection(storageConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbConnection, nil
+}
+
+func newKeyStorage(cfg settings.KeyStorage) (token.KeyStorage, error) {
+	keyStorageConfig, err := settings.ToKeyStorageConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	keyStorage, err := key.NewStorage(keyStorageConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return keyStorage, nil
+}
+
+func newTokenService(jwt settings.JWT, passwordHash settings.PasswordHashParams, keyStorage token.KeyStorage) (*token.Service, error) {
+	jwtConfig, err := settings.ToJWTConfig(jwt)
+	if err != nil {
+		return nil, err
+	}
+
+	passwordHashConfig, err := settings.ToPasswordHashConfig(passwordHash)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenService := token.NewService(token.Config{
+		JWT:                jwtConfig,
+		PasswordHashParams: passwordHashConfig,
+	},
+		keyStorage,
+	)
+
+	return tokenService, nil
 }
