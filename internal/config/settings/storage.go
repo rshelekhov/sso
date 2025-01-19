@@ -16,7 +16,7 @@ const (
 )
 
 type Storage struct {
-	Type     StorageType
+	Type     StorageType `mapstructure:"DB_TYPE"`
 	Mongo    *MongoParams
 	Postgres *PostgresParams
 }
