@@ -37,7 +37,7 @@ func NewDBConnection(cfg Config) (*DBConnection, error) {
 	case TypePostgres:
 		return newPostgresStorage(cfg)
 	default:
-		return nil, fmt.Errorf("unknown key storage type: %s", cfg.Type)
+		return nil, fmt.Errorf("unknown storage type: %s", cfg.Type)
 	}
 }
 
