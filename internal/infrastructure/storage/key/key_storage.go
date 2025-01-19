@@ -1,15 +1,17 @@
 package key
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key/fs"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key/s3"
 )
 
 var (
-	ErrLocalKeyStorageSettingsEmpty = fmt.Errorf("local key storage settings are empty")
-	ErrS3KeyStorageSettingsEmpty    = fmt.Errorf("s3 key storage settings are empty")
+	ErrLocalKeyStorageSettingsEmpty = errors.New("local key storage settings are empty")
+	ErrS3KeyStorageSettingsEmpty    = errors.New("s3 key storage settings are empty")
 )
 
 func NewStorage(cfg Config) (token.KeyStorage, error) {

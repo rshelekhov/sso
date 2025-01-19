@@ -1,7 +1,9 @@
 package session
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/rshelekhov/sso/internal/domain/service/session"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	mongoStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/session/mongo"
@@ -10,8 +12,8 @@ import (
 )
 
 var (
-	ErrMongoSessionStorageSettingsEmpty    = fmt.Errorf("mongo session storage settings are empty")
-	ErrPostgresSessionStorageSettingsEmpty = fmt.Errorf("postgres session storage settings are empty")
+	ErrMongoSessionStorageSettingsEmpty    = errors.New("mongo session storage settings are empty")
+	ErrPostgresSessionStorageSettingsEmpty = errors.New("postgres session storage settings are empty")
 )
 
 func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (session.Storage, error) {

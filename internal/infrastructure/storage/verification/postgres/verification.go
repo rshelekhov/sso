@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rshelekhov/sso/internal/domain/entity"
@@ -44,7 +45,6 @@ func (s *VerificationStorage) SaveVerificationToken(ctx context.Context, data en
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).SaveVerificationToken(ctx, params)
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Save verification token without transaction
@@ -84,11 +84,10 @@ func (s *VerificationStorage) GetVerificationTokenData(ctx context.Context, toke
 func (s *VerificationStorage) DeleteVerificationToken(ctx context.Context, token string) error {
 	const method = "verification.postgres.DeleteToken"
 
-	// Delete verification token withing transaction
+	// Delete verification token within transaction
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).DeleteVerificationToken(ctx, token)
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Delete verification token without transaction

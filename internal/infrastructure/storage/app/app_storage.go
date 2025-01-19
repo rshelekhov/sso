@@ -1,7 +1,9 @@
 package app
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
 	"github.com/rshelekhov/sso/internal/domain/usecase/app"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
@@ -10,8 +12,8 @@ import (
 )
 
 var (
-	ErrMongoAppStorageSettingsEmpty    = fmt.Errorf("mongo app storage settings are empty")
-	ErrPostgresAppStorageSettingsEmpty = fmt.Errorf("postgres app storage settings are empty")
+	ErrMongoAppStorageSettingsEmpty    = errors.New("mongo app storage settings are empty")
+	ErrPostgresAppStorageSettingsEmpty = errors.New("postgres app storage settings are empty")
 )
 
 type Storage interface {

@@ -3,8 +3,9 @@ package s3
 import (
 	"bytes"
 	"fmt"
-	storage "github.com/rshelekhov/sso/pkg/storage/s3"
 	"io"
+
+	storage "github.com/rshelekhov/sso/pkg/storage/s3"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"

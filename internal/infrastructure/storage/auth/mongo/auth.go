@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"go.mongodb.org/mongo-driver/mongo"
 )

@@ -1,7 +1,9 @@
 package verification
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/rshelekhov/sso/internal/domain/service/verification"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
@@ -10,8 +12,8 @@ import (
 )
 
 var (
-	ErrMongoVerificationStorageSettingsEmpty    = fmt.Errorf("mongo verification storage settings are empty")
-	ErrPostgresVerificationStorageSettingsEmpty = fmt.Errorf("postgres verification storage settings are empty")
+	ErrMongoVerificationStorageSettingsEmpty    = errors.New("mongo verification storage settings are empty")
+	ErrPostgresVerificationStorageSettingsEmpty = errors.New("postgres verification storage settings are empty")
 )
 
 func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (verification.Storage, error) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -47,7 +48,6 @@ func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.Us
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).RegisterUser(ctx, params)
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Save user without transaction
@@ -83,7 +83,6 @@ func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error 
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).RegisterUser(ctx, params)
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Save user without transaction
@@ -110,7 +109,6 @@ func (s *AuthStorage) MarkEmailVerified(ctx context.Context, userID, appID strin
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).MarkEmailVerified(ctx, params)
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Mark email as verified without transaction

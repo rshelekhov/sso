@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/rshelekhov/sso/internal/domain/usecase/auth"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	mongoStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/auth/mongo"
@@ -10,8 +12,8 @@ import (
 )
 
 var (
-	ErrMongoAuthStorageSettingsEmpty    = fmt.Errorf("mongo auth storage settings are empty")
-	ErrPostgresAuthStorageSettingsEmpty = fmt.Errorf("postgres auth storage settings are empty")
+	ErrMongoAuthStorageSettingsEmpty    = errors.New("mongo auth storage settings are empty")
+	ErrPostgresAuthStorageSettingsEmpty = errors.New("postgres auth storage settings are empty")
 )
 
 func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (auth.Storage, error) {

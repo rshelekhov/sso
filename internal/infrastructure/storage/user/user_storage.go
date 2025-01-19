@@ -1,7 +1,9 @@
 package user
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/rshelekhov/sso/internal/domain/service/userdata"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
@@ -10,8 +12,8 @@ import (
 )
 
 var (
-	ErrMongoUserStorageSettingsEmpty    = fmt.Errorf("mongo user storage settings are empty")
-	ErrPostgresUserStorageSettingsEmpty = fmt.Errorf("postgres user storage settings are empty")
+	ErrMongoUserStorageSettingsEmpty    = errors.New("mongo user storage settings are empty")
+	ErrPostgresUserStorageSettingsEmpty = errors.New("postgres user storage settings are empty")
 )
 
 func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (userdata.Storage, error) {

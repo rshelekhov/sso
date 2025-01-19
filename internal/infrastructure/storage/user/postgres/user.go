@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -11,7 +13,6 @@ import (
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/user/postgres/sqlc"
-	"strconv"
 )
 
 type UserStorage struct {
@@ -106,7 +107,6 @@ func (s *UserStorage) UpdateUser(ctx context.Context, user entity.User) error {
 		_, err := tx.Exec(ctx, queryUpdate, queryParams...)
 		return err
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Execute the update query without transaction
@@ -166,7 +166,6 @@ func (s *UserStorage) DeleteUser(ctx context.Context, user entity.User) error {
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).DeleteUser(ctx, params)
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Delete user without transaction
@@ -229,7 +228,6 @@ func (s *UserStorage) DeleteAllTokens(ctx context.Context, appID, userID string)
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).DeleteAllTokens(ctx, params)
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Delete all tokens without transaction

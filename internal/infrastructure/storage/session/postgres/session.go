@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rshelekhov/sso/internal/domain/entity"
@@ -42,7 +43,6 @@ func (s *SessionStorage) CreateSession(ctx context.Context, session entity.Sessi
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).CreateUserSession(ctx, params)
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Save session without transaction
@@ -92,7 +92,6 @@ func (s *SessionStorage) UpdateLastVisitedAt(ctx context.Context, session entity
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).UpdateLastVisitedAt(ctx, params)
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Update last visited at without transaction
@@ -146,7 +145,6 @@ func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID, appID st
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).DeleteAllSessions(ctx, params)
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Delete all sessions without transaction
@@ -195,7 +193,6 @@ func (s *SessionStorage) RegisterDevice(ctx context.Context, device entity.UserD
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).RegisterDevice(ctx, params)
 	})
-
 	if err != nil {
 		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 			// Register device without transaction

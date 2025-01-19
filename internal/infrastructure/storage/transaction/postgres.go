@@ -2,7 +2,9 @@ package transaction
 
 import (
 	"context"
+	"errors"
 	"fmt"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -13,7 +15,7 @@ type PostgresMgr struct {
 
 type txKey struct{}
 
-var ErrTransactionNotFoundInCtx = fmt.Errorf("transaction not found in context")
+var ErrTransactionNotFoundInCtx = errors.New("transaction not found in context")
 
 func (tm *PostgresMgr) WithinTransaction(ctx context.Context, fn func(ctx context.Context) error) (err error) {
 	tx, err := tm.pool.Begin(ctx)
