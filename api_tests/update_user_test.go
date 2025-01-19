@@ -46,7 +46,7 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AccessTokenKey, accessToken)
+	md = metadata.Pairs(jwtauth.AccessTokenHeader, accessToken)
 
 	// Create context for Update user request
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -118,7 +118,7 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 	accessToken := token2.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AccessTokenKey, accessToken)
+	md = metadata.Pairs(jwtauth.AccessTokenHeader, accessToken)
 
 	// Create context for Update user request
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -226,7 +226,7 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			accessToken := token.GetAccessToken()
 			require.NotEmpty(t, accessToken)
 
-			md := metadata.Pairs(jwtauth.AccessTokenKey, accessToken)
+			md := metadata.Pairs(jwtauth.AccessTokenHeader, accessToken)
 
 			// Create context for Logout request
 			ctx = metadata.NewOutgoingContext(ctx, md)

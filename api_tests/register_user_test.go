@@ -3,13 +3,14 @@ package api_tests
 import (
 	"crypto/rsa"
 	"encoding/base64"
+	"github.com/rshelekhov/jwtauth"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rshelekhov/jwtauth"
+	// "github.com/rshelekhov/jwtauth"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/controller/grpc"
@@ -333,7 +334,7 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AccessTokenKey, accessToken)
+	md = metadata.Pairs(jwtauth.AccessTokenHeader, accessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)

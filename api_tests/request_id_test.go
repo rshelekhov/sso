@@ -47,7 +47,7 @@ func TestRequestID_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AccessTokenKey, accessToken)
+	md = metadata.Pairs(jwtauth.AccessTokenHeader, accessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)

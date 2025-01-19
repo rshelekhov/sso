@@ -32,7 +32,7 @@ type cleanupParams struct {
 
 func cleanup(params cleanupParams, appID string) {
 	// Create context with access token and appID for Delete user request
-	md := metadata.Pairs(jwtauth.AccessTokenKey, params.token.GetAccessToken())
+	md := metadata.Pairs(jwtauth.AccessTokenHeader, params.token.GetAccessToken())
 	md.Append(appid.HeaderKey, appID)
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
