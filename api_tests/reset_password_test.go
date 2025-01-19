@@ -1,14 +1,18 @@
 package api_tests
 
 import (
+	"testing"
+	"time"
+
 	"github.com/brianvoe/gofakeit/v6"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
-	"github.com/rshelekhov/sso/internal/model"
+	"github.com/rshelekhov/sso/internal/controller/grpc"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/pkg/middleware/appid"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestResetPassword_HappyPath(t *testing.T) {
@@ -20,11 +24,15 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs()
+	md.Append(appid.HeaderKey, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -36,19 +44,17 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	// Request reset password instructions on email
 	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
 		Email:      email,
-		AppId:      cfg.AppID,
 		ConfirmUrl: cfg.ConfirmChangePasswordURL,
 	})
 	require.NoError(t, err)
 
 	// Get reset password token from storage to place it in request
-	resetPasswordToken, err := st.Storage.GetToken(ctx, email, model.TokenTypeResetPassword)
+	resetPasswordToken, err := st.Storage.GetToken(ctx, email, entity.TokenTypeResetPassword)
 	require.NoError(t, err)
 
 	// Change password
 	_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
 		Token:           resetPasswordToken,
-		AppId:           cfg.AppID,
 		UpdatedPassword: randomFakePassword(),
 	})
 	require.NoError(t, err)
@@ -63,7 +69,7 @@ func TestResetPassword_HappyPath(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
 
 func TestResetPassword_TokenExpired(t *testing.T) {
@@ -75,11 +81,15 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs()
+	md.Append(appid.HeaderKey, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -91,29 +101,27 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	// Request reset password instructions on email
 	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
 		Email:      email,
-		AppId:      cfg.AppID,
 		ConfirmUrl: cfg.ConfirmChangePasswordURL,
 	})
 	require.NoError(t, err)
 
 	// Set reset password token expired for test
-	err = st.Storage.SetTokenExpired(ctx, email, model.TokenTypeResetPassword)
+	err = st.Storage.SetTokenExpired(ctx, email, entity.TokenTypeResetPassword)
 	require.NoError(t, err)
 
 	// Get reset password token from storage to place it in request
-	resetPasswordToken, err := st.Storage.GetToken(ctx, email, model.TokenTypeResetPassword)
+	resetPasswordToken, err := st.Storage.GetToken(ctx, email, entity.TokenTypeResetPassword)
 	require.NoError(t, err)
 
 	// Try to change password
 	_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
 		Token:           resetPasswordToken,
-		AppId:           cfg.AppID,
 		UpdatedPassword: randomFakePassword(),
 	})
 	require.Error(t, err)
 
 	// Check that token expiration time more than current time
-	tokenExp, err := st.Storage.GetTokenExpiresAt(ctx, email, model.TokenTypeResetPassword)
+	tokenExp, err := st.Storage.GetTokenExpiresAt(ctx, email, entity.TokenTypeResetPassword)
 	require.NoError(t, err)
 	require.True(t, tokenExp.After(time.Now()), "token expiration time should be after the current time")
 
@@ -127,7 +135,7 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
 
 func TestResetPassword_EmptyEmail(t *testing.T) {
@@ -139,11 +147,15 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs()
+	md.Append(appid.HeaderKey, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -155,7 +167,6 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 	// Request reset password instructions on email
 	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
 		Email:      emptyValue,
-		AppId:      cfg.AppID,
 		ConfirmUrl: cfg.ConfirmChangePasswordURL,
 	})
 	require.Error(t, err)
@@ -170,7 +181,7 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
 
 func TestResetPassword_FailCasesWithPassword(t *testing.T) {
@@ -182,11 +193,15 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs()
+	md.Append(appid.HeaderKey, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -203,12 +218,12 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 		{
 			name:        "Change password with empty password",
 			password:    emptyValue,
-			expectedErr: le.ErrPasswordIsRequired,
+			expectedErr: grpc.ErrPasswordIsRequired,
 		},
 		{
 			name:        "Change password when password is the same that old",
 			password:    pass,
-			expectedErr: le.ErrUpdatedPasswordMustNotMatchTheCurrent,
+			expectedErr: domain.ErrNoPasswordChangesDetected,
 		},
 	}
 
@@ -217,19 +232,17 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 			// Request reset password instructions on email
 			_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
 				Email:      email,
-				AppId:      cfg.AppID,
 				ConfirmUrl: cfg.ConfirmChangePasswordURL,
 			})
 			require.NoError(t, err)
 
 			// Get reset password token from storage to place it in request
-			resetPasswordToken, err := st.Storage.GetToken(ctx, email, model.TokenTypeResetPassword)
+			resetPasswordToken, err := st.Storage.GetToken(ctx, email, entity.TokenTypeResetPassword)
 			require.NoError(t, err)
 
 			// Change password
 			_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
 				Token:           resetPasswordToken,
-				AppId:           cfg.AppID,
 				UpdatedPassword: tt.password,
 			})
 			require.Error(t, tt.expectedErr)
@@ -246,5 +259,5 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }

@@ -1,13 +1,17 @@
 package api_tests
 
 import (
+	"testing"
+
 	"github.com/brianvoe/gofakeit/v6"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
+	"github.com/rshelekhov/sso/internal/controller/grpc"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/pkg/middleware/appid"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/require"
-	"testing"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestRefresh_HappyPath(t *testing.T) {
@@ -19,11 +23,15 @@ func TestRefresh_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs()
+	md.Append(appid.HeaderKey, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -42,7 +50,6 @@ func TestRefresh_HappyPath(t *testing.T) {
 	// Refresh tokens
 	respRefresh, err := st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
 		RefreshToken: refreshToken,
-		AppId:        cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -58,7 +65,7 @@ func TestRefresh_HappyPath(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
 
 func TestRefresh_FailCases(t *testing.T) {
@@ -70,11 +77,15 @@ func TestRefresh_FailCases(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs()
+	md.Append(appid.HeaderKey, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -98,20 +109,12 @@ func TestRefresh_FailCases(t *testing.T) {
 		expectedErr  error
 	}{
 		{
-			name:         "Refresh with empty appID",
-			appID:        emptyValue,
-			userAgent:    userAgent,
-			ip:           ip,
-			refreshToken: respReg.GetTokenData().GetRefreshToken(),
-			expectedErr:  le.ErrAppIDIsRequired,
-		},
-		{
 			name:         "Refresh with empty user agent",
 			appID:        cfg.AppID,
 			userAgent:    emptyValue,
 			ip:           ip,
 			refreshToken: refreshToken,
-			expectedErr:  le.ErrUserAgentIsRequired,
+			expectedErr:  grpc.ErrUserAgentIsRequired,
 		},
 		{
 			name:         "Refresh with empty IP",
@@ -119,7 +122,7 @@ func TestRefresh_FailCases(t *testing.T) {
 			userAgent:    userAgent,
 			ip:           emptyValue,
 			refreshToken: refreshToken,
-			expectedErr:  le.ErrIPIsRequired,
+			expectedErr:  grpc.ErrIPIsRequired,
 		},
 		{
 			name:         "Refresh with empty refresh jwtoken",
@@ -127,7 +130,7 @@ func TestRefresh_FailCases(t *testing.T) {
 			userAgent:    userAgent,
 			ip:           ip,
 			refreshToken: emptyValue,
-			expectedErr:  le.ErrRefreshTokenIsRequired,
+			expectedErr:  grpc.ErrRefreshTokenIsRequired,
 		},
 		{
 			name:         "Refresh when session not found",
@@ -135,7 +138,7 @@ func TestRefresh_FailCases(t *testing.T) {
 			userAgent:    userAgent,
 			ip:           ip,
 			refreshToken: ksuid.New().String(),
-			expectedErr:  le.ErrSessionNotFound,
+			expectedErr:  domain.ErrSessionNotFound,
 		},
 	}
 	for _, tt := range tests {
@@ -143,7 +146,6 @@ func TestRefresh_FailCases(t *testing.T) {
 			// Refresh tokens
 			_, err = st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
 				RefreshToken: tt.refreshToken,
-				AppId:        tt.appID,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: tt.userAgent,
 					Ip:        tt.ip,
@@ -161,7 +163,7 @@ func TestRefresh_FailCases(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
 
 func TestRefresh_DeviceNotFound(t *testing.T) {
@@ -173,11 +175,15 @@ func TestRefresh_DeviceNotFound(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs()
+	md.Append(appid.HeaderKey, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -195,14 +201,13 @@ func TestRefresh_DeviceNotFound(t *testing.T) {
 	// Refresh tokens
 	_, err = st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
 		RefreshToken: refreshToken,
-		AppId:        cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: gofakeit.UserAgent(),
 			Ip:        ip,
 		},
 	})
 
-	require.Contains(t, err.Error(), le.ErrUserDeviceNotFound.Error())
+	require.Contains(t, err.Error(), domain.ErrUserDeviceNotFound.Error())
 
 	// Cleanup database after test
 	params := cleanupParams{
@@ -211,5 +216,5 @@ func TestRefresh_DeviceNotFound(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }

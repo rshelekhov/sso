@@ -4,18 +4,20 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"fmt"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/constant/key"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
-	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
+	"github.com/rshelekhov/sso/internal/controller/grpc"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/pkg/middleware/appid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"testing"
-	"time"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestLogin_HappyPath(t *testing.T) {
@@ -27,11 +29,15 @@ func TestLogin_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs()
+	md.Append(appid.HeaderKey, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -45,7 +51,6 @@ func TestLogin_HappyPath(t *testing.T) {
 	respLogin, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
 		Email:    email,
 		Password: pass,
-		AppId:    cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -57,15 +62,13 @@ func TestLogin_HappyPath(t *testing.T) {
 	require.NotEmpty(t, token)
 
 	// Get JWKS
-	jwks, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{
-		AppId: cfg.AppID,
-	})
+	jwks, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{})
 	require.NoError(t, err)
 	require.NotEmpty(t, jwks.GetJwks())
 
 	// Parse jwtoken
 	tokenParsed, err := jwt.Parse(token.GetAccessToken(), func(token *jwt.Token) (interface{}, error) {
-		kidRaw, ok := token.Header[jwtoken.Kid]
+		kidRaw, ok := token.Header[domain.KIDKey]
 		require.True(t, ok)
 
 		kid, ok := kidRaw.(string)
@@ -101,14 +104,17 @@ func TestLogin_HappyPath(t *testing.T) {
 	claims, ok := tokenParsed.Claims.(jwt.MapClaims)
 	require.True(t, ok)
 
-	assert.Equal(t, cfg.Issuer, claims[key.Issuer].(string))
-	assert.Equal(t, email, claims[key.Email].(string))
-	assert.Equal(t, cfg.AppID, claims[key.AppID].(string))
+	assert.Equal(t, cfg.Issuer, claims[domain.IssuerKey].(string))
+
+	// TODO: check if we need to get email in claims here!
+	assert.Equal(t, email, claims["email"].(string))
+
+	assert.Equal(t, cfg.AppID, claims[domain.AppIDKey].(string))
 
 	const deltaSeconds = 1
 
 	// Check if exp of jwtoken is in correct range, ttl get from st.Cfg.TokenTTL
-	assert.InDelta(t, float64(loginTime.Add(st.Cfg.JWTAuth.AccessTokenTTL).Unix()), claims[key.ExpirationAt].(float64), deltaSeconds)
+	assert.InDelta(t, float64(loginTime.Add(st.Cfg.JWT.AccessTokenTTL).Unix()), claims[domain.ExpirationAtKey].(float64), deltaSeconds)
 
 	// Cleanup database after test
 	params := cleanupParams{
@@ -117,7 +123,7 @@ func TestLogin_HappyPath(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
 
 func getJWKByKid(jwks []*ssov1.JWK, kid string) (*ssov1.JWK, error) {
@@ -138,11 +144,15 @@ func TestLogin_FailCases(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs()
+	md.Append(appid.HeaderKey, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -170,7 +180,7 @@ func TestLogin_FailCases(t *testing.T) {
 			appID:       cfg.AppID,
 			userAgent:   userAgent,
 			ip:          ip,
-			expectedErr: le.ErrEmailIsRequired,
+			expectedErr: grpc.ErrEmailIsRequired,
 		},
 		{
 			name:        "Login with empty password",
@@ -179,16 +189,7 @@ func TestLogin_FailCases(t *testing.T) {
 			appID:       cfg.AppID,
 			userAgent:   userAgent,
 			ip:          ip,
-			expectedErr: le.ErrPasswordIsRequired,
-		},
-		{
-			name:        "Login with empty appID",
-			email:       email,
-			password:    pass,
-			appID:       emptyValue,
-			userAgent:   userAgent,
-			ip:          ip,
-			expectedErr: le.ErrAppIDIsRequired,
+			expectedErr: grpc.ErrPasswordIsRequired,
 		},
 		{
 			name:        "Login with empty userAgent",
@@ -197,7 +198,7 @@ func TestLogin_FailCases(t *testing.T) {
 			appID:       cfg.AppID,
 			userAgent:   emptyValue,
 			ip:          ip,
-			expectedErr: le.ErrUserAgentIsRequired,
+			expectedErr: grpc.ErrUserAgentIsRequired,
 		},
 		{
 			name:        "Login with empty IP",
@@ -206,7 +207,7 @@ func TestLogin_FailCases(t *testing.T) {
 			appID:       cfg.AppID,
 			userAgent:   userAgent,
 			ip:          emptyValue,
-			expectedErr: le.ErrIPIsRequired,
+			expectedErr: grpc.ErrIPIsRequired,
 		},
 		{
 			name:        "Login with both empty email and password",
@@ -215,7 +216,7 @@ func TestLogin_FailCases(t *testing.T) {
 			appID:       cfg.AppID,
 			userAgent:   userAgent,
 			ip:          ip,
-			expectedErr: le.ErrEmailIsRequired,
+			expectedErr: grpc.ErrEmailIsRequired,
 		},
 		{
 			name:        "User not found",
@@ -224,7 +225,7 @@ func TestLogin_FailCases(t *testing.T) {
 			appID:       cfg.AppID,
 			userAgent:   userAgent,
 			ip:          ip,
-			expectedErr: le.ErrUserNotFound,
+			expectedErr: domain.ErrUserNotFound,
 		},
 		{
 			name:        "Login with non-matching password",
@@ -233,7 +234,7 @@ func TestLogin_FailCases(t *testing.T) {
 			appID:       cfg.AppID,
 			userAgent:   userAgent,
 			ip:          ip,
-			expectedErr: le.ErrInvalidCredentials,
+			expectedErr: domain.ErrInvalidCredentials,
 		},
 	}
 
@@ -244,7 +245,6 @@ func TestLogin_FailCases(t *testing.T) {
 			_, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
 				Email:    tt.email,
 				Password: tt.password,
-				AppId:    tt.appID,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: tt.userAgent,
 					Ip:        tt.ip,
@@ -262,5 +262,5 @@ func TestLogin_FailCases(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
