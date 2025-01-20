@@ -31,7 +31,7 @@ func TestLogin_HappyPath(t *testing.T) {
 
 	// Add appID to gRPC metadata
 	md := metadata.Pairs()
-	md.Append(appid.HeaderKey, cfg.AppID)
+	md.Append(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -146,7 +146,7 @@ func TestLogin_FailCases(t *testing.T) {
 
 	// Add appID to gRPC metadata
 	md := metadata.Pairs()
-	md.Append(appid.HeaderKey, cfg.AppID)
+	md.Append(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user

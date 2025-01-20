@@ -23,7 +23,7 @@ func TestLogout_HappyPath(t *testing.T) {
 
 	// Add appID to gRPC metadata
 	md := metadata.Pairs()
-	md.Append(appid.HeaderKey, cfg.AppID)
+	md.Append(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -45,7 +45,7 @@ func TestLogout_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AccessTokenHeader, accessToken)
+	md = metadata.Pairs(jwtauth.AuthorizationHeader, accessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)

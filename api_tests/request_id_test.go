@@ -23,7 +23,7 @@ func TestRequestID_HappyPath(t *testing.T) {
 
 	// Create metadata
 	md := metadata.Pairs()
-	md.Append(requestid.HeaderKey, "requestID #1 from the client side")
+	md.Append(requestid.Header, "requestID #1 from the client side")
 
 	// Create context with metadata
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -47,7 +47,7 @@ func TestRequestID_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AccessTokenHeader, accessToken)
+	md = metadata.Pairs(jwtauth.AuthorizationHeader, accessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -82,7 +82,7 @@ func TestRequestID_EmptyRequestID(t *testing.T) {
 
 	// Create metadata
 	md := metadata.Pairs()
-	md.Append(requestid.HeaderKey, emptyValue)
+	md.Append(requestid.Header, emptyValue)
 
 	// Create context with metadata
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -107,7 +107,7 @@ func TestRequestID_EmptyRequestID(t *testing.T) {
 	require.NotEmpty(t, accessToken)
 
 	md = metadata.Pairs(jwtauth.AccessTokenKey, accessToken)
-	md.Append(requestid.HeaderKey, emptyValue)
+	md.Append(requestid.Header, emptyValue)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)

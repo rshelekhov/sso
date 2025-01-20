@@ -32,7 +32,7 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 
 	// Add appID to gRPC metadata
 	md := metadata.Pairs()
-	md.Append(appid.HeaderKey, cfg.AppID)
+	md.Append(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -126,7 +126,7 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 
 	// Add appID to gRPC metadata
 	md := metadata.Pairs()
-	md.Append(appid.HeaderKey, cfg.AppID)
+	md.Append(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -228,7 +228,7 @@ func TestRegisterUser_FailCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Add appID to gRPC metadata
 			md := metadata.Pairs()
-			md.Append(appid.HeaderKey, tt.appID)
+			md.Append(appid.Header, tt.appID)
 			ctx = metadata.NewOutgoingContext(ctx, md)
 
 			// Register user
@@ -258,7 +258,7 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 
 	// Add appID to gRPC metadata
 	md := metadata.Pairs()
-	md.Append(appid.HeaderKey, cfg.AppID)
+	md.Append(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register first user
@@ -312,7 +312,7 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 
 	// Add appID to gRPC metadata
 	md := metadata.Pairs()
-	md.Append(appid.HeaderKey, cfg.AppID)
+	md.Append(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register first user
@@ -334,7 +334,7 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AccessTokenHeader, accessToken)
+	md = metadata.Pairs(jwtauth.AuthorizationHeader, accessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)

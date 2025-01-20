@@ -25,7 +25,7 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 
 	// Add appID to gRPC metadata
 	md := metadata.Pairs()
-	md.Append(appid.HeaderKey, cfg.AppID)
+	md.Append(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -89,7 +89,7 @@ func TestVerifyEmail_TokenExpired(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 	// Add appID to gRPC metadata
 	md := metadata.Pairs()
-	md.Append(appid.HeaderKey, cfg.AppID)
+	md.Append(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
