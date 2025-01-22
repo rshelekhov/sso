@@ -3,11 +3,12 @@ package appvalidator
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/service/appvalidator/mocks"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestValidateAppID(t *testing.T) {

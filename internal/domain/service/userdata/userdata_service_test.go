@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/domain/service/userdata/mocks"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func TestUserDataService_GetUserByID(t *testing.T) {

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	mongoStorage "github.com/rshelekhov/sso/pkg/storage/mongo"
 	pgStorage "github.com/rshelekhov/sso/pkg/storage/postgres"

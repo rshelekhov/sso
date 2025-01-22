@@ -2,9 +2,10 @@ package token
 
 import (
 	"encoding/base64"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestTokenService_PasswordHashArgon2_HappyPath(t *testing.T) {
@@ -60,5 +61,4 @@ func TestTokenService_PasswordMatchArgon2_EmptyPassword(t *testing.T) {
 
 	matched, _ := passwordMatchArgon2(hash, "", pepper)
 	require.False(t, matched)
-
 }

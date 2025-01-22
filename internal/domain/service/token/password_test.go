@@ -1,10 +1,11 @@
 package token
 
 import (
+	"testing"
+
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/service/token/mocks"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestTokenService_HashPassword(t *testing.T) {

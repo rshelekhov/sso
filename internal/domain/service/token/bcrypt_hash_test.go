@@ -1,8 +1,9 @@
 package token
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestTokenService_PasswordHashBcrypt_HappyPath(t *testing.T) {

@@ -4,11 +4,12 @@ import (
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/base64"
+	"testing"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/service/token/mocks"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestToken_NewAccessToken(t *testing.T) {

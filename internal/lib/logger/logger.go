@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/rshelekhov/sso/src/lib/logger/handler/slogpretty"
+	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogpretty"
 )
 
 const (

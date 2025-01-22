@@ -2,6 +2,7 @@ package mailgun
 
 import (
 	"context"
+
 	"github.com/mailgun/mailgun-go/v4"
 )
 

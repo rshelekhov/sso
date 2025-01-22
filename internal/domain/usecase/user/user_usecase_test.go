@@ -3,6 +3,9 @@ package user
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/domain/usecase/user/mocks"
@@ -10,8 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func TestUserUsecase_GetUserByID(t *testing.T) {
@@ -628,7 +629,6 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusSoftDeleted.String(), nil)
-
 			},
 			expectedError: domain.ErrUserNotFound,
 		},
@@ -702,7 +702,6 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				userMgr.EXPECT().DeleteUser(ctx, mock.AnythingOfType("entity.User")).
 					Once().
 					Return(fmt.Errorf("user manager error"))
-
 			},
 			expectedError: domain.ErrFailedToDeleteUser,
 		},

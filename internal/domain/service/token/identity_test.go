@@ -3,10 +3,11 @@ package token
 import (
 	"context"
 	"crypto/rsa"
+	"testing"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestTokenService_ExtractUserIDFromContext(t *testing.T) {

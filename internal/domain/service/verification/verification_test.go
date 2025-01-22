@@ -4,14 +4,15 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"testing"
+	"time"
+
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/domain/service/verification/mocks"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
 )
 
 func TestVerificationService_CreateToken(t *testing.T) {
