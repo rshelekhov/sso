@@ -2,6 +2,7 @@ package settings
 
 import (
 	"fmt"
+
 	"github.com/rshelekhov/sso/internal/infrastructure/service/mail"
 )
 
@@ -14,8 +15,9 @@ const (
 )
 
 type MailService struct {
-	Type    MailServiceType `mapstructure:"EMAIL_SERVICE_TYPE" envDefault:"mock"`
-	Mailgun *MailgunParams
+	Type          MailServiceType `mapstructure:"EMAIL_SERVICE_TYPE" envDefault:"mock"`
+	TemplatesPath string          `mapstructure:"EMAIL_TEMPLATES_PATH" envDefault:"./static/email_templates"`
+	Mailgun       *MailgunParams
 }
 
 type MailgunParams struct {
@@ -33,7 +35,8 @@ func ToMailConfig(cfg MailService) (mail.Config, error) {
 	}
 
 	mailConfig := mail.Config{
-		Type: serviceType,
+		Type:          serviceType,
+		TemplatesPath: cfg.TemplatesPath,
 	}
 
 	if serviceType == mail.EmailServiceMailgun {
