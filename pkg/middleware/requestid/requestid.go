@@ -1,45 +1,50 @@
-package middleware
+package requestid
 
 import (
+	"net/http"
+
+	"github.com/rshelekhov/sso/pkg/middleware"
 	"github.com/segmentio/ksuid"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	"net/http"
 )
 
-type requestIDMgr struct{}
+type manager struct{}
 
-func NewRequestIDManager() Manager {
-	return &requestIDMgr{}
+func NewManager() middleware.Manager {
+	return &manager{}
 }
 
-const HeaderKey = "X-Request-ID"
+const (
+	Header = "X-Request-ID"
+	CtxKey = "RequestID"
+)
 
-// NewID returns new request ID
-func (m *requestIDMgr) NewID() string {
+// NewID returns new requestID
+func (m *manager) NewID() string {
 	return ksuid.New().String()
 }
 
-// FromContext returns request ID from context
-func (m *requestIDMgr) FromContext(ctx context.Context) (string, bool) {
-	requestID, ok := ctx.Value(HeaderKey).(string)
+// FromContext returns requestID from context
+func (m *manager) FromContext(ctx context.Context) (string, bool) {
+	requestID, ok := ctx.Value(CtxKey).(string)
 	return requestID, ok
 }
 
-// ToContext returns context with request ID
-func (m *requestIDMgr) ToContext(ctx context.Context, requestID string) context.Context {
-	return context.WithValue(ctx, HeaderKey, requestID)
+// ToContext places requestID to context
+func (m *manager) ToContext(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, CtxKey, requestID)
 }
 
-// ExtractFromGRPC returns request ID from gRPC metadata or generates new one
-func (m *requestIDMgr) ExtractFromGRPC(ctx context.Context) (string, error) {
+// ExtractFromGRPC returns requestID from gRPC metadata or generates new one
+func (m *manager) ExtractFromGRPC(ctx context.Context) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return m.NewID(), nil
 	}
 
-	values := md.Get(HeaderKey)
+	values := md.Get(Header)
 	if len(values) == 0 {
 		return m.NewID(), nil
 	}
@@ -47,9 +52,9 @@ func (m *requestIDMgr) ExtractFromGRPC(ctx context.Context) (string, error) {
 	return values[0], nil
 }
 
-// ExtractFromHTTP returns request ID from HTTP header or generates new one
-func (m *requestIDMgr) ExtractFromHTTP(r *http.Request) (string, error) {
-	requestID := r.Header.Get(HeaderKey)
+// ExtractFromHTTP returns requestID from HTTP header or generates new one
+func (m *manager) ExtractFromHTTP(r *http.Request) (string, error) {
+	requestID := r.Header.Get(Header)
 	if requestID == "" {
 		return m.NewID(), nil
 	}
@@ -57,21 +62,21 @@ func (m *requestIDMgr) ExtractFromHTTP(r *http.Request) (string, error) {
 	return requestID, nil
 }
 
-// UnaryServerInterceptor create gRPC interceptor for request ID
-func (m *requestIDMgr) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
+// UnaryServerInterceptor extract requestID from gRPC metadata and set it to context
+func (m *manager) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		requestID, _ := m.ExtractFromGRPC(ctx)
-		ctx = context.WithValue(ctx, HeaderKey, requestID)
+		ctx = m.ToContext(ctx, requestID)
 
 		return handler(ctx, req)
 	}
 }
 
-func (m *requestIDMgr) HTTPMiddleware(next http.Handler) http.Handler {
+// HTTPMiddleware extract requestID from HTTP header and set it to context
+func (m *manager) HTTPMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID, _ := m.ExtractFromHTTP(r)
-		ctx := context.WithValue(r.Context(), HeaderKey, requestID)
-		w.Header().Set(HeaderKey, requestID)
+		ctx := m.ToContext(r.Context(), requestID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
