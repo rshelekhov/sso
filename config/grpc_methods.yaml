@@ -1,0 +1,17 @@
+service:
+  token_required_methods:
+    - "/auth.Auth/Logout"
+    - "/auth.Auth/GetUser"
+    - "/auth.Auth/UpdateUser"
+    - "/auth.Auth/DeleteUser"
+  app_id_required_methods:
+    - "/auth.Auth/RegisterUser"
+    - "/auth.Auth/Login"
+    - "/auth.Auth/ResetPassword"
+    - "/auth.Auth/ChangePassword"
+    - "/auth.Auth/Logout"
+    - "/auth.Auth/Refresh"
+    - "/auth.Auth/GetJWKS"
+    - "/auth.Auth/GetUser"
+    - "/auth.Auth/UpdateUser"
+    - "/auth.Auth/DeleteUser"
