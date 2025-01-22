@@ -1,9 +1,9 @@
-package grpc
+package grpcmethods
 
-type GRPCConfig struct {
+type ServiceConfig struct {
 	PublicMethods []string `yaml:"public_methods"`
 }
 
 type Config struct {
-	GRPC GRPCConfig `yaml:"grpc"`
+	Service ServiceConfig `yaml:"service"`
 }
