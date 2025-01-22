@@ -5,6 +5,7 @@ import (
 	"github.com/rshelekhov/jwtauth"
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/sso/internal/config/grpcmethods"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
 	"github.com/rshelekhov/sso/internal/domain/service/session"
@@ -189,6 +190,33 @@ func (b *Builder) BuildUsecases() {
 	)
 }
 
+func (b *Builder) BuildGRPCServer() (*grpcapp.App, error) {
+	cfg, err := grpcmethods.Load(b.cfg.GRPCServer.GRPCMethodsConfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	grpcMethods, err := grpcmethods.New(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	grpcServer := grpcapp.New(
+		b.logger,
+		b.managers.requestID,
+		b.managers.appIDManager,
+		b.services.appValidator,
+		b.managers.jwt,
+		b.usecases.app,
+		b.usecases.auth,
+		b.usecases.user,
+		grpcMethods,
+		b.cfg.GRPCServer.Port,
+	)
+
+	return grpcServer, nil
+}
+
 func (b *Builder) Build() (*App, error) {
 	if err := b.BuildStorages(); err != nil {
 		return nil, err
@@ -202,17 +230,10 @@ func (b *Builder) Build() (*App, error) {
 
 	b.BuildUsecases()
 
-	grpcServer := grpcapp.New(
-		b.logger,
-		b.managers.requestID,
-		b.managers.appIDManager,
-		b.services.appValidator,
-		b.managers.jwt,
-		b.usecases.app,
-		b.usecases.auth,
-		b.usecases.user,
-		b.cfg.GRPCServer.Port,
-	)
+	grpcServer, err := b.BuildGRPCServer()
+	if err != nil {
+		return nil, err
+	}
 
 	return &App{
 		GRPCServer: grpcServer,
