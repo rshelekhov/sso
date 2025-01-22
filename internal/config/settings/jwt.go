@@ -2,8 +2,9 @@ package settings
 
 import (
 	"fmt"
-	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"time"
+
+	"github.com/rshelekhov/sso/internal/domain/service/token"
 )
 
 type JWT struct {
@@ -48,7 +49,7 @@ func validateAndConvertSigningMethod(method SigningMethodType) (token.SigningMet
 	case SigningMethodES256:
 		return token.SigningMethodES256, nil
 	case SigningMethodRS256:
-		return token.SigningMethodES256, nil
+		return token.SigningMethodRS256, nil
 	case "":
 		return "", fmt.Errorf("jwt signing method is empty")
 	default:

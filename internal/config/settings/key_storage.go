@@ -2,6 +2,7 @@ package settings
 
 import (
 	"fmt"
+
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
 )
 

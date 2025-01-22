@@ -2,10 +2,11 @@ package settings
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	mongoStorage "github.com/rshelekhov/sso/pkg/storage/mongo"
 	pgStorage "github.com/rshelekhov/sso/pkg/storage/postgres"
-	"time"
 )
 
 type StorageType string
