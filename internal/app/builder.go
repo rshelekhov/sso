@@ -2,6 +2,8 @@ package app
 
 import (
 	"fmt"
+	"log/slog"
+
 	"github.com/rshelekhov/jwtauth"
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	"github.com/rshelekhov/sso/internal/config"
@@ -27,7 +29,6 @@ import (
 	"github.com/rshelekhov/sso/pkg/middleware"
 	"github.com/rshelekhov/sso/pkg/middleware/appid"
 	"github.com/rshelekhov/sso/pkg/middleware/requestid"
-	"log/slog"
 )
 
 type Builder struct {
