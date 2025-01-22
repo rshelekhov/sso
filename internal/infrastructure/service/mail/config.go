@@ -8,8 +8,9 @@ const (
 )
 
 type Config struct {
-	Type    EmailServiceType
-	Mailgun *MailgunParams
+	Type          EmailServiceType
+	TemplatesPath string
+	Mailgun       *MailgunParams
 }
 
 type MailgunParams struct {

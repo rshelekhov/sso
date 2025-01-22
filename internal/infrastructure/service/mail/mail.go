@@ -2,6 +2,7 @@ package mail
 
 import (
 	"context"
+
 	"github.com/rshelekhov/sso/pkg/service/mail/mailgun"
 	"github.com/rshelekhov/sso/pkg/service/mail/mocks"
 )
@@ -16,7 +17,7 @@ type Service struct {
 	templatesPath string
 }
 
-const DefaultTemplatesPath = "../../../../static/email_templates"
+const DefaultTemplatesPath = "./static/email_templates"
 
 func NewService(cfg Config) *Service {
 	var client EmailClient
@@ -28,9 +29,14 @@ func NewService(cfg Config) *Service {
 		client = mocks.NewClient()
 	}
 
+	templatesPath := cfg.TemplatesPath
+	if templatesPath == "" {
+		templatesPath = DefaultTemplatesPath
+	}
+
 	return &Service{
 		client:        client,
-		templatesPath: DefaultTemplatesPath,
+		templatesPath: templatesPath,
 	}
 }
 
