@@ -3,17 +3,21 @@ package grpcapp
 import (
 	"context"
 	"fmt"
-	"github.com/rshelekhov/jwtauth"
-	"github.com/rshelekhov/sso/pkg/middleware"
-	"github.com/rshelekhov/sso/src/domain/service/appvalidator"
-	"github.com/rshelekhov/sso/src/domain/usecase"
+	"github.com/rshelekhov/sso/internal/config/grpcmethods"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
 	"log/slog"
 	"net"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
-	authgrpc "github.com/rshelekhov/sso/src/controller/grpc"
-	"github.com/rshelekhov/sso/src/lib/grpc/interceptor/localerror"
+	"github.com/rshelekhov/jwtauth"
+	ssogrpc "github.com/rshelekhov/sso/internal/controller/grpc"
+	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
+	"github.com/rshelekhov/sso/internal/domain/usecase/app"
+	"github.com/rshelekhov/sso/internal/domain/usecase/auth"
+	"github.com/rshelekhov/sso/internal/domain/usecase/user"
+	authenticate "github.com/rshelekhov/sso/internal/lib/interceptor/auth"
+	"github.com/rshelekhov/sso/pkg/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -31,9 +35,10 @@ func New(
 	appIDMgr middleware.Manager,
 	appValidator appvalidator.Validator,
 	jwtMiddleware jwtauth.Middleware,
-	appUsecase usecase.AppProvider,
-	authUsecase usecase.AuthProvider,
-	userUsecase usecase.UserProvider,
+	appUsecase app.Usecase,
+	authUsecase auth.Usecase,
+	userUsecase user.Usecase,
+	grpcMethods *grpcmethods.Methods,
 	port string,
 ) *App {
 	loggingOpts := []logging.Option{
@@ -57,14 +62,13 @@ func New(
 			recovery.UnaryServerInterceptor(recoveryOpts...),
 			logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
 			requestIDMgr.UnaryServerInterceptor(),
-			appIDMgr.UnaryServerInterceptor(),
-			jwtMiddleware.UnaryServerInterceptor(),
-			localerror.UnaryServerInterceptor(),
+			appid.UnaryServerInterceptor(grpcMethods, appIDMgr.UnaryServerInterceptor()),
+			authenticate.UnaryServerInterceptor(grpcMethods, jwtMiddleware.UnaryServerInterceptor()),
 		),
 	)
 
 	// Auth grpc
-	authgrpc.RegisterController(
+	ssogrpc.RegisterController(
 		gRPCServer,
 		log,
 		requestIDMgr,
