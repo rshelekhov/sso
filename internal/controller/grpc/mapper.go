@@ -2,10 +2,12 @@ package grpc
 
 import (
 	"errors"
+
+	"github.com/rshelekhov/sso/internal/controller"
+
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/src/domain"
-	"github.com/rshelekhov/sso/src/domain/entity"
-	"github.com/rshelekhov/sso/src/lib/constant/le"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/domain/entity"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -142,24 +144,28 @@ func fromUpdateUserRequest(req *ssov1.UpdateUserRequest) *entity.UserRequestData
 	}
 }
 
-// TODO: replace errors with a domain errors instead of this
 var errorToStatus = map[error]codes.Code{
-	domain.ErrUserNotFound:              codes.NotFound,
-	le.ErrInvalidCredentials:            codes.Unauthenticated,
-	le.ErrUserAlreadyExists:             codes.AlreadyExists,
-	le.ErrTokenExpiredWithEmailResent:   codes.FailedPrecondition,
-	le.ErrTokenNotFound:                 codes.NotFound,
-	domain.ErrUserDeviceNotFound:        codes.NotFound,
-	domain.ErrSessionNotFound:           codes.Unauthenticated,
-	domain.ErrSessionExpired:            codes.Unauthenticated,
-	domain.ErrUserDeviceNotFound:        codes.Unauthenticated,
-	domain.ErrEmailAlreadyTaken:         codes.AlreadyExists,
-	domain.ErrPasswordsDoNotMatch:       codes.InvalidArgument,
-	domain.ErrNoEmailChangesDetected:    codes.InvalidArgument,
-	domain.ErrNoPasswordChangesDetected: codes.InvalidArgument,
+	domain.ErrUserNotFound:                codes.NotFound,
+	domain.ErrInvalidCredentials:          codes.Unauthenticated,
+	domain.ErrUserAlreadyExists:           codes.AlreadyExists,
+	domain.ErrVerificationTokenNotFound:   codes.NotFound,
+	domain.ErrUserDeviceNotFound:          codes.NotFound,
+	domain.ErrSessionNotFound:             codes.Unauthenticated,
+	domain.ErrSessionExpired:              codes.Unauthenticated,
+	domain.ErrUserDeviceNotFound:          codes.Unauthenticated,
+	domain.ErrEmailAlreadyTaken:           codes.AlreadyExists,
+	domain.ErrPasswordsDoNotMatch:         codes.InvalidArgument,
+	domain.ErrNoEmailChangesDetected:      codes.InvalidArgument,
+	domain.ErrNoPasswordChangesDetected:   codes.InvalidArgument,
+	domain.ErrTokenExpiredWithEmailResent: codes.FailedPrecondition,
+	domain.ErrAppAlreadyExists:            codes.AlreadyExists,
 }
 
 func mapErrorToGRPCStatus(err error) error {
+	if errors.Is(err, controller.ErrValidationError) {
+		return status.Error(codes.InvalidArgument, err.Error())
+	}
+
 	for domainErr, statusCode := range errorToStatus {
 		if errors.Is(err, domainErr) {
 			return status.Error(statusCode, domainErr.Error())
@@ -167,7 +173,7 @@ func mapErrorToGRPCStatus(err error) error {
 	}
 
 	if err != nil {
-		return status.Error(codes.Internal, "internal server error")
+		return status.Error(codes.Internal, err.Error())
 	}
 
 	return nil
