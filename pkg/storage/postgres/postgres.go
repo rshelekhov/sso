@@ -4,26 +4,25 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib" // Import for side effects
-	"github.com/rshelekhov/sso/internal/config"
 )
 
-// NewStorage creates a new Postgres storage
-func NewStorage(cfg *config.ServerSettings) (*pgxpool.Pool, error) {
-	const method = "storage.postgres.NewStorage"
+func New(cfg *Config) (*pgxpool.Pool, error) {
+	const method = "storage.postgres.New"
 
-	poolCfg, err := pgxpool.ParseConfig(cfg.Postgres.ConnURL)
+	poolCfg, err := pgxpool.ParseConfig(cfg.ConnURL)
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to parse config: %w", method, err)
 	}
 
-	poolCfg.MaxConnLifetime = cfg.Postgres.IdleTimeout
-	poolCfg.MaxConns = int32(cfg.Postgres.ConnPoolSize)
+	poolCfg.MaxConnLifetime = cfg.IdleTimeout
+	poolCfg.MaxConns = int32(cfg.ConnPoolSize)
 
-	dialer := &net.Dialer{KeepAlive: cfg.Postgres.DialTimeout}
-	dialer.Timeout = cfg.Postgres.DialTimeout
+	dialer := &net.Dialer{KeepAlive: cfg.DialTimeout}
+	dialer.Timeout = cfg.DialTimeout
 	poolCfg.ConnConfig.DialFunc = dialer.DialContext
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), poolCfg)
@@ -32,4 +31,13 @@ func NewStorage(cfg *config.ServerSettings) (*pgxpool.Pool, error) {
 	}
 
 	return pool, nil
+}
+
+type Config struct {
+	ConnURL      string
+	ConnPoolSize int
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
+	DialTimeout  time.Duration
 }
