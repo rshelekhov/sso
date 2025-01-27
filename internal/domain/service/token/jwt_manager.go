@@ -43,7 +43,7 @@ func (s *Service) NewAccessToken(appID, kid string, additionalClaims map[string]
 
 	token := jwt.NewWithClaims(s.algorithm(), claims)
 
-	token.Header["kid"] = kid
+	token.Header[domain.KIDKey] = kid
 
 	signedToken, err := token.SignedString(privateKey)
 	if err != nil {
@@ -83,17 +83,17 @@ func (s *Service) Kid(appID string) (string, error) {
 	// Get public key
 	pub, err := s.PublicKey(appID)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToGetPublicKey, err)
 	}
 
 	// Create key ID
-	var keyID string
+	var kid string
 	if der, err := x509.MarshalPKIXPublicKey(pub); err == nil {
 		s := sha1.Sum(der)
-		keyID = base64.URLEncoding.EncodeToString(s[:])
+		kid = base64.URLEncoding.EncodeToString(s[:])
 	}
 
-	return keyID, nil
+	return kid, nil
 }
 
 func (s *Service) RefreshTokenCookieDomain() string {
