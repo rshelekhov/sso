@@ -1,8 +1,9 @@
 package entity
 
 import (
-	"github.com/segmentio/ksuid"
 	"time"
+
+	"github.com/segmentio/ksuid"
 )
 
 type (
