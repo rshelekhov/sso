@@ -2,6 +2,7 @@ package appid
 
 import (
 	"context"
+
 	"github.com/rshelekhov/sso/internal/config/grpcmethods"
 	"google.golang.org/grpc"
 )
