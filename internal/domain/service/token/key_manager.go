@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 
@@ -51,26 +50,17 @@ func generatePrivateKeyPEM() ([]byte, error) {
 		return nil, fmt.Errorf("failed to generate private key: %w", err)
 	}
 
-	// Create a PEM block with the DER encoded private key
-	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-	b64 := []byte(base64.StdEncoding.EncodeToString(privateKeyBytes))
-	privateKeyPEM := fmt.Sprintf("-----BEGIN PRIVATE KEY-----\n%s-----END PRIVATE KEY-----\n", make64ColsString(b64))
-
-	return []byte(privateKeyPEM), nil
-}
-
-func make64ColsString(input []byte) string {
-	var result string
-
-	for i := 0; i < len(input); i += 64 {
-		end := i + 64
-		if end > len(input) {
-			end = len(input)
-		}
-		result += string(input[i:end]) + "\n"
+	privateKeyPEM := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	}
 
-	return result
+	pemBytes := pem.EncodeToMemory(privateKeyPEM)
+	if pemBytes == nil {
+		return nil, fmt.Errorf("failed to encode private key to PEM")
+	}
+
+	return pemBytes, nil
 }
 
 func (s *Service) getPrivateKeyFromPEM(appID string) (interface{}, error) {
@@ -85,11 +75,12 @@ func (s *Service) getPrivateKeyFromPEM(appID string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to decode PEM block containing the private key")
 	}
 
-	// Parse the private key
-	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse private key: %w", err)
+	switch block.Type {
+	case "RSA PRIVATE KEY":
+		return x509.ParsePKCS1PrivateKey(block.Bytes)
+	case "PRIVATE KEY":
+		return x509.ParsePKCS8PrivateKey(block.Bytes)
+	default:
+		return nil, fmt.Errorf("unknown type of private key")
 	}
-
-	return privateKey, nil
 }
