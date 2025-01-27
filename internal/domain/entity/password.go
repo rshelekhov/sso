@@ -9,4 +9,8 @@ type (
 		ResetPasswordToken string
 		UpdatedPassword    string
 	}
+
+	ChangingPasswordResult struct {
+		TokenExpired bool
+	}
 )
