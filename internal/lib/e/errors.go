@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func HandleError(
+func LogError(
 	ctx context.Context,
 	log *slog.Logger,
 	errTitle error,
