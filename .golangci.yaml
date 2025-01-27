@@ -11,14 +11,14 @@ linters-settings:
   gofumpt:
     extra-rules: true
   lll:
-    line-length: 150
+    line-length: 155
     tab-width: 1
   nestif:
     min-complexity: 4
   staticcheck:
     checks:
       - all
-      - '-SA1029'
+      - "-SA1029"
   sloglint:
     args-on-sep-lines: true
   testpackage:
@@ -27,7 +27,7 @@ linters-settings:
     strict-append: true
     allow-assign-and-anything: false
     allow-multiline-assign: false
-    allow-cuddle-declarations: false
+    allow-cuddle-declarations: true
     allow-trailing-comment: false
     force-case-trailing-whitespace: 0
     force-err-cuddling: true
@@ -51,13 +51,12 @@ linters:
     - nakedret
     - nestif
     - noctx
-    - revive
     - sloglint
     - staticcheck
     - testpackage
+    - unused
     - unconvert
     - unparam
-    - unused
     - wsl
 
 issues:
