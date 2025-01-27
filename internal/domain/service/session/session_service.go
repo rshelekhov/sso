@@ -94,10 +94,10 @@ func (s *Session) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 	return session, nil
 }
 
-func (s *Session) GetUserDeviceID(ctx context.Context, session entity.SessionRequestData) (string, error) {
+func (s *Session) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
 	const method = "service.session.GetUserDeviceID"
 
-	deviceID, err := s.storage.GetUserDeviceID(ctx, session.UserID, session.UserDevice.UserAgent)
+	deviceID, err := s.storage.GetUserDeviceID(ctx, userID, userAgent)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserDeviceNotFound) {
 			return "", domain.ErrUserDeviceNotFound
@@ -188,10 +188,10 @@ func (s *Session) createTokens(
 	}
 
 	additionalClaims := map[string]interface{}{
-		"issuer":        issuer,
-		"user_id":       session.UserID,
-		"app_id":        session.AppID,
-		"expiration_at": currentTime.Add(accessTokenTTL).Unix(),
+		domain.IssuerKey:       issuer,
+		domain.UserIDKey:       session.UserID,
+		domain.AppIDKey:        session.AppID,
+		domain.ExpirationAtKey: currentTime.Add(accessTokenTTL).Unix(),
 	}
 
 	accessToken, err = s.jwtMgr.NewAccessToken(session.AppID, kid, additionalClaims)

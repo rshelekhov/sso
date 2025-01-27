@@ -537,7 +537,7 @@ func TestSessionService_GetUserDeviceID(t *testing.T) {
 
 			service := NewService(nil, sessionStorage)
 
-			deviceID, err := service.GetUserDeviceID(ctx, tt.reqData)
+			deviceID, err := service.GetUserDeviceID(ctx, tt.reqData.UserID, tt.reqData.UserDevice.UserAgent)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
