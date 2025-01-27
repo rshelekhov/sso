@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/src/lib/constant/le"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -24,6 +23,8 @@ var (
 	ErrResetPasswordTokenIsRequired                = errors.New("reset password token is required")
 	ErrRefreshTokenIsRequired                      = errors.New("refresh token is required")
 	ErrCurrentPasswordIsRequired                   = errors.New("current password is required")
+	ErrAppNameIsRequired                           = errors.New("app name is required")
+	ErrAppNameCannotContainSpaces                  = errors.New("app name cannot contain spaces")
 )
 
 func validateUserCredentials(email, password string) error {
@@ -66,10 +67,10 @@ func validateRegisterAppRequest(req *ssov1.RegisterAppRequest) error {
 	appName := req.GetAppName()
 
 	if appName == emptyValue {
-		return status.Error(codes.InvalidArgument, le.ErrAppNameIsRequired.Error())
+		return status.Error(codes.InvalidArgument, ErrAppNameIsRequired.Error())
 	}
 	if strings.Contains(appName, " ") {
-		return status.Error(codes.InvalidArgument, le.ErrAppNameCannotContainSpaces.Error())
+		return status.Error(codes.InvalidArgument, ErrAppNameCannotContainSpaces.Error())
 	}
 
 	return nil
