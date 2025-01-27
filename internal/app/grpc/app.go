@@ -1,12 +1,14 @@
-package grpcapp
+package grpc
 
 import (
 	"context"
 	"fmt"
-	"github.com/rshelekhov/sso/internal/config/grpcmethods"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
 	"log/slog"
 	"net"
+
+	"github.com/rshelekhov/sso/internal/config/grpcmethods"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	authenticate "github.com/rshelekhov/sso/internal/lib/interceptor/auth"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
@@ -16,7 +18,6 @@ import (
 	"github.com/rshelekhov/sso/internal/domain/usecase/app"
 	"github.com/rshelekhov/sso/internal/domain/usecase/auth"
 	"github.com/rshelekhov/sso/internal/domain/usecase/user"
-	authenticate "github.com/rshelekhov/sso/internal/lib/interceptor/auth"
 	"github.com/rshelekhov/sso/pkg/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -30,23 +31,22 @@ type App struct {
 }
 
 func New(
+	port string,
+	grpcMethods *grpcmethods.Methods,
 	log *slog.Logger,
 	requestIDMgr middleware.Manager,
 	appIDMgr middleware.Manager,
-	appValidator appvalidator.Validator,
 	jwtMiddleware jwtauth.Middleware,
+	appValidator appvalidator.Validator,
 	appUsecase app.Usecase,
 	authUsecase auth.Usecase,
 	userUsecase user.Usecase,
-	grpcMethods *grpcmethods.Methods,
-	port string,
 ) *App {
 	loggingOpts := []logging.Option{
 		logging.WithLogOnEvents(
 			// logging.StartCall, logging.FinishCall,
 			logging.PayloadReceived, logging.PayloadSent,
 		),
-		// Add any other option (check functions starting with logging.With).
 	}
 
 	recoveryOpts := []recovery.Option{
@@ -101,7 +101,7 @@ func (a *App) MustRun() {
 }
 
 func (a *App) Run() error {
-	const method = "grpcapp.App.Run"
+	const method = "grpc.App.Run"
 
 	log := a.log.With(
 		slog.String("method", method),
@@ -123,7 +123,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) Stop() {
-	const method = "grpcapp.App.Stop"
+	const method = "grpc.App.Stop"
 
 	a.log.With(slog.String("method", method)).Info("stopping gRPC server")
 
