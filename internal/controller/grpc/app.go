@@ -2,28 +2,38 @@ package grpc
 
 import (
 	"context"
-	"errors"
+	"fmt"
+	"log/slog"
+
+	"github.com/rshelekhov/sso/internal/controller"
+	"github.com/rshelekhov/sso/internal/lib/e"
 
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/src/lib/constant/le"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
-func (c *controller) RegisterApp(ctx context.Context, req *ssov1.RegisterAppRequest) (*ssov1.RegisterAppResponse, error) {
-	if err := validateRegisterAppRequest(req); err != nil {
-		return nil, err
+func (c *gRPCController) RegisterApp(ctx context.Context, req *ssov1.RegisterAppRequest) (*ssov1.RegisterAppResponse, error) {
+	const method = "controller.gRPC.RegisterApp"
+
+	log := c.log.With(slog.String("method", method))
+
+	reqID, err := c.getRequestID(ctx)
+	if err != nil {
+		e.LogError(ctx, log, controller.ErrFailedToGetRequestID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetRequestID, err))
+	}
+
+	log = log.With(slog.String("requestID", reqID))
+
+	if err = validateRegisterAppRequest(req); err != nil {
+		e.LogError(ctx, log, controller.ErrValidationError, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
 	}
 
 	appName := req.GetAppName()
 
-	err := c.appUsecase.RegisterApp(ctx, appName)
-
-	switch {
-	case errors.Is(err, le.ErrAppAlreadyExists):
-		return nil, status.Error(codes.AlreadyExists, le.ErrAppAlreadyExists.Error())
-	case err != nil:
-		return nil, status.Error(codes.Internal, le.ErrInternalServerError.Error())
+	err = c.appUsecase.RegisterApp(ctx, appName)
+	if err != nil {
+		return nil, mapErrorToGRPCStatus(err)
 	}
 
 	return &ssov1.RegisterAppResponse{}, nil
