@@ -70,6 +70,7 @@ var (
 		KeyLength:   32,
 	}
 
+	//nolint:unused // This variable will be used in the future
 	defaultPasswordHashBcryptParams = PasswordHashBcryptParams{
 		Cost: bcrypt.DefaultCost,
 	}
