@@ -2,7 +2,6 @@ package slogdiscard
 
 import (
 	"context"
-
 	"log/slog"
 )
 
