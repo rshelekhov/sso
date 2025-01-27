@@ -3,10 +3,7 @@ package domain
 import "errors"
 
 var (
-	ErrRequestIDNotFoundInContext        = errors.New("request ID not found in context")
-	ErrAppIDNotFoundInContext            = errors.New("app ID not found in context")
-	ErrFailedToLogWithMethodAndRequestID = errors.New("failed to log with method and request ID")
-	ErrFailedToExtractAppIDFromContext   = errors.New("failed to extract app ID from context")
+	ErrFailedToCommitTransaction = errors.New("failed to commit transaction")
 
 	// ===========================================================================
 	// App validator service errors
@@ -18,19 +15,19 @@ var (
 	// Session service errors
 	// ===========================================================================
 
-	ErrFailedToGetDeviceID           = errors.New("failed to get device ID")
-	ErrFailedToGetKeyID              = errors.New("failed to get key ID")
-	ErrFailedToCheckSessionAndDevice = errors.New("failed to check session and device")
-	ErrFailedToCreateAccessToken     = errors.New("failed to create access token")
-	ErrFailedToCreateUserSession     = errors.New("failed to create user session")
-	ErrFailedToUpdateLastVisitedAt   = errors.New("failed to update last visited at")
-	ErrSessionExpired                = errors.New("session expired")
-	ErrSessionNotFound               = errors.New("session not found")
-	ErrUserDeviceNotFound            = errors.New("user device not found")
-	ErrFailedToDeleteRefreshToken    = errors.New("failed to delete refresh token")
-	ErrFailedToDeleteSession         = errors.New("failed to delete session")
-	ErrFailedToValidateAppID         = errors.New("failed to validate app ID")
-	ErrFailedToRegisterDevice        = errors.New("failed to register device")
+	ErrFailedToGetDeviceID              = errors.New("failed to get device ID")
+	ErrFailedToGetKeyID                 = errors.New("failed to get key ID")
+	ErrFailedToGetSessionByRefreshToken = errors.New("failed to check session and device")
+	ErrFailedToCreateAccessToken        = errors.New("failed to create access token")
+	ErrFailedToCreateUserSession        = errors.New("failed to create user session")
+	ErrFailedToUpdateLastVisitedAt      = errors.New("failed to update last visited at")
+	ErrSessionExpired                   = errors.New("session expired")
+	ErrSessionNotFound                  = errors.New("session not found")
+	ErrUserDeviceNotFound               = errors.New("user device not found")
+	ErrFailedToDeleteRefreshToken       = errors.New("failed to delete refresh token")
+	ErrFailedToDeleteSession            = errors.New("failed to delete session")
+	ErrFailedToValidateAppID            = errors.New("failed to validate app ID")
+	ErrFailedToRegisterDevice           = errors.New("failed to register device")
 
 	// ===========================================================================
 	// User service errors
@@ -89,18 +86,20 @@ var (
 	// Auth usecase errors
 	// ===========================================================================
 
-	ErrUserAlreadyExists              = errors.New("user already exists")
-	ErrFailedToReplaceSoftDeletedUser = errors.New("failed to replace soft deleted user")
-	ErrFailedToCreateUser             = errors.New("failed to create user")
-	ErrFailedToGetUserByEmail         = errors.New("failed to get user by email")
-	ErrInvalidCredentials             = errors.New("invalid credentials")
-	ErrFailedToVerifyPassword         = errors.New("failed to verify password")
-	ErrFailedToSendEmail              = errors.New("failed to send email")
-	ErrFailedToSendVerificationEmail  = errors.New("failed to send verification email")
-	ErrFailedToSendResetPasswordEmail = errors.New("failed to send reset password email")
-	ErrFailedToMarkEmailVerified      = errors.New("failed to mark email as verified")
-	ErrFailedToGetPublicKey           = errors.New("failed to get public key")
-	ErrFailedToGetJWKS                = errors.New("failed to get jwks")
+	ErrUserAlreadyExists                  = errors.New("user already exists")
+	ErrFailedToReplaceSoftDeletedUser     = errors.New("failed to replace soft deleted user")
+	ErrFailedToRegisterUser               = errors.New("failed to register user")
+	ErrFailedToGetUserByEmail             = errors.New("failed to get user by email")
+	ErrInvalidCredentials                 = errors.New("invalid credentials")
+	ErrFailedToCheckPasswordHashAndUpdate = errors.New("failed to check password hash and update")
+	ErrFailedToVerifyPassword             = errors.New("failed to verify password")
+	ErrFailedToSendEmail                  = errors.New("failed to send email")
+	ErrFailedToSendVerificationEmail      = errors.New("failed to send verification email")
+	ErrFailedToSendResetPasswordEmail     = errors.New("failed to send reset password email")
+	ErrFailedToMarkEmailVerified          = errors.New("failed to mark email as verified")
+	ErrTokenExpiredWithEmailResent        = errors.New("token expired, a new email with a new token has been sent to the user")
+	ErrFailedToGetPublicKey               = errors.New("failed to get public key")
+	ErrFailedToGetJWKS                    = errors.New("failed to get jwks")
 
 	// ===========================================================================
 	// User usecase errors
@@ -111,15 +110,16 @@ var (
 	ErrFailedToUpdateUser             = errors.New("failed to update user")
 	ErrPasswordsDoNotMatch            = errors.New("passwords do not match")
 	ErrNoPasswordChangesDetected      = errors.New("no password changes detected")
+	ErrCurrentPasswordRequired        = errors.New("current password is required")
 	ErrFailedToCheckPasswordHashMatch = errors.New("failed to check password hash match")
 	ErrFailedToGeneratePasswordHash   = errors.New("failed to generate password hash")
 	ErrFailedToGetUserStatusByEmail   = errors.New("failed to get user status by email")
 	ErrNoEmailChangesDetected         = errors.New("no email changes detected")
 	ErrEmailAlreadyTaken              = errors.New("email already taken")
-	ErrFailedToCheckIfUserExists      = errors.New("failed to check if user exists")
+	ErrFailedToGetUserStatusByID      = errors.New("failed to get user status by ID")
 	ErrUnknownUserStatus              = errors.New("unknown user status")
 	ErrFailedToCleanupUserData        = errors.New("failed to cleanup user data")
 	ErrFailedToDeleteUser             = errors.New("failed to delete user")
-	ErrFailedToDeleteAllUserSessions  = errors.New("failed to delete all sessions")
+	ErrFailedToDeleteAllUserSessions  = errors.New("failed to delete all user sessions")
 	ErrFailedToDeleteUserTokens       = errors.New("failed to delete tokens")
 )
