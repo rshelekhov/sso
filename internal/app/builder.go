@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 
+	v1 "github.com/rshelekhov/sso/internal/controller/http/v1"
+
 	"github.com/rshelekhov/jwtauth"
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
+	httpapp "github.com/rshelekhov/sso/internal/app/http"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/grpcmethods"
 	"github.com/rshelekhov/sso/internal/config/settings"
@@ -203,19 +206,41 @@ func (b *Builder) BuildGRPCServer() (*grpcapp.App, error) {
 	}
 
 	grpcServer := grpcapp.New(
+		b.cfg.GRPCServer.Port,
+		grpcMethods,
 		b.logger,
 		b.managers.requestID,
 		b.managers.appIDManager,
-		b.services.appValidator,
 		b.managers.jwt,
+		b.services.appValidator,
 		b.usecases.app,
 		b.usecases.auth,
 		b.usecases.user,
-		grpcMethods,
-		b.cfg.GRPCServer.Port,
 	)
 
 	return grpcServer, nil
+}
+
+func (b *Builder) BuildHTTPServer() *httpapp.App {
+	router := v1.NewRouter(
+		b.cfg.HTTPServer,
+		b.logger,
+		b.managers.requestID,
+		b.managers.appIDManager,
+		b.managers.jwt,
+		b.services.appValidator,
+		b.usecases.app,
+		b.usecases.auth,
+		b.usecases.user,
+	)
+
+	httpServer := httpapp.New(
+		b.cfg.HTTPServer,
+		b.logger,
+		router,
+	)
+
+	return httpServer
 }
 
 func (b *Builder) Build() (*App, error) {
@@ -236,8 +261,11 @@ func (b *Builder) Build() (*App, error) {
 		return nil, err
 	}
 
+	httpServer := b.BuildHTTPServer()
+
 	return &App{
 		GRPCServer: grpcServer,
+		HTTPServer: httpServer,
 	}, nil
 }
 
