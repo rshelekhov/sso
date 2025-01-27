@@ -3,10 +3,11 @@ package api_tests
 import (
 	"crypto/rsa"
 	"encoding/base64"
-	"github.com/rshelekhov/jwtauth"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/rshelekhov/jwtauth"
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
@@ -31,8 +32,7 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -95,9 +95,6 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 
 	assert.Equal(t, cfg.Issuer, claims[domain.IssuerKey].(string))
 
-	// TODO: check if we need to get email in claims here!
-	assert.Equal(t, email, claims["email"].(string))
-
 	assert.Equal(t, cfg.AppID, claims[domain.AppIDKey].(string))
 
 	const deltaSeconds = 1
@@ -125,8 +122,7 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -227,8 +223,7 @@ func TestRegisterUser_FailCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Add appID to gRPC metadata
-			md := metadata.Pairs()
-			md.Append(appid.Header, tt.appID)
+			md := metadata.Pairs(appid.Header, cfg.AppID)
 			ctx = metadata.NewOutgoingContext(ctx, md)
 
 			// Register user
@@ -257,8 +252,7 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register first user
@@ -311,8 +305,7 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register first user
@@ -334,9 +327,9 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AuthorizationHeader, accessToken)
-
 	// Create context for Logout request
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Delete first user

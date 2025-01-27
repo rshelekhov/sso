@@ -25,8 +25,7 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -82,8 +81,7 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -148,8 +146,7 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -194,8 +191,7 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user

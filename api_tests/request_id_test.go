@@ -3,6 +3,8 @@ package api_tests
 import (
 	"testing"
 
+	"github.com/rshelekhov/sso/pkg/middleware/appid"
+
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rshelekhov/jwtauth"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
@@ -22,7 +24,7 @@ func TestRequestID_HappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Create metadata
-	md := metadata.Pairs()
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	md.Append(requestid.Header, "requestID #1 from the client side")
 
 	// Create context with metadata
@@ -47,9 +49,9 @@ func TestRequestID_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AuthorizationHeader, accessToken)
-
 	// Create context for Logout request
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Logout user
@@ -81,7 +83,7 @@ func TestRequestID_EmptyRequestID(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Create metadata
-	md := metadata.Pairs()
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	md.Append(requestid.Header, emptyValue)
 
 	// Create context with metadata
@@ -106,10 +108,10 @@ func TestRequestID_EmptyRequestID(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AccessTokenKey, accessToken)
-	md.Append(requestid.Header, emptyValue)
-
 	// Create context for Logout request
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
+	md.Append(requestid.Header, emptyValue)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Logout user

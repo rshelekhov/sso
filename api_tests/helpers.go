@@ -2,9 +2,10 @@ package api_tests
 
 import (
 	"context"
+	"testing"
+
 	"github.com/rshelekhov/jwtauth"
 	"github.com/rshelekhov/sso/pkg/middleware/appid"
-	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"

@@ -24,8 +24,7 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -58,9 +57,9 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AccessTokenKey, accessToken)
-
-	// Create context for the request
+	// Create context for Get user request
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Get user data to check if email was verified
@@ -87,9 +86,9 @@ func TestVerifyEmail_TokenExpired(t *testing.T) {
 	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
+
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user

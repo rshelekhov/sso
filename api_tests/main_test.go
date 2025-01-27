@@ -1,9 +1,10 @@
 package api_tests
 
 import (
-	"github.com/spf13/viper"
 	"log"
 	"testing"
+
+	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -35,7 +36,6 @@ var cfg = Config{}
 const localTestsConfigPath = "../config/local_tests.env"
 
 func MustLoadPath(configPath string) *Config {
-
 	viper.SetConfigFile(configPath)
 
 	err := viper.ReadInConfig()

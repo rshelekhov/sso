@@ -23,8 +23,7 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -46,9 +45,9 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AuthorizationHeader, accessToken)
-
 	// Create context for Update user request
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Update user
@@ -80,8 +79,7 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user for taking email
@@ -118,9 +116,9 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 	accessToken := token2.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AuthorizationHeader, accessToken)
-
 	// Create context for Update user request
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Update user
@@ -155,8 +153,7 @@ func TestUpdateUser_FailCases(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	tests := []struct {
@@ -226,9 +223,9 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			accessToken := token.GetAccessToken()
 			require.NotEmpty(t, accessToken)
 
-			md := metadata.Pairs(jwtauth.AuthorizationHeader, accessToken)
-
 			// Create context for Logout request
+			md = metadata.Pairs(appid.Header, cfg.AppID)
+			md.Append(jwtauth.AuthorizationHeader, accessToken)
 			ctx = metadata.NewOutgoingContext(ctx, md)
 
 			// Update user

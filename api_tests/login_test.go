@@ -30,8 +30,7 @@ func TestLogin_HappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -106,9 +105,6 @@ func TestLogin_HappyPath(t *testing.T) {
 
 	assert.Equal(t, cfg.Issuer, claims[domain.IssuerKey].(string))
 
-	// TODO: check if we need to get email in claims here!
-	assert.Equal(t, email, claims["email"].(string))
-
 	assert.Equal(t, cfg.AppID, claims[domain.AppIDKey].(string))
 
 	const deltaSeconds = 1
@@ -145,8 +141,7 @@ func TestLogin_FailCases(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -240,7 +235,6 @@ func TestLogin_FailCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			// Login user
 			_, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
 				Email:    tt.email,

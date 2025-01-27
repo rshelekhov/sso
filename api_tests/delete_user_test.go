@@ -1,6 +1,8 @@
 package api_tests
 
 import (
+	"testing"
+
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rshelekhov/jwtauth"
 
@@ -10,7 +12,6 @@ import (
 	"github.com/rshelekhov/sso/pkg/middleware/appid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
-	"testing"
 )
 
 func TestDeleteUser_HappyPath(t *testing.T) {
@@ -23,8 +24,7 @@ func TestDeleteUser_HappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Add appID to gRPC metadata
-	md := metadata.Pairs()
-	md.Append(appid.Header, cfg.AppID)
+	md := metadata.Pairs(appid.Header, cfg.AppID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -46,7 +46,7 @@ func TestDeleteUser_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(jwtauth.AuthorizationHeader, accessToken)
+	md = metadata.Join(md, metadata.Pairs(jwtauth.AuthorizationHeader, accessToken))
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)
