@@ -99,18 +99,18 @@ func (u *User) GetUserByID(ctx context.Context, appID string) (entity.User, erro
 
 	userID, err := u.identityMgr.ExtractUserIDFromContext(ctx, appID)
 	if err != nil {
-		e.HandleError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
+		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return entity.User{}, domain.ErrFailedToExtractUserIDFromContext
 	}
 
 	userData, err := u.userMgr.GetUserByID(ctx, appID, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
-			e.HandleError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
+			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
 			return entity.User{}, domain.ErrUserNotFound
 		}
 
-		e.HandleError(ctx, log, domain.ErrFailedToGetUser, err, slog.Any("userID", userID))
+		e.LogError(ctx, log, domain.ErrFailedToGetUser, err, slog.Any("userID", userID))
 		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToGetUserByID, err)
 	}
 
@@ -126,23 +126,23 @@ func (u *User) UpdateUser(ctx context.Context, appID string, data *entity.UserRe
 
 	userID, err := u.identityMgr.ExtractUserIDFromContext(ctx, appID)
 	if err != nil {
-		e.HandleError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
+		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return domain.ErrFailedToExtractUserIDFromContext
 	}
 
 	userDataFromDB, err := u.userMgr.GetUserData(ctx, appID, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
-			e.HandleError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
+			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
 			return domain.ErrUserNotFound
 		}
 
-		e.HandleError(ctx, log, domain.ErrFailedToGetUserData, err, slog.Any("userID", userID))
+		e.LogError(ctx, log, domain.ErrFailedToGetUserData, err, slog.Any("userID", userID))
 		return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
 	}
 
 	if err = u.updateUserFields(ctx, appID, data, userDataFromDB); err != nil {
-		e.HandleError(ctx, log, domain.ErrFailedToUpdateUser, err, slog.Any("userID", userID))
+		e.LogError(ctx, log, domain.ErrFailedToUpdateUser, err, slog.Any("userID", userID))
 		return fmt.Errorf("%w: %w", domain.ErrFailedToUpdateUser, err)
 	}
 
@@ -158,7 +158,7 @@ func (u *User) DeleteUser(ctx context.Context, appID string) error {
 
 	userID, err := u.identityMgr.ExtractUserIDFromContext(ctx, appID)
 	if err != nil {
-		e.HandleError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
+		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return domain.ErrFailedToExtractUserIDFromContext
 	}
 
@@ -186,7 +186,7 @@ func (u *User) DeleteUser(ctx context.Context, appID string) error {
 			return fmt.Errorf("%w: %s", domain.ErrUnknownUserStatus, userStatus)
 		}
 	}); err != nil {
-		e.HandleError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", userData.ID))
+		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", userData.ID))
 		return err
 	}
 
@@ -233,6 +233,11 @@ func (u *User) handlePasswordUpdate(
 
 	if data.UpdatedPassword == "" {
 		return nil
+	}
+
+	// Check if the current password is provided
+	if data.Password == "" {
+		return domain.ErrCurrentPasswordRequired
 	}
 
 	// Check if the current password is correct
