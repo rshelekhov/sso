@@ -1,14 +1,19 @@
 package api_tests
 
 import (
+	"testing"
+
+	"github.com/rshelekhov/sso/internal/domain"
+
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/rshelekhov/jwtauth"
+
+	// "github.com/rshelekhov/jwtauth"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
-	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
+	"github.com/rshelekhov/sso/pkg/middleware/appid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
-	"testing"
 )
 
 func TestGetUser_HappyPath(t *testing.T) {
@@ -20,11 +25,14 @@ func TestGetUser_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs(appid.Header, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -40,15 +48,14 @@ func TestGetUser_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 
 	// Create context for the request
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Get user
-	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{
-		AppId: cfg.AppID,
-	})
+	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{})
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.GetEmail())
 	require.NotEmpty(t, respGet.GetUpdatedAt())
@@ -60,10 +67,10 @@ func TestGetUser_HappyPath(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
 
-func TestGetUser_EmptyAppID(t *testing.T) {
+func TestGetUser_UserNotFound(t *testing.T) {
 	ctx, st := suite.New(t)
 
 	// Generate data for requests
@@ -72,11 +79,14 @@ func TestGetUser_EmptyAppID(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs(appid.Header, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -88,28 +98,23 @@ func TestGetUser_EmptyAppID(t *testing.T) {
 	token := respReg.GetTokenData()
 	require.NotEmpty(t, token)
 
-	// Get access token and place it in metadata
+	// Get access and place it in metadata
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 
 	// Create context for the request
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	// Get user
-	_, err = st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{
-		AppId: emptyValue,
-	})
+	// Delete user
+	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{})
+	require.NoError(t, err)
 
-	require.Contains(t, err.Error(), le.ErrAppIDIsRequired.Error())
-
-	// Cleanup database after test
-	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
-	}
-	cleanup(params)
+	// Try to get user
+	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), domain.ErrUserNotFound.Error())
+	require.Empty(t, respGet)
 }

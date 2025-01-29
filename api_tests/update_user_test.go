@@ -1,14 +1,16 @@
 package api_tests
 
 import (
+	"testing"
+
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/rshelekhov/jwtauth"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
-	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/pkg/middleware/appid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
-	"testing"
 )
 
 func TestUpdateUser_HappyPath(t *testing.T) {
@@ -20,11 +22,14 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs(appid.Header, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -40,9 +45,9 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
-
 	// Create context for Update user request
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Update user
@@ -50,7 +55,6 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 		Email:           gofakeit.Email(),
 		CurrentPassword: pass,
 		UpdatedPassword: randomFakePassword(),
-		AppId:           cfg.AppID,
 	})
 	require.NoError(t, err)
 
@@ -61,7 +65,7 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
 
 func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
@@ -74,11 +78,14 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs(appid.Header, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user for taking email
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           emailTaken,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -94,7 +101,6 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 	resp2Reg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -110,9 +116,9 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 	accessToken := token2.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
-
 	// Create context for Update user request
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Update user
@@ -120,10 +126,9 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 		Email:           emailTaken,
 		CurrentPassword: pass,
 		UpdatedPassword: randomFakePassword(),
-		AppId:           cfg.AppID,
 	})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), le.ErrEmailAlreadyTaken.Error())
+	require.Contains(t, err.Error(), domain.ErrEmailAlreadyTaken.Error())
 
 	// Cleanup database after test
 	tokens := []*ssov1.TokenData{token1, token2}
@@ -134,7 +139,7 @@ func TestUpdateUser_EmailAlreadyTaken(t *testing.T) {
 			appID: cfg.AppID,
 			token: token,
 		}
-		cleanup(params)
+		cleanup(params, cfg.AppID)
 	}
 }
 
@@ -147,6 +152,10 @@ func TestUpdateUser_FailCases(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs(appid.Header, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	tests := []struct {
 		name        string
 		regEmail    string
@@ -157,21 +166,12 @@ func TestUpdateUser_FailCases(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			name:        "Update user with empty appID",
-			regEmail:    gofakeit.Email(),
-			updEmail:    gofakeit.Email(),
-			curPassword: pass,
-			updPassword: randomFakePassword(),
-			appID:       emptyValue,
-			expectedErr: le.ErrAppIDIsRequired,
-		},
-		{
 			name:        "Current password is incorrect",
 			regEmail:    gofakeit.Email(),
 			curPassword: randomFakePassword(),
 			updPassword: randomFakePassword(),
 			appID:       cfg.AppID,
-			expectedErr: le.ErrCurrentPasswordIsIncorrect,
+			expectedErr: domain.ErrPasswordsDoNotMatch,
 		},
 		{
 			name:        "Current password is empty",
@@ -179,7 +179,7 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			curPassword: "",
 			updPassword: pass,
 			appID:       cfg.AppID,
-			expectedErr: le.ErrCurrentPasswordIsRequired,
+			expectedErr: domain.ErrCurrentPasswordRequired,
 		},
 		{
 			name:        "No password changes detected",
@@ -187,12 +187,12 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			curPassword: pass,
 			updPassword: pass,
 			appID:       cfg.AppID,
-			expectedErr: le.ErrNoPasswordChangesDetected,
+			expectedErr: domain.ErrNoPasswordChangesDetected,
 		},
 		{
 			name:        "No email changes detected",
 			appID:       cfg.AppID,
-			expectedErr: le.ErrNoEmailChangesDetected,
+			expectedErr: domain.ErrNoEmailChangesDetected,
 		},
 	}
 
@@ -208,7 +208,6 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:           tt.regEmail,
 				Password:        pass,
-				AppId:           cfg.AppID,
 				VerificationUrl: cfg.VerificationURL,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: userAgent,
@@ -224,9 +223,9 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			accessToken := token.GetAccessToken()
 			require.NotEmpty(t, accessToken)
 
-			md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
-
 			// Create context for Logout request
+			md = metadata.Pairs(appid.Header, cfg.AppID)
+			md.Append(jwtauth.AuthorizationHeader, accessToken)
 			ctx = metadata.NewOutgoingContext(ctx, md)
 
 			// Update user
@@ -234,7 +233,6 @@ func TestUpdateUser_FailCases(t *testing.T) {
 				Email:           tt.updEmail,
 				CurrentPassword: tt.curPassword,
 				UpdatedPassword: tt.updPassword,
-				AppId:           tt.appID,
 			})
 			require.Error(t, err)
 			require.Contains(t, err.Error(), tt.expectedErr.Error())
@@ -246,7 +244,7 @@ func TestUpdateUser_FailCases(t *testing.T) {
 				appID: cfg.AppID,
 				token: token,
 			}
-			cleanup(params)
+			cleanup(params, cfg.AppID)
 		})
 	}
 }

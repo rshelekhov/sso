@@ -2,13 +2,16 @@ package suite
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"os"
 	"testing"
 
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/api_tests/suite/storage/postgres"
+	"github.com/rshelekhov/sso/api_tests/suite/storage/verification"
 	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/sso/internal/config/settings"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -17,7 +20,7 @@ type Suite struct {
 	*testing.T
 	Cfg        *config.ServerSettings
 	AuthClient ssov1.AuthClient
-	Storage    *postgres.TestStorage
+	Storage    verification.TestStorage
 }
 
 const (
@@ -46,16 +49,21 @@ func New(t *testing.T) (context.Context, *Suite) {
 		t.Fatal("grpc server connection failed: ", err)
 	}
 
-	storage, err := postgres.NewTestStorage(cfg)
+	dbConn, err := newDBConnection(cfg.Storage)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal(fmt.Errorf("failed to init database connection for the test suite: %w", err))
+	}
+
+	testStorage, err := verification.NewTestStorage(dbConn)
+	if err != nil {
+		t.Fatal(fmt.Errorf("failed to init test storage for the test suite: %w", err))
 	}
 
 	return ctx, &Suite{
 		T:          t,
 		Cfg:        cfg,
 		AuthClient: ssov1.NewAuthClient(cc),
-		Storage:    storage,
+		Storage:    testStorage,
 	}
 }
 
@@ -69,4 +77,18 @@ func configPath() string {
 
 func grpcAddress(cfg *config.ServerSettings) string {
 	return net.JoinHostPort(grpcHost, cfg.GRPCServer.Port)
+}
+
+func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
+	storageConfig, err := settings.ToStorageConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	dbConnection, err := storage.NewDBConnection(storageConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbConnection, nil
 }

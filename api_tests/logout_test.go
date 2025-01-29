@@ -1,13 +1,15 @@
 package api_tests
 
 import (
+	"testing"
+
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/rshelekhov/jwtauth"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
+	"github.com/rshelekhov/sso/pkg/middleware/appid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
-	"testing"
 )
 
 func TestLogout_HappyPath(t *testing.T) {
@@ -19,11 +21,14 @@ func TestLogout_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs(appid.Header, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -39,14 +44,14 @@ func TestLogout_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 
 	// Create context for Logout request
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Logout user
 	_, err = st.AuthClient.Logout(ctx, &ssov1.LogoutRequest{
-		AppId: cfg.AppID,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
@@ -61,5 +66,5 @@ func TestLogout_HappyPath(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }

@@ -3,35 +3,42 @@ package api_tests
 import (
 	"crypto/rsa"
 	"encoding/base64"
-	"github.com/brianvoe/gofakeit/v6"
-	"github.com/golang-jwt/jwt/v5"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/constant/key"
-	"github.com/rshelekhov/sso/internal/lib/constant/le"
-	"github.com/rshelekhov/sso/internal/lib/jwt/jwtoken"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/metadata"
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/rshelekhov/jwtauth"
+
+	"github.com/brianvoe/gofakeit/v6"
+	"github.com/golang-jwt/jwt/v5"
+	// "github.com/rshelekhov/jwtauth"
+	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	"github.com/rshelekhov/sso/api_tests/suite"
+	"github.com/rshelekhov/sso/internal/controller/grpc"
+	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/pkg/middleware/appid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestRegisterUser_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
-	// Generate data for requests
+	// Generate data for request
 	email := gofakeit.Email()
 	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs(appid.Header, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -44,15 +51,13 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	require.NotEmpty(t, token)
 
 	// Get JWKS
-	jwks, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{
-		AppId: cfg.AppID,
-	})
+	jwks, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{})
 	require.NoError(t, err)
 	require.NotEmpty(t, jwks.GetJwks())
 
 	// Parse jwtoken
 	tokenParsed, err := jwt.Parse(token.GetAccessToken(), func(token *jwt.Token) (interface{}, error) {
-		kidRaw, ok := token.Header[jwtoken.Kid]
+		kidRaw, ok := token.Header[domain.KIDKey]
 		require.True(t, ok)
 
 		kid, ok := kidRaw.(string)
@@ -88,14 +93,14 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	claims, ok := tokenParsed.Claims.(jwt.MapClaims)
 	require.True(t, ok)
 
-	assert.Equal(t, cfg.Issuer, claims[key.Issuer].(string))
-	assert.Equal(t, email, claims[key.Email].(string))
-	assert.Equal(t, cfg.AppID, claims[key.AppID].(string))
+	assert.Equal(t, cfg.Issuer, claims[domain.IssuerKey].(string))
+
+	assert.Equal(t, cfg.AppID, claims[domain.AppIDKey].(string))
 
 	const deltaSeconds = 1
 
 	// Check if exp of jwtoken is in correct range, ttl get from st.Cfg.TokenTTL
-	assert.InDelta(t, float64(loginTime.Add(st.Cfg.JWTAuth.AccessTokenTTL).Unix()), claims[key.ExpirationAt].(float64), deltaSeconds)
+	assert.InDelta(t, float64(loginTime.Add(st.Cfg.JWT.AccessTokenTTL).Unix()), claims[domain.ExpirationAtKey].(float64), deltaSeconds)
 
 	// Cleanup database after test
 	params := cleanupParams{
@@ -104,7 +109,7 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
 
 func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
@@ -116,11 +121,14 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs(appid.Header, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -136,7 +144,6 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 	respDoubleReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -145,7 +152,7 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Empty(t, respDoubleReg.GetTokenData())
-	assert.ErrorContains(t, err, le.ErrUserAlreadyExists.Error())
+	assert.ErrorContains(t, err, domain.ErrUserAlreadyExists.Error())
 
 	// Cleanup database after test
 	params := cleanupParams{
@@ -154,7 +161,7 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
 
 func TestRegisterUser_FailCases(t *testing.T) {
@@ -182,7 +189,7 @@ func TestRegisterUser_FailCases(t *testing.T) {
 			appID:       cfg.AppID,
 			userAgent:   userAgent,
 			ip:          ip,
-			expectedErr: le.ErrEmailIsRequired,
+			expectedErr: grpc.ErrEmailIsRequired,
 		},
 		{
 			name:        "Register with empty password",
@@ -191,16 +198,7 @@ func TestRegisterUser_FailCases(t *testing.T) {
 			appID:       cfg.AppID,
 			userAgent:   userAgent,
 			ip:          ip,
-			expectedErr: le.ErrPasswordIsRequired,
-		},
-		{
-			name:        "Register with empty appID",
-			email:       email,
-			password:    pass,
-			appID:       emptyValue,
-			userAgent:   userAgent,
-			ip:          ip,
-			expectedErr: le.ErrAppIDIsRequired,
+			expectedErr: grpc.ErrPasswordIsRequired,
 		},
 		{
 			name:        "Register with empty userAgent",
@@ -209,7 +207,7 @@ func TestRegisterUser_FailCases(t *testing.T) {
 			appID:       cfg.AppID,
 			userAgent:   emptyValue,
 			ip:          ip,
-			expectedErr: le.ErrUserAgentIsRequired,
+			expectedErr: grpc.ErrUserAgentIsRequired,
 		},
 		{
 			name:        "Register with empty ip",
@@ -218,17 +216,20 @@ func TestRegisterUser_FailCases(t *testing.T) {
 			appID:       cfg.AppID,
 			userAgent:   userAgent,
 			ip:          emptyValue,
-			expectedErr: le.ErrIPIsRequired,
+			expectedErr: grpc.ErrIPIsRequired,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Add appID to gRPC metadata
+			md := metadata.Pairs(appid.Header, cfg.AppID)
+			ctx = metadata.NewOutgoingContext(ctx, md)
+
 			// Register user
 			_, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 				Email:           tt.email,
 				Password:        tt.password,
-				AppId:           tt.appID,
 				VerificationUrl: cfg.VerificationURL,
 				UserDeviceData: &ssov1.UserDeviceData{
 					UserAgent: tt.userAgent,
@@ -250,11 +251,14 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs(appid.Header, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register first user
 	resp1Reg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -270,7 +274,6 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 	resp2Reg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -278,7 +281,7 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 		},
 	})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), le.ErrUserAlreadyExists.Error())
+	require.Contains(t, err.Error(), domain.ErrUserAlreadyExists.Error())
 	require.Empty(t, resp2Reg.GetTokenData())
 
 	// Cleanup database after test
@@ -288,7 +291,7 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }
 
 // Test register new user using email with soft deleted user
@@ -301,11 +304,14 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
+	// Add appID to gRPC metadata
+	md := metadata.Pairs(appid.Header, cfg.AppID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	// Register first user
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: userAgent,
@@ -321,22 +327,19 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md := metadata.Pairs(jwtoken.AccessTokenKey, accessToken)
-
 	// Create context for Logout request
+	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Delete first user
-	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{
-		AppId: cfg.AppID,
-	})
+	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{})
 	require.NoError(t, err)
 
 	// Register second user
 	respReg, err = st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        randomFakePassword(),
-		AppId:           cfg.AppID,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &ssov1.UserDeviceData{
 			UserAgent: gofakeit.UserAgent(),
@@ -355,5 +358,5 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 		appID: cfg.AppID,
 		token: token,
 	}
-	cleanup(params)
+	cleanup(params, cfg.AppID)
 }

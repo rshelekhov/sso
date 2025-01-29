@@ -1,6 +1,11 @@
 package settings
 
-// KeyStorageType – what use for store private keys
+import (
+	"fmt"
+
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
+)
+
 type KeyStorageType string
 
 const (
@@ -25,4 +30,57 @@ type KeyStorageS3Params struct {
 	SecretKey      string `mapstructure:"KEY_STORAGE_S3_SECRET_KEY"`
 	PrivateKeyPath string `mapstructure:"KEY_STORAGE_S3_PRIVATE_KEY_PATH"`
 	Endpoint       string `mapstructure:"KEY_STORAGE_S3_ENDPOINT"`
+}
+
+func ToKeyStorageConfig(ks KeyStorage) (key.Config, error) {
+	const op = "settings.KeyStorage.ToKeyStorageConfig"
+
+	storageType, err := validateAndConvertKeyStorageType(ks.Type)
+	if err != nil {
+		return key.Config{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return key.Config{
+		Type:  storageType,
+		Local: convertLocalParams(ks.Local),
+		S3:    convertS3Params(ks.S3),
+	}, nil
+}
+
+func validateAndConvertKeyStorageType(storageType KeyStorageType) (key.StorageType, error) {
+	switch storageType {
+	case KeyStorageTypeLocal:
+		return key.StorageTypeLocal, nil
+	case KeyStorageTypeS3:
+		return key.StorageTypeS3, nil
+	case "":
+		return "", fmt.Errorf("key storage type is empty")
+	default:
+		return "", fmt.Errorf("unknown key storage type: %s", storageType)
+	}
+}
+
+func convertLocalParams(params *KeyStorageLocalParams) *key.StorageLocalParams {
+	if params == nil {
+		return nil
+	}
+
+	return &key.StorageLocalParams{
+		Path: params.Path,
+	}
+}
+
+func convertS3Params(params *KeyStorageS3Params) *key.StorageS3Params {
+	if params == nil {
+		return nil
+	}
+
+	return &key.StorageS3Params{
+		Region:         params.Region,
+		Bucket:         params.Bucket,
+		AccessKey:      params.AccessKey,
+		SecretKey:      params.SecretKey,
+		PrivateKeyPath: params.PrivateKeyPath,
+		Endpoint:       params.Endpoint,
+	}
 }
