@@ -25,7 +25,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t grpc-sso:latest .
+          docker build -t sso:latest .
 
       - name: Create a temporary SSH key file
         run: |
@@ -40,37 +40,35 @@ jobs:
       - name: Upload Docker image to DEV server
         run: |
           # Save Docker image to a tar file 
-          docker save grpc-sso:latest -o grpc-sso.tar
+          docker save sso:latest -o sso.tar
           
           # Transfer Docker image tar file to DEV server
-          scp -i /tmp/ssh_key grpc-sso.tar $DEV_SERVER_USER@$DEV_SERVER_HOST:/tmp/
+          scp -i /tmp/ssh_key sso.tar $DEV_SERVER_USER@$DEV_SERVER_HOST:/tmp/
 
       - name: Deploy Docker image to DEV server
         run: |
           ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST << 'EOF'
             # Create config file on the server
-            echo "${{ secrets.ENV_CONFIG_DEV }}" > ./config/grpc-sso/.env
+            mkdir -p ./config/sso
+            echo "${{ secrets.ENV_CONFIG_DEV }}" > ./config/sso/.env
           
-            # Create reframed-network if it doesn't exist
-            docker network inspect reframed-network >/dev/null 2>&1 || docker network create reframed-network
-
             # Stop and remove the existing container (if any)
             docker stop sso-app || true
             docker rm sso-app || true
           
             # Load the Docker image
-            docker load -i /tmp/grpc-sso.tar
+            docker load -i /tmp/sso.tar
           
             # Run the new container with the CONFIG_PATH environment variable for running the app
             # and POSTGRESQL_URL environment variable set for running migrations
             docker run -d \
-              --network reframed-network \
-              -v ${PWD}/config/grpc-sso:/src/config \
+              -v ${PWD}/config/sso:/src/config \
               -e CONFIG_PATH=/src/config/.env \
               -e POSTGRESQL_URL=${{ secrets.POSTGRESQL_URL }} \
               -p 44044:44044 \
+              -p 8081:8081 \
               --name sso-app \
-              grpc-sso:latest
+              sso:latest
           
             # Wait for a few seconds to ensure the container is running
             sleep 10
@@ -91,4 +89,4 @@ jobs:
         run: |
           # Remove temporary files
           rm /tmp/ssh_key
-          rm grpc-sso.tar
+          rm sso.tar
