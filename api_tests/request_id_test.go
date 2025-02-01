@@ -3,12 +3,11 @@ package api_tests
 import (
 	"testing"
 
-	"github.com/rshelekhov/sso/pkg/middleware/appid"
-
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rshelekhov/jwtauth"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
+	"github.com/rshelekhov/sso/pkg/middleware/appid"
 	"github.com/rshelekhov/sso/pkg/middleware/requestid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"

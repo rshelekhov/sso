@@ -43,15 +43,14 @@ func (s *SessionStorage) CreateSession(ctx context.Context, session entity.Sessi
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).CreateUserSession(ctx, params)
 	})
+
+	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+		// Save session without transaction
+		err = s.queries.CreateUserSession(ctx, params)
+	}
+
 	if err != nil {
-		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
-			// Save session without transaction
-			if err := s.queries.CreateUserSession(ctx, params); err != nil {
-				return fmt.Errorf("%s: failed to create user session: %w", method, err)
-			}
-		} else {
-			return fmt.Errorf("%s: failed to create user session: %w", method, err)
-		}
+		return fmt.Errorf("%s: failed to create user session: %w", method, err)
 	}
 
 	return nil
@@ -92,15 +91,14 @@ func (s *SessionStorage) UpdateLastVisitedAt(ctx context.Context, session entity
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).UpdateLastVisitedAt(ctx, params)
 	})
+
+	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+		// Update last visited at without transaction
+		err = s.queries.UpdateLastVisitedAt(ctx, params)
+	}
+
 	if err != nil {
-		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
-			// Update last visited at without transaction
-			if err := s.queries.UpdateLastVisitedAt(ctx, params); err != nil {
-				return fmt.Errorf("%s: failed to update last visited at: %w", method, err)
-			}
-		} else {
-			return fmt.Errorf("%s: failed to update last visited at: %w", method, err)
-		}
+		return fmt.Errorf("%s: failed to update last visited at: %w", method, err)
 	}
 
 	return nil
@@ -145,15 +143,14 @@ func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID, appID st
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).DeleteAllSessions(ctx, params)
 	})
+
+	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+		// Delete all sessions without transaction
+		err = s.queries.DeleteAllSessions(ctx, params)
+	}
+
 	if err != nil {
-		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
-			// Delete all sessions without transaction
-			if err := s.queries.DeleteAllSessions(ctx, params); err != nil {
-				return fmt.Errorf("%s: failed to delete all sessions: %w", method, err)
-			}
-		} else {
-			return fmt.Errorf("%s: failed to delete all sessions: %w", method, err)
-		}
+		return fmt.Errorf("%s: failed to delete all sessions: %w", method, err)
 	}
 
 	return nil
@@ -193,15 +190,14 @@ func (s *SessionStorage) RegisterDevice(ctx context.Context, device entity.UserD
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).RegisterDevice(ctx, params)
 	})
+
+	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+		// Register device without transaction
+		err = s.queries.RegisterDevice(ctx, params)
+	}
+
 	if err != nil {
-		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
-			// Register device without transaction
-			if err := s.queries.RegisterDevice(ctx, params); err != nil {
-				return fmt.Errorf("%s: failed to register user device: %w", method, err)
-			}
-		} else {
-			return fmt.Errorf("%s: failed to register user device: %w", method, err)
-		}
+		return fmt.Errorf("%s: failed to register user device: %w", method, err)
 	}
 
 	return nil

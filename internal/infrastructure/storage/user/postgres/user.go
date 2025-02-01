@@ -102,28 +102,14 @@ func (s *UserStorage) UpdateUser(ctx context.Context, user entity.User) error {
 	// Prepare the dynamic update query based on the provided fields
 	queryUpdate, queryParams := s.buildUpdateUserQuery(user)
 
-	// Execute the update query within transaction
-	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
-		_, err := tx.Exec(ctx, queryUpdate, queryParams...)
-		return err
-	})
+	err := s.executeUpdateQuery(ctx, queryUpdate, queryParams)
 	if err != nil {
-		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
-			// Execute the update query without transaction
-			_, err = s.pool.Exec(ctx, queryUpdate, queryParams...)
-			if err != nil {
-				if errors.Is(err, pgx.ErrNoRows) {
-					return storage.ErrUserNotFound
-				}
-				return fmt.Errorf("%s: failed to execute update query: %w", method, err)
-			}
-		} else {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return storage.ErrUserNotFound
-			}
-			return fmt.Errorf("%s: failed to execute update query: %w", method, err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return storage.ErrUserNotFound
 		}
+		return fmt.Errorf("%s: failed to execute update query: %w", method, err)
 	}
+
 	return nil
 }
 
@@ -150,6 +136,19 @@ func (s *UserStorage) buildUpdateUserQuery(user entity.User) (string, []interfac
 	return queryUpdate, queryParams
 }
 
+func (s *UserStorage) executeUpdateQuery(ctx context.Context, query string, params []interface{}) error {
+	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, query, params...)
+		return err
+	})
+
+	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+		_, err = s.pool.Exec(ctx, query, params...)
+	}
+
+	return err
+}
+
 func (s *UserStorage) DeleteUser(ctx context.Context, user entity.User) error {
 	const method = "user.postgres.DeleteUser"
 
@@ -162,28 +161,27 @@ func (s *UserStorage) DeleteUser(ctx context.Context, user entity.User) error {
 		},
 	}
 
-	// Delete user within transaction
-	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
-		return s.queries.WithTx(tx).DeleteUser(ctx, params)
-	})
+	err := s.executeDeleteUser(ctx, params)
 	if err != nil {
-		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
-			// Delete user without transaction
-			if err := s.queries.DeleteUser(ctx, params); err != nil {
-				if errors.Is(err, pgx.ErrNoRows) {
-					return storage.ErrUserNotFound
-				}
-				return fmt.Errorf("%s: failed to delete user: %w", method, err)
-			}
-		} else {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return storage.ErrUserNotFound
-			}
-			return fmt.Errorf("%s: failed to delete user: %w", method, err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return storage.ErrUserNotFound
 		}
+		return fmt.Errorf("%s: failed to delete user: %w", method, err)
 	}
 
 	return nil
+}
+
+func (s *UserStorage) executeDeleteUser(ctx context.Context, params sqlc.DeleteUserParams) error {
+	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
+		return s.queries.WithTx(tx).DeleteUser(ctx, params)
+	})
+
+	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+		err = s.queries.DeleteUser(ctx, params)
+	}
+
+	return err
 }
 
 // GetUserStatusByEmail returns the status of the user with the given email
@@ -228,15 +226,14 @@ func (s *UserStorage) DeleteAllTokens(ctx context.Context, appID, userID string)
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).DeleteAllTokens(ctx, params)
 	})
+
+	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+		// Delete all tokens without transaction
+		err = s.queries.DeleteAllTokens(ctx, params)
+	}
+
 	if err != nil {
-		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
-			// Delete all tokens without transaction
-			if err := s.queries.DeleteAllTokens(ctx, params); err != nil {
-				return fmt.Errorf("%s: failed to delete tokens: %w", method, err)
-			}
-		} else {
-			return fmt.Errorf("%s: failed to delete tokens: %w", method, err)
-		}
+		return fmt.Errorf("%s: failed to delete tokens: %w", method, err)
 	}
 
 	return nil
