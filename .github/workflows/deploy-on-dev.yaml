@@ -47,7 +47,7 @@ jobs:
 
       - name: Deploy Docker image to DEV server
         run: |
-          mkdir -p ./config/sso
+          ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST "mkdir -p /config/sso"
           scp -i /tmp/ssh_key config/grpc_methods.yaml $DEV_SERVER_USER@$DEV_SERVER_HOST:/config/sso/
           
           ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST << 'EOF'
