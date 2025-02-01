@@ -45,15 +45,14 @@ func (s *VerificationStorage) SaveVerificationToken(ctx context.Context, data en
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).SaveVerificationToken(ctx, params)
 	})
+
+	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+		// Save verification token without transaction
+		err = s.queries.SaveVerificationToken(ctx, params)
+	}
+
 	if err != nil {
-		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
-			// Save verification token without transaction
-			if err := s.queries.SaveVerificationToken(ctx, params); err != nil {
-				return fmt.Errorf("%s: failed to save verification token: %w", method, err)
-			}
-		} else {
-			return fmt.Errorf("%s: failed to save verification token: %w", method, err)
-		}
+		return fmt.Errorf("%s: failed to save verification token: %w", method, err)
 	}
 
 	return nil
@@ -88,15 +87,14 @@ func (s *VerificationStorage) DeleteVerificationToken(ctx context.Context, token
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
 		return s.queries.WithTx(tx).DeleteVerificationToken(ctx, token)
 	})
+
+	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+		// Delete verification token without transaction
+		err = s.queries.DeleteVerificationToken(ctx, token)
+	}
+
 	if err != nil {
-		if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
-			// Delete verification token without transaction
-			if err := s.queries.DeleteVerificationToken(ctx, token); err != nil {
-				return fmt.Errorf("%s: failed to delete verification token: %w", method, err)
-			}
-		} else {
-			return fmt.Errorf("%s: failed to delete verification token: %w", method, err)
-		}
+		return fmt.Errorf("%s: failed to delete verification token: %w", method, err)
 	}
 
 	return nil
