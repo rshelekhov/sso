@@ -48,11 +48,11 @@ jobs:
       - name: Deploy Docker image to DEV server
         run: |
           # Transfer config file with grpc methods
-          scp -i /tmp/ssh_key config/grpc_methods.yaml $DEV_SERVER_USER@$DEV_SERVER_HOST:./config/sso/
+          scp -i /tmp/ssh_key config/grpc_methods.yaml $DEV_SERVER_USER@$DEV_SERVER_HOST:${PWD}/config/sso/
           
           ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST << 'EOF'
             # Create config file on the server
-            echo "${{ secrets.ENV_CONFIG_DEV }}" > ./config/sso/.env
+            echo "${{ secrets.ENV_CONFIG_DEV }}" > ${PWD}/config/sso/.env
           
             # Stop and remove the existing container (if any)
             docker stop sso-app || true
