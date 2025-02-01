@@ -31,7 +31,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: '1.21'
+          go-version: '1.23'
 
       - name: Install golang-migrate
         run: |
@@ -46,6 +46,11 @@ jobs:
         run: |
           set -x
           echo "${{ secrets.ENV_CONFIG_TEST }}" > ./config/.env
+
+      - name: Create config with grpc methods
+        run: |
+          set -x
+          echo "${{ secrets.GRPC_METHODS_YAML }}" > ./config/grpc_methods.yaml
 
       - name: Wait for PostgreSQL to be ready
         run: sleep 10
