@@ -51,7 +51,6 @@ jobs:
             # Create config file on the server
             mkdir -p ./config/sso
             echo "${{ secrets.ENV_CONFIG_DEV }}" > ./config/sso/.env
-            echo "${{ secrets.GRPC_METHODS_DEV }}" > ./config/sso/grpc_methods.yaml
           
             # Stop and remove the existing container (if any)
             docker stop sso-app || true
