@@ -60,6 +60,15 @@ jobs:
             # Load the Docker image
             docker load -i /tmp/sso.tar
           
+            # Check the content of the grpc_methods.yaml
+            echo "Content of ./config/sso/grpc_methods.yaml:"
+            ls -l ./config/sso/grpc_methods.yaml
+            cat ./config/sso/grpc_methods.yaml
+          
+            # Check the GRPC_METHODS_YAML variable
+            echo "GRPC_METHODS_YAML variable:"
+            echo "${{ secrets.GRPC_METHODS_YAML }}"
+          
             # Run the new container with the CONFIG_PATH environment variable for running the app
             # and POSTGRESQL_URL environment variable set for running migrations
             docker run -d \
