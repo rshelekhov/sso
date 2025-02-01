@@ -57,7 +57,7 @@ func (ar *Router) initRoutes() *chi.Mux {
 			})
 
 			// Protected routes
-			//r.Group(func(r chi.Router) {
+			// r.Group(func(r chi.Router) {
 			//	r.Use(ar.jwtMgr.HTTPMiddleware)
 			//})
 		})
