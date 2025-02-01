@@ -49,7 +49,7 @@ jobs:
         run: |
           
           ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST << EOF
-            mkdir -p ~/config/sso
+            mkdir -p ${PWD}/config/sso
             # Create config file on the server
             echo '${{ secrets.ENV_CONFIG_DEV }}' > ${PWD}/config/sso/.env
             echo '${{ secrets.GRPC_METHODS_YAML }}' > ${PWD}/config/sso/grpc_methods.yaml
