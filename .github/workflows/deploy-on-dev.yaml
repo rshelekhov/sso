@@ -47,10 +47,13 @@ jobs:
 
       - name: Deploy Docker image to DEV server
         run: |
-          # Transfer config file with grpc methods
-          scp -i /tmp/ssh_key config/grpc_methods.yaml $DEV_SERVER_USER@$DEV_SERVER_HOST:${PWD}/config/sso/
+          WORK_DIR=$(ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST 'pwd')
           
-          ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST << 'EOF'
+          # Transfer config file with grpc methods
+          ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST "mkdir -p $WORK_DIR/config/sso"
+          scp -i /tmp/ssh_key config/grpc_methods.yaml $DEV_SERVER_USER@$DEV_SERVER_HOST:$WORK_DIR/config/sso/
+    
+          ssh -i /tmp/ssh_key $DEV_SERVER_USER@$DEV_SERVER_HOST << EOF
             # Create config file on the server
             echo "${{ secrets.ENV_CONFIG_DEV }}" > ${PWD}/config/sso/.env
           
