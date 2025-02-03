@@ -11,9 +11,10 @@ import (
 func New(cfg *Config) (*mongo.Client, error) {
 	const method = "storage.mongo.New"
 
-	clientOptions := options.Client().ApplyURI(cfg.URI)
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	opts := options.Client().ApplyURI(cfg.URI).SetServerAPIOptions(serverAPI)
 
-	client, err := mongo.Connect(context.Background(), clientOptions)
+	client, err := mongo.Connect(context.Background(), opts)
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to connect to mongodb: %w", method, err)
 	}
@@ -23,6 +24,10 @@ func New(cfg *Config) (*mongo.Client, error) {
 	}
 
 	return client, nil
+}
+
+func Close(client *mongo.Client) error {
+	return client.Disconnect(context.Background())
 }
 
 type Config struct {

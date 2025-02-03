@@ -33,6 +33,10 @@ func New(cfg *Config) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
+func Close(pool *pgxpool.Pool) {
+	pool.Close()
+}
+
 type Config struct {
 	ConnURL      string
 	ConnPoolSize int
