@@ -81,8 +81,8 @@ func TestGeneratePrivateKeyPEM(t *testing.T) {
 	require.NoError(t, err)
 
 	// Check if the generated PEM starts and ends with the correct headers
-	expectedHeader := "-----BEGIN PRIVATE KEY-----"
-	expectedFooter := "-----END PRIVATE KEY-----"
+	expectedHeader := "-----BEGIN RSA PRIVATE KEY-----"
+	expectedFooter := "-----END RSA PRIVATE KEY-----"
 	privateKeyPEMString := string(privateKeyPEM)
 	require.True(t, strings.HasPrefix(privateKeyPEMString, expectedHeader))
 	require.True(t, strings.HasSuffix(privateKeyPEMString, expectedFooter+"\n"))
