@@ -37,13 +37,17 @@ func main() {
 		application.HTTPServer.MustRun()
 	}()
 
-	// Graceful shutdown for the application
+	// Graceful shutdown
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
 	sign := <-stop
 	log.Info("shutting down...", slog.String("signal", sign.String()))
 
-	application.GRPCServer.Stop()
+	if err := application.Stop(); err != nil {
+		log.Error("failed to stop application", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	log.Info("graceful shutdown completed")
 }
