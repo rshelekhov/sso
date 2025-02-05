@@ -230,9 +230,9 @@ func (_c *SessionManager_GetSessionByRefreshToken_Call) RunAndReturn(run func(co
 	return _c
 }
 
-// GetUserDeviceID provides a mock function with given fields: ctx, reqData
-func (_m *SessionManager) GetUserDeviceID(ctx context.Context, reqData entity.SessionRequestData) (string, error) {
-	ret := _m.Called(ctx, reqData)
+// GetUserDeviceID provides a mock function with given fields: ctx, userID, userAgent
+func (_m *SessionManager) GetUserDeviceID(ctx context.Context, userID string, userAgent string) (string, error) {
+	ret := _m.Called(ctx, userID, userAgent)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserDeviceID")
@@ -240,17 +240,17 @@ func (_m *SessionManager) GetUserDeviceID(ctx context.Context, reqData entity.Se
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, entity.SessionRequestData) (string, error)); ok {
-		return rf(ctx, reqData)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (string, error)); ok {
+		return rf(ctx, userID, userAgent)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, entity.SessionRequestData) string); ok {
-		r0 = rf(ctx, reqData)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) string); ok {
+		r0 = rf(ctx, userID, userAgent)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, entity.SessionRequestData) error); ok {
-		r1 = rf(ctx, reqData)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, userID, userAgent)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -265,14 +265,15 @@ type SessionManager_GetUserDeviceID_Call struct {
 
 // GetUserDeviceID is a helper method to define mock.On call
 //   - ctx context.Context
-//   - reqData entity.SessionRequestData
-func (_e *SessionManager_Expecter) GetUserDeviceID(ctx interface{}, reqData interface{}) *SessionManager_GetUserDeviceID_Call {
-	return &SessionManager_GetUserDeviceID_Call{Call: _e.mock.On("GetUserDeviceID", ctx, reqData)}
+//   - userID string
+//   - userAgent string
+func (_e *SessionManager_Expecter) GetUserDeviceID(ctx interface{}, userID interface{}, userAgent interface{}) *SessionManager_GetUserDeviceID_Call {
+	return &SessionManager_GetUserDeviceID_Call{Call: _e.mock.On("GetUserDeviceID", ctx, userID, userAgent)}
 }
 
-func (_c *SessionManager_GetUserDeviceID_Call) Run(run func(ctx context.Context, reqData entity.SessionRequestData)) *SessionManager_GetUserDeviceID_Call {
+func (_c *SessionManager_GetUserDeviceID_Call) Run(run func(ctx context.Context, userID string, userAgent string)) *SessionManager_GetUserDeviceID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(entity.SessionRequestData))
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
 	return _c
 }
@@ -282,7 +283,7 @@ func (_c *SessionManager_GetUserDeviceID_Call) Return(_a0 string, _a1 error) *Se
 	return _c
 }
 
-func (_c *SessionManager_GetUserDeviceID_Call) RunAndReturn(run func(context.Context, entity.SessionRequestData) (string, error)) *SessionManager_GetUserDeviceID_Call {
+func (_c *SessionManager_GetUserDeviceID_Call) RunAndReturn(run func(context.Context, string, string) (string, error)) *SessionManager_GetUserDeviceID_Call {
 	_c.Call.Return(run)
 	return _c
 }

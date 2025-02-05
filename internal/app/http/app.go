@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -22,6 +19,7 @@ type App struct {
 	timeout          time.Duration
 	idleTimeout      time.Duration
 	requestLimitByIP int
+	server           *http.Server
 }
 
 func New(
@@ -53,10 +51,7 @@ func (a *App) Run() error {
 		slog.String("address", a.address),
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), a.timeout)
-	defer cancel()
-
-	srv := http.Server{
+	a.server = &http.Server{
 		Addr:         a.address,
 		Handler:      a.router,
 		ReadTimeout:  a.timeout,
@@ -64,37 +59,27 @@ func (a *App) Run() error {
 		IdleTimeout:  a.idleTimeout,
 	}
 
-	shutdownComplete := handleShutdown(func() {
-		if err := srv.Shutdown(ctx); err != nil {
-			log.Error("httpserver.Shutdown failed")
-		}
-	})
-
 	log.Info("HTTP server is starting", slog.String("address", a.address))
 
-	if err := srv.ListenAndServe(); errors.Is(err, http.ErrServerClosed) {
-		<-shutdownComplete
-	} else {
+	if err := a.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("%s: failed to start http server: %w", method, err)
 	}
-
-	log.Info("shutdown gracefully")
 
 	return nil
 }
 
-func handleShutdown(onShutdownSignal func()) <-chan struct{} {
-	shutdown := make(chan struct{})
+func (a *App) Stop() error {
+	const method = "http.App.Stop"
 
-	go func() {
-		shutdownSignal := make(chan os.Signal, 1)
-		signal.Notify(shutdownSignal, os.Interrupt, syscall.SIGTERM)
+	log := a.log.With(slog.String("method", method))
+	log.Info("stopping HTTP server")
 
-		<-shutdownSignal
+	ctx, cancel := context.WithTimeout(context.Background(), a.timeout)
+	defer cancel()
 
-		onShutdownSignal()
-		close(shutdown)
-	}()
+	if err := a.server.Shutdown(ctx); err != nil {
+		return fmt.Errorf("%s: failed to shutdown http server: %w", method, err)
+	}
 
-	return shutdown
+	return nil
 }

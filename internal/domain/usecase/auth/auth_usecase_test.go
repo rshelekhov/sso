@@ -17,7 +17,6 @@ import (
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/domain/usecase/auth/mocks"
-	"github.com/rshelekhov/sso/internal/infrastructure/service/mail"
 	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogdiscard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -392,16 +391,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 					Once().
 					Return(tokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(nil)
 			},
@@ -450,15 +440,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 					Once().
 					Return(tokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(nil)
 			},
@@ -766,16 +748,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 					Once().
 					Return(tokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(fmt.Errorf("mail service error"))
 			},
@@ -941,16 +914,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 					Once().
 					Return(newTokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(nil)
 			},
@@ -1069,11 +1033,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 					Once().
 					Return(newTokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(ctx, mock.AnythingOfType("string"), mock.AnythingOfType("string"), "test@example.com").
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(fmt.Errorf("mail service error"))
 			},
@@ -1196,16 +1156,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 					Once().
 					Return(expectedTokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					reqData.Email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(nil)
 			},
@@ -1268,17 +1219,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 				verificationMgr.EXPECT().CreateToken(ctx, userData, endpoint, tokenType).
 					Once().
 					Return(expectedTokenData, nil)
-
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					reqData.Email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(fmt.Errorf("mail service error"))
 			},
@@ -1448,16 +1389,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 					Once().
 					Return(newTokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					userData.Email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(nil)
 			},
@@ -1561,16 +1493,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 					Once().
 					Return(newTokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					userData.Email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(fmt.Errorf("mail service error"))
 			},
@@ -1821,11 +1744,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, entity.SessionRequestData{
-					UserID:     userID,
-					AppID:      appID,
-					UserDevice: userDeviceReqData,
-				}).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -1856,11 +1775,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, entity.SessionRequestData{
-					UserID:     userID,
-					AppID:      appID,
-					UserDevice: userDeviceReqData,
-				}).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
 					Once().
 					Return("", domain.ErrUserDeviceNotFound)
 			},
@@ -1873,11 +1788,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, entity.SessionRequestData{
-					UserID:     userID,
-					AppID:      appID,
-					UserDevice: userDeviceReqData,
-				}).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
 					Once().
 					Return("", fmt.Errorf("session manager error"))
 			},
@@ -1890,11 +1801,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, entity.SessionRequestData{
-					UserID:     userID,
-					AppID:      appID,
-					UserDevice: userDeviceReqData,
-				}).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -1996,6 +1903,10 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+					Once().
+					Return(deviceID, nil)
+
 				sessionMgr.EXPECT().DeleteRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(nil)
@@ -2032,7 +1943,11 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 			mockBehavior: func(sessionMgr *mocks.SessionManager) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
 					Once().
-					Return(entity.Session{}, domain.ErrUserDeviceNotFound)
+					Return(userSession, nil)
+
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+					Once().
+					Return("", domain.ErrUserDeviceNotFound)
 			},
 			expectedError:         domain.ErrUserDeviceNotFound,
 			expectedSessionTokens: entity.SessionTokens{},
@@ -2054,6 +1969,10 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+					Once().
+					Return(deviceID, nil)
+
 				sessionMgr.EXPECT().DeleteRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(domain.ErrFailedToDeleteRefreshToken)
@@ -2067,6 +1986,10 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(userSession, nil)
+
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+					Once().
+					Return(deviceID, nil)
 
 				sessionMgr.EXPECT().DeleteRefreshToken(ctx, reqData.RefreshToken).
 					Once().

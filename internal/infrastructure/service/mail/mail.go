@@ -1,8 +1,14 @@
 package mail
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"html/template"
+	"os"
+	"path/filepath"
 
+	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/pkg/service/mail/mailgun"
 	"github.com/rshelekhov/sso/pkg/service/mail/mocks"
 )
@@ -40,14 +46,37 @@ func NewService(cfg Config) *Service {
 	}
 }
 
-func (s *Service) SendPlainText(ctx context.Context, subject, body, recipient string) error {
-	return s.client.SendPlainText(ctx, subject, body, recipient)
+type Data struct {
+	TemplateType entity.EmailTemplateType
+	Subject      string
+	Recipient    string
+	Data         map[string]string
 }
 
-func (s *Service) SendHTML(ctx context.Context, subject, html, recipient string) error {
-	return s.client.SendHTML(ctx, subject, html, recipient)
+func (s *Service) SendEmail(ctx context.Context, data Data) error {
+	const method = "service.mail.SendEmail"
+
+	templatePath := filepath.Join(s.getTemplatesPath(), data.TemplateType.FileName())
+
+	templatesBytes, err := os.ReadFile(templatePath)
+	if err != nil {
+		return fmt.Errorf("%s: failed to read template file: %w", method, err)
+	}
+
+	tmpl := template.New(data.TemplateType.String())
+	tmpl, err = tmpl.Parse(string(templatesBytes))
+	if err != nil {
+		return fmt.Errorf("%s: failed to parse template: %w", method, err)
+	}
+
+	var body bytes.Buffer
+	if err = tmpl.Execute(&body, data.Data); err != nil {
+		return fmt.Errorf("%s: failed to execute template: %w", method, err)
+	}
+
+	return s.client.SendHTML(ctx, data.Subject, body.String(), data.Recipient)
 }
 
-func (s *Service) GetTemplatesPath() string {
+func (s *Service) getTemplatesPath() string {
 	return s.templatesPath
 }

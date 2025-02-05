@@ -1,22 +1,19 @@
 package auth
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"html/template"
 	"log/slog"
 	"math/big"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/service/mail"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/rshelekhov/sso/internal/lib/e"
 )
@@ -60,9 +57,7 @@ type (
 	}
 
 	MailService interface {
-		SendPlainText(ctx context.Context, subject, body, recipient string) error
-		SendHTML(ctx context.Context, subject, html, recipient string) error
-		GetTemplatesPath() string
+		SendEmail(ctx context.Context, data mail.Data) error
 	}
 
 	TokenManager interface {
@@ -539,33 +534,17 @@ func (u *Auth) verifyPassword(ctx context.Context, userData entity.User, passwor
 }
 
 func (u *Auth) sendEmailWithToken(ctx context.Context, tokenData entity.VerificationToken, templateType entity.EmailTemplateType) error {
-	subject := templateType.Subject()
-
-	templatePath := filepath.Join(u.mailService.GetTemplatesPath(), templateType.FileName())
-	templatesBytes, err := os.ReadFile(templatePath)
-	if err != nil {
-		return err
+	emailData := mail.Data{
+		TemplateType: templateType,
+		Subject:      templateType.Subject(),
+		Recipient:    tokenData.Email,
+		Data: map[string]string{
+			"Recipient": tokenData.Email,
+			"URL":       fmt.Sprintf("%s%s", tokenData.Endpoint, tokenData.Token),
+		},
 	}
 
-	tmpl, err := template.New(templateType.String()).Parse(string(templatesBytes))
-	if err != nil {
-		return err
-	}
-
-	data := struct {
-		Recipient string
-		URL       string
-	}{
-		Recipient: tokenData.Email,
-		URL:       fmt.Sprintf("%s%s", tokenData.Endpoint, tokenData.Token),
-	}
-
-	var body bytes.Buffer
-	if err = tmpl.Execute(&body, data); err != nil {
-		return err
-	}
-
-	return u.mailService.SendHTML(ctx, subject, body.String(), tokenData.Email)
+	return u.mailService.SendEmail(ctx, emailData)
 }
 
 func (u *Auth) handleTokenProcessing(

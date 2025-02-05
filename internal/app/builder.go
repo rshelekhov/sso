@@ -266,6 +266,7 @@ func (b *Builder) Build() (*App, error) {
 	return &App{
 		GRPCServer: grpcServer,
 		HTTPServer: httpServer,
+		dbConn:     b.storages.dbConn,
 	}, nil
 }
 
