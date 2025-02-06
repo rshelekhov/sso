@@ -20,8 +20,4 @@ type (
 		UpdatedAt time.Time
 		DeletedAt time.Time
 	}
-
-	AppRequestData struct {
-		Name string
-	}
 )
