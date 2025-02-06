@@ -20,16 +20,18 @@ type AuthStorage struct {
 }
 
 func NewAuthStorage(pool *pgxpool.Pool, txMgr transaction.PostgresManager) *AuthStorage {
+	queries := sqlc.New(pool)
+
 	return &AuthStorage{
 		pool:    pool,
 		txMgr:   txMgr,
-		queries: sqlc.New(pool),
+		queries: queries,
 	}
 }
 
 // ReplaceSoftDeletedUser replaces a soft deleted user with the given user
 func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.User) error {
-	const method = "auth.postgres.ReplaceSoftDeletedUser"
+	const method = "storage.auth.postgres.ReplaceSoftDeletedUser"
 
 	params := sqlc.RegisterUserParams{
 		ID:           user.ID,
@@ -63,7 +65,7 @@ func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.Us
 
 // RegisterUser creates a new user
 func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error {
-	const method = "auth.postgres.RegisterUser"
+	const method = "storage.auth.postgres.RegisterUser"
 
 	params := sqlc.RegisterUserParams{
 		ID:           user.ID,
@@ -96,7 +98,7 @@ func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error 
 }
 
 func (s *AuthStorage) MarkEmailVerified(ctx context.Context, userID, appID string) error {
-	const method = "auth.postgres.MarkEmailVerified"
+	const method = "storage.auth.postgres.MarkEmailVerified"
 
 	params := sqlc.MarkEmailVerifiedParams{
 		ID:    userID,

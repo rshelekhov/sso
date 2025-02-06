@@ -28,7 +28,7 @@ func NewSessionStorage(pool *pgxpool.Pool, txMgr transaction.PostgresManager) *S
 }
 
 func (s *SessionStorage) CreateSession(ctx context.Context, session entity.Session) error {
-	const method = "user.storage.CreateSession"
+	const method = "storage.session.postgres.CreateSession"
 
 	params := sqlc.CreateUserSessionParams{
 		UserID:        session.UserID,
@@ -57,7 +57,7 @@ func (s *SessionStorage) CreateSession(ctx context.Context, session entity.Sessi
 }
 
 func (s *SessionStorage) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error) {
-	const method = "user.storage.GetSessionByRefreshToken"
+	const method = "storage.session.postgres.GetSessionByRefreshToken"
 
 	// TODO: add constraint that user can have only active sessions for 5 devices
 	session, err := s.queries.GetSessionByRefreshToken(ctx, refreshToken)
@@ -79,7 +79,7 @@ func (s *SessionStorage) GetSessionByRefreshToken(ctx context.Context, refreshTo
 }
 
 func (s *SessionStorage) UpdateLastVisitedAt(ctx context.Context, session entity.Session) error {
-	const method = "user.storage.UpdateLastVisitedAt"
+	const method = "storage.session.postgres.UpdateLastVisitedAt"
 
 	params := sqlc.UpdateLastVisitedAtParams{
 		ID:            session.DeviceID,
@@ -105,7 +105,7 @@ func (s *SessionStorage) UpdateLastVisitedAt(ctx context.Context, session entity
 }
 
 func (s *SessionStorage) DeleteRefreshToken(ctx context.Context, refreshToken string) error {
-	const method = "user.storage.DeleteRefreshToken"
+	const method = "storage.session.postgres.DeleteRefreshToken"
 
 	if err := s.queries.DeleteRefreshTokenFromSession(ctx, refreshToken); err != nil {
 		return fmt.Errorf("%s: failed to delete refresh jwtoken: %w", method, err)
@@ -115,7 +115,7 @@ func (s *SessionStorage) DeleteRefreshToken(ctx context.Context, refreshToken st
 }
 
 func (s *SessionStorage) DeleteSession(ctx context.Context, session entity.Session) error {
-	const method = "user.storage.DeleteSession"
+	const method = "storage.session.postgres.DeleteSession"
 
 	if err := s.queries.DeleteSession(ctx, sqlc.DeleteSessionParams{
 		UserID:   session.UserID,
@@ -132,7 +132,7 @@ func (s *SessionStorage) DeleteSession(ctx context.Context, session entity.Sessi
 }
 
 func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID, appID string) error {
-	const method = "user.storage.DeleteAllSessions"
+	const method = "storage.session.postgres.DeleteAllSessions"
 
 	params := sqlc.DeleteAllSessionsParams{
 		UserID: userID,
@@ -157,7 +157,7 @@ func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID, appID st
 }
 
 func (s *SessionStorage) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
-	const method = "user.storage.GetUserDeviceID"
+	const method = "storage.session.postgres.GetUserDeviceID"
 
 	deviceID, err := s.queries.GetUserDeviceID(ctx, sqlc.GetUserDeviceIDParams{
 		UserID:    userID,
@@ -174,7 +174,7 @@ func (s *SessionStorage) GetUserDeviceID(ctx context.Context, userID, userAgent 
 }
 
 func (s *SessionStorage) RegisterDevice(ctx context.Context, device entity.UserDevice) error {
-	const method = "user.storage.RegisterDevice"
+	const method = "storage.session.postgres.RegisterDevice"
 
 	params := sqlc.RegisterDeviceParams{
 		ID:            device.ID,

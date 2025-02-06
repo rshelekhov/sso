@@ -20,16 +20,18 @@ type AppStorage struct {
 }
 
 func NewAppStorage(pool *pgxpool.Pool) *AppStorage {
+	queries := sqlc.New(pool)
+
 	return &AppStorage{
 		Pool:    pool,
-		Queries: sqlc.New(pool),
+		Queries: queries,
 	}
 }
 
 const UniqueViolationErrorCode = "23505"
 
 func (s *AppStorage) RegisterApp(ctx context.Context, data entity.AppData) error {
-	const method = "user.storage.RegisterApp"
+	const method = "storage.app.postgres.RegisterApp"
 
 	if err := s.Queries.InsertApp(ctx, sqlc.InsertAppParams{
 		ID:        data.ID,
@@ -49,7 +51,7 @@ func (s *AppStorage) RegisterApp(ctx context.Context, data entity.AppData) error
 }
 
 func (s *AppStorage) DeleteApp(ctx context.Context, data entity.AppData) error {
-	const method = "user.storage.DeleteApp"
+	const method = "storage.app.postgres.DeleteApp"
 
 	if err := s.Queries.DeleteApp(ctx, sqlc.DeleteAppParams{
 		ID:     data.ID,
@@ -68,7 +70,7 @@ func (s *AppStorage) DeleteApp(ctx context.Context, data entity.AppData) error {
 }
 
 func (s *AppStorage) CheckAppIDExists(ctx context.Context, appID string) error {
-	const method = "user.storage.CheckAppIDExists"
+	const method = "storage.app.postgres.CheckAppIDExists"
 
 	appIDExists, err := s.Queries.CheckAppIDExists(ctx, appID)
 	if err != nil {

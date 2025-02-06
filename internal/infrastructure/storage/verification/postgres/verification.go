@@ -28,7 +28,7 @@ func NewVerificationStorage(pool *pgxpool.Pool, txMgr transaction.PostgresManage
 }
 
 func (s *VerificationStorage) SaveVerificationToken(ctx context.Context, data entity.VerificationToken) error {
-	const method = "verification.postgres.SaveVerificationToken"
+	const method = "storage.verification.postgres.SaveVerificationToken"
 
 	params := sqlc.SaveVerificationTokenParams{
 		Token:       data.Token,
@@ -59,7 +59,7 @@ func (s *VerificationStorage) SaveVerificationToken(ctx context.Context, data en
 }
 
 func (s *VerificationStorage) GetVerificationTokenData(ctx context.Context, token string) (entity.VerificationToken, error) {
-	const method = "verification.postgres.GetTokenData"
+	const method = "storage.verification.postgres.GetTokenData"
 
 	tokenData, err := s.queries.GetVerificationTokenData(ctx, token)
 	if err != nil {
@@ -81,7 +81,7 @@ func (s *VerificationStorage) GetVerificationTokenData(ctx context.Context, toke
 }
 
 func (s *VerificationStorage) DeleteVerificationToken(ctx context.Context, token string) error {
-	const method = "verification.postgres.DeleteToken"
+	const method = "storage.verification.postgres.DeleteToken"
 
 	// Delete verification token within transaction
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
