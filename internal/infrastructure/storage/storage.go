@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	mongoStorage "github.com/rshelekhov/sso/pkg/storage/mongo"
@@ -11,8 +12,8 @@ import (
 
 type DBConnection struct {
 	Type     Type
-	Postgres *PostgresClient
-	Mongo    *MongoClient
+	Postgres *Postgres
+	Mongo    *Mongo
 }
 
 type Type string
@@ -22,13 +23,14 @@ const (
 	TypePostgres Type = "postgres"
 )
 
-type PostgresClient struct {
+type Postgres struct {
 	Pool *pgxpool.Pool
 }
 
-type MongoClient struct {
-	Client *mongo.Client
-	DBName string
+type Mongo struct {
+	Database *mongo.Database
+	Client   *mongo.Client
+	Timeout  time.Duration
 }
 
 func NewDBConnection(cfg Config) (*DBConnection, error) {
@@ -45,16 +47,17 @@ func NewDBConnection(cfg Config) (*DBConnection, error) {
 func newMongoStorage(cfg Config) (*DBConnection, error) {
 	const method = "storage.newMongoStorage"
 
-	client, err := mongoStorage.New(cfg.Mongo)
+	db, err := mongoStorage.New(cfg.Mongo)
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to create new mongodb storage: %w", method, err)
 	}
 
 	return &DBConnection{
 		Type: TypeMongo,
-		Mongo: &MongoClient{
-			Client: client,
-			DBName: cfg.Mongo.DBName,
+		Mongo: &Mongo{
+			Database: db.Database,
+			Client:   db.Client,
+			Timeout:  db.Timeout,
 		},
 	}, nil
 }
@@ -69,7 +72,7 @@ func newPostgresStorage(cfg Config) (*DBConnection, error) {
 
 	return &DBConnection{
 		Type: TypePostgres,
-		Postgres: &PostgresClient{
+		Postgres: &Postgres{
 			Pool: pool,
 		},
 	}, nil

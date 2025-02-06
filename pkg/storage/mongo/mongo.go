@@ -3,12 +3,19 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func New(cfg *Config) (*mongo.Client, error) {
+type DB struct {
+	Database *mongo.Database
+	Client   *mongo.Client
+	Timeout  time.Duration
+}
+
+func New(cfg *Config) (DB, error) {
 	const method = "storage.mongo.New"
 
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
@@ -16,14 +23,19 @@ func New(cfg *Config) (*mongo.Client, error) {
 
 	client, err := mongo.Connect(context.Background(), opts)
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to connect to mongodb: %w", method, err)
+		return DB{}, fmt.Errorf("%s: failed to connect to mongodb: %w", method, err)
 	}
 
 	if err = client.Ping(context.Background(), nil); err != nil {
-		return nil, fmt.Errorf("%s: failed to ping mongodb: %w", method, err)
+		return DB{}, fmt.Errorf("%s: failed to ping mongodb: %w", method, err)
 	}
 
-	return client, nil
+	database := client.Database(cfg.DBName)
+
+	return DB{
+		Database: database,
+		Client:   client,
+	}, nil
 }
 
 func Close(client *mongo.Client) error {
@@ -31,6 +43,7 @@ func Close(client *mongo.Client) error {
 }
 
 type Config struct {
-	URI    string
-	DBName string
+	URI     string
+	DBName  string
+	Timeout time.Duration
 }
