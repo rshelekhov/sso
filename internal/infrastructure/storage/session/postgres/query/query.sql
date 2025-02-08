@@ -28,6 +28,12 @@ DELETE FROM refresh_sessions
 WHERE user_id = $1
   AND app_id = $2;
 
+-- name: DeleteAllUserDevices :exec
+DELETE FROM user_devices
+WHERE user_id = $1
+  AND app_id = $2;
+
+
 -- name: GetUserDeviceID :one
 SELECT id
 FROM user_devices

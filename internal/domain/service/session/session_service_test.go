@@ -669,7 +669,7 @@ func TestSessionService_DeleteSession(t *testing.T) {
 	}
 }
 
-func TestSessionService_DeleteUserSessions(t *testing.T) {
+func TestSessionService_DeleteAllSessions(t *testing.T) {
 	ctx := context.Background()
 	user := entity.User{
 		ID: "test-user-id",
@@ -711,6 +711,60 @@ func TestSessionService_DeleteUserSessions(t *testing.T) {
 			service := NewService(nil, sessionStorage)
 
 			err := service.DeleteUserSessions(ctx, tt.user)
+
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError.Error())
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestSessionService_DeleteAllUserDevices(t *testing.T) {
+	ctx := context.Background()
+	user := entity.User{
+		ID:    "test-user-id",
+		AppID: "test-app-id",
+	}
+
+	tests := []struct {
+		name          string
+		user          entity.User
+		mockBehavior  func(sessionStorage *mocks.Storage)
+		expectedError error
+	}{
+		{
+			name: "Success",
+			user: user,
+			mockBehavior: func(sessionStorage *mocks.Storage) {
+				sessionStorage.EXPECT().DeleteAllUserDevices(ctx, user.ID, user.AppID).
+					Once().
+					Return(nil)
+			},
+			expectedError: nil,
+		},
+		{
+			name: "Failed to delete all user devices",
+			user: user,
+			mockBehavior: func(sessionStorage *mocks.Storage) {
+				sessionStorage.EXPECT().DeleteAllUserDevices(ctx, user.ID, user.AppID).
+					Once().
+					Return(errors.New("failed to delete all user devices"))
+			},
+			expectedError: errors.New("failed to delete all user devices"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sessionStorage := mocks.NewStorage(t)
+			tt.mockBehavior(sessionStorage)
+
+			service := NewService(nil, sessionStorage)
+
+			err := service.DeleteUserDevices(ctx, tt.user)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)

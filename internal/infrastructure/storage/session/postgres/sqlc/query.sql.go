@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const createUserSession = `-- name: CreateSession :exec
+const createUserSession = `-- name: CreateUserSession :exec
 INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, last_visited_at, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
@@ -49,6 +49,22 @@ type DeleteAllSessionsParams struct {
 
 func (q *Queries) DeleteAllSessions(ctx context.Context, arg DeleteAllSessionsParams) error {
 	_, err := q.db.Exec(ctx, deleteAllSessions, arg.UserID, arg.AppID)
+	return err
+}
+
+const deleteAllUserDevices = `-- name: DeleteAllUserDevices :exec
+DELETE FROM user_devices
+WHERE user_id = $1
+  AND app_id = $2
+`
+
+type DeleteAllUserDevicesParams struct {
+	UserID string `db:"user_id"`
+	AppID  string `db:"app_id"`
+}
+
+func (q *Queries) DeleteAllUserDevices(ctx context.Context, arg DeleteAllUserDevicesParams) error {
+	_, err := q.db.Exec(ctx, deleteAllUserDevices, arg.UserID, arg.AppID)
 	return err
 }
 

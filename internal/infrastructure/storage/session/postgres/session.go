@@ -156,6 +156,31 @@ func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID, appID st
 	return nil
 }
 
+func (s *SessionStorage) DeleteAllUserDevices(ctx context.Context, userID, appID string) error {
+	const method = "storage.session.postgres.DeleteAllUserDevices"
+
+	params := sqlc.DeleteAllUserDevicesParams{
+		UserID: userID,
+		AppID:  appID,
+	}
+
+	// Delete all user devices within transaction
+	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
+		return s.queries.WithTx(tx).DeleteAllUserDevices(ctx, params)
+	})
+
+	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+		// Delete all user devices without transaction
+		err = s.queries.DeleteAllUserDevices(ctx, params)
+	}
+
+	if err != nil {
+		return fmt.Errorf("%s: failed to delete all user devices: %w", method, err)
+	}
+
+	return nil
+}
+
 func (s *SessionStorage) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
 	const method = "storage.session.postgres.GetUserDeviceID"
 

@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	CreateUserSession(ctx context.Context, arg CreateUserSessionParams) error
 	DeleteAllSessions(ctx context.Context, arg DeleteAllSessionsParams) error
+	DeleteAllUserDevices(ctx context.Context, arg DeleteAllUserDevicesParams) error
 	DeleteRefreshTokenFromSession(ctx context.Context, refreshToken string) error
 	DeleteSession(ctx context.Context, arg DeleteSessionParams) error
 	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (GetSessionByRefreshTokenRow, error)
