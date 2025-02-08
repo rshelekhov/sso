@@ -121,5 +121,6 @@ var (
 	ErrFailedToCleanupUserData        = errors.New("failed to cleanup user data")
 	ErrFailedToDeleteUser             = errors.New("failed to delete user")
 	ErrFailedToDeleteAllUserSessions  = errors.New("failed to delete all user sessions")
+	ErrFailedToDeleteUserDevices      = errors.New("failed to delete user devices")
 	ErrFailedToDeleteUserTokens       = errors.New("failed to delete tokens")
 )

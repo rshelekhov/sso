@@ -42,6 +42,7 @@ type (
 
 	SessionManager interface {
 		DeleteUserSessions(ctx context.Context, user entity.User) error
+		DeleteUserDevices(ctx context.Context, user entity.User) error
 	}
 
 	UserdataManager interface {
@@ -320,6 +321,10 @@ func (u *User) cleanupUserData(ctx context.Context, user entity.User) error {
 
 	if err := u.sessionMgr.DeleteUserSessions(ctx, user); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteAllUserSessions, err)
+	}
+
+	if err := u.sessionMgr.DeleteUserDevices(ctx, user); err != nil {
+		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteUserDevices, err)
 	}
 
 	if err := u.userMgr.DeleteUserTokens(ctx, user.AppID, user.ID); err != nil {

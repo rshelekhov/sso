@@ -589,6 +589,10 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 					Once().
 					Return(nil)
 
+				sessionMgr.EXPECT().DeleteUserDevices(ctx, mock.AnythingOfType("entity.User")).
+					Once().
+					Return(nil)
+
 				userMgr.EXPECT().DeleteUserTokens(ctx, appID, userID).
 					Once().
 					Return(nil)
@@ -737,6 +741,41 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 			expectedError: domain.ErrFailedToDeleteAllUserSessions,
 		},
 		{
+			name: "Failed to delete user devices",
+			mockBehavior: func(
+				identityMgr *mocks.IdentityManager,
+				userMgr *mocks.UserdataManager,
+				sessionMgr *mocks.SessionManager,
+				txMgr *mocks.TransactionManager,
+			) {
+				identityMgr.EXPECT().ExtractUserIDFromContext(ctx, appID).
+					Once().
+					Return(userID, nil)
+
+				txMgr.EXPECT().WithinTransaction(ctx, mock.AnythingOfType("func(context.Context) error")).
+					RunAndReturn(func(ctx context.Context, fn func(context.Context) error) error {
+						return fn(ctx)
+					})
+
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
+					Once().
+					Return(entity.UserStatusActive.String(), nil)
+
+				userMgr.EXPECT().DeleteUser(ctx, mock.AnythingOfType("entity.User")).
+					Once().
+					Return(nil)
+
+				sessionMgr.EXPECT().DeleteUserSessions(ctx, mock.AnythingOfType("entity.User")).
+					Once().
+					Return(nil)
+
+				sessionMgr.EXPECT().DeleteUserDevices(ctx, mock.AnythingOfType("entity.User")).
+					Once().
+					Return(fmt.Errorf("user manager error"))
+			},
+			expectedError: domain.ErrFailedToDeleteUserDevices,
+		},
+		{
 			name: "Failed to delete user tokens",
 			mockBehavior: func(
 				identityMgr *mocks.IdentityManager,
@@ -762,6 +801,10 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 					Return(nil)
 
 				sessionMgr.EXPECT().DeleteUserSessions(ctx, mock.AnythingOfType("entity.User")).
+					Once().
+					Return(nil)
+
+				sessionMgr.EXPECT().DeleteUserDevices(ctx, mock.AnythingOfType("entity.User")).
 					Once().
 					Return(nil)
 
