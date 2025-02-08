@@ -1,8 +1,9 @@
 package api_tests
 
 import (
-	"github.com/rshelekhov/sso/internal/domain"
 	"testing"
+
+	"github.com/rshelekhov/sso/internal/domain"
 
 	"github.com/brianvoe/gofakeit/v6"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
