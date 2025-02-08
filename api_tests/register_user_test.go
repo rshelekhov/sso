@@ -326,7 +326,7 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	// Create context for Logout request
+	// Create context for Delete User request
 	md = metadata.Pairs(appid.Header, cfg.AppID)
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
@@ -335,7 +335,7 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{})
 	require.NoError(t, err)
 
-	// Register second user
+	// Register new user with the same email
 	respReg, err = st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
 		Email:           email,
 		Password:        randomFakePassword(),
