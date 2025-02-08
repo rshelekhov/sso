@@ -45,7 +45,7 @@ func (s *AppStorage) RegisterApp(ctx context.Context, data entity.AppData) error
 		if errors.As(err, &pgErr) && pgErr.Code == UniqueViolationErrorCode {
 			return storage.ErrAppAlreadyExists
 		}
-		return fmt.Errorf("%s: failed to insert app: %w", method, err)
+		return fmt.Errorf("%s: failed to register app: %w", method, err)
 	}
 	return nil
 }
