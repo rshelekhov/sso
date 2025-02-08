@@ -92,13 +92,17 @@ func (s *AppStorage) CheckAppIDExists(ctx context.Context, appID string) error {
 		"deleted_at": nil,
 	}
 
-	count, err := s.coll.CountDocuments(ctx, filter)
-	if err != nil {
-		return fmt.Errorf("%s: failed to check if app ID exists: %w", method, err)
-	}
+	result := s.coll.FindOne(
+		ctx,
+		filter,
+		options.FindOne().SetProjection(bson.M{"_id": 1}),
+	)
 
-	if count == 0 {
-		return storage.ErrAppIDDoesNotExist
+	if err := result.Err(); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return storage.ErrAppIDDoesNotExist
+		}
+		return fmt.Errorf("%s: failed to check if app ID exists: %w", method, err)
 	}
 
 	return nil
