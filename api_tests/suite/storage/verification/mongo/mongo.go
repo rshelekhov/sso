@@ -8,29 +8,33 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type TestStorage struct {
-	client *mongo.Client
-	dbName string
+type TestVerificationStorage struct {
+	coll    *mongo.Collection
+	timeout time.Duration
 }
 
-func NewTestStorage(client *mongo.Client, dbName string) *TestStorage {
-	return &TestStorage{
-		client: client,
-		dbName: dbName,
+const verificationTokensCollectionName = "verification_tokens"
+
+func NewTestStorage(db *mongo.Database, timeout time.Duration) *TestVerificationStorage {
+	coll := db.Collection(verificationTokensCollectionName)
+
+	return &TestVerificationStorage{
+		coll:    coll,
+		timeout: timeout,
 	}
 }
 
-func (s *TestStorage) GetToken(ctx context.Context, email string, tokenType entity.VerificationTokenType) (string, error) {
+func (s *TestVerificationStorage) GetToken(ctx context.Context, email string, tokenType entity.VerificationTokenType) (string, error) {
 	// TODO: implement
 	return "", nil
 }
 
-func (s *TestStorage) GetTokenExpiresAt(ctx context.Context, email string, tokenType entity.VerificationTokenType) (time.Time, error) {
+func (s *TestVerificationStorage) GetTokenExpiresAt(ctx context.Context, email string, tokenType entity.VerificationTokenType) (time.Time, error) {
 	// TODO: implement
 	return time.Time{}, nil
 }
 
-func (s *TestStorage) SetTokenExpired(ctx context.Context, email string, tokenType entity.VerificationTokenType) error {
+func (s *TestVerificationStorage) SetTokenExpired(ctx context.Context, email string, tokenType entity.VerificationTokenType) error {
 	// TODO: implement
 	return nil
 }
