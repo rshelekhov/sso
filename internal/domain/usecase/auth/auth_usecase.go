@@ -151,7 +151,7 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 	tokenData := entity.SessionTokens{}
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		tokenData, err = u.sessionMgr.CreateSession(ctx, sessionReqData)
+		tokenData, err = u.sessionMgr.CreateSession(txCtx, sessionReqData)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
 		}
@@ -189,7 +189,7 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 	authTokenData := entity.SessionTokens{}
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		userStatus, err := u.userMgr.GetUserStatusByEmail(ctx, newUser.Email)
+		userStatus, err := u.userMgr.GetUserStatusByEmail(txCtx, newUser.Email)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByEmail, err)
 		}
@@ -198,11 +198,11 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 		case entity.UserStatusActive.String():
 			return domain.ErrUserAlreadyExists
 		case entity.UserStatusSoftDeleted.String():
-			if err = u.storage.ReplaceSoftDeletedUser(ctx, newUser); err != nil {
+			if err = u.storage.ReplaceSoftDeletedUser(txCtx, newUser); err != nil {
 				return fmt.Errorf("%w: %w", domain.ErrFailedToReplaceSoftDeletedUser, err)
 			}
 		case entity.UserStatusNotFound.String():
-			if err = u.storage.RegisterUser(ctx, newUser); err != nil {
+			if err = u.storage.RegisterUser(txCtx, newUser); err != nil {
 				return fmt.Errorf("%w: %w", domain.ErrFailedToRegisterUser, err)
 			}
 		default:
@@ -218,17 +218,17 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 			},
 		}
 
-		authTokenData, err = u.sessionMgr.CreateSession(ctx, sessionReqData)
+		authTokenData, err = u.sessionMgr.CreateSession(txCtx, sessionReqData)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
 		}
 
-		tokenData, err := u.verificationMgr.CreateToken(ctx, newUser, verifyEmailEndpoint, entity.TokenTypeVerifyEmail)
+		tokenData, err := u.verificationMgr.CreateToken(txCtx, newUser, verifyEmailEndpoint, entity.TokenTypeVerifyEmail)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateVerificationToken, err)
 		}
 
-		if err = u.sendEmailWithToken(ctx, tokenData, entity.EmailTemplateTypeVerifyEmail); err != nil {
+		if err = u.sendEmailWithToken(txCtx, tokenData, entity.EmailTemplateTypeVerifyEmail); err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToSendVerificationEmail, err)
 		}
 
@@ -255,7 +255,7 @@ func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) (entit
 	result := entity.VerificationResult{}
 
 	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		tokenData, err := u.handleTokenProcessing(ctx, verificationToken, entity.EmailTemplateTypeVerifyEmail)
+		tokenData, err := u.handleTokenProcessing(txCtx, verificationToken, entity.EmailTemplateTypeVerifyEmail)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToProcessToken, err)
 		}
@@ -266,7 +266,7 @@ func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) (entit
 			return nil
 		}
 
-		if err = u.storage.MarkEmailVerified(ctx, tokenData.UserID, tokenData.AppID); err != nil {
+		if err = u.storage.MarkEmailVerified(txCtx, tokenData.UserID, tokenData.AppID); err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToMarkEmailVerified, err)
 		}
 
@@ -328,7 +328,7 @@ func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity
 	result := entity.ChangingPasswordResult{}
 
 	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		tokenData, err := u.handleTokenProcessing(ctx, reqData.ResetPasswordToken, entity.EmailTemplateTypeResetPassword)
+		tokenData, err := u.handleTokenProcessing(txCtx, reqData.ResetPasswordToken, entity.EmailTemplateTypeResetPassword)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToProcessToken, err)
 		}
@@ -339,12 +339,12 @@ func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity
 			return nil
 		}
 
-		userDataFromDB, err := u.userMgr.GetUserData(ctx, appID, tokenData.UserID)
+		userDataFromDB, err := u.userMgr.GetUserData(txCtx, appID, tokenData.UserID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
 		}
 
-		if err = u.checkPasswordHashAndUpdate(ctx, appID, userDataFromDB, reqData); err != nil {
+		if err = u.checkPasswordHashAndUpdate(txCtx, appID, userDataFromDB, reqData); err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCheckPasswordHashAndUpdate, err)
 		}
 

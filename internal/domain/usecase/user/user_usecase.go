@@ -169,14 +169,14 @@ func (u *User) DeleteUser(ctx context.Context, appID string) error {
 	}
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		userStatus, err := u.userMgr.GetUserStatusByID(ctx, userData.ID)
+		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.ID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByID, err)
 		}
 
 		switch userStatus {
 		case entity.UserStatusActive.String():
-			if err = u.cleanupUserData(ctx, userData); err != nil {
+			if err = u.cleanupUserData(txCtx, userData); err != nil {
 				return fmt.Errorf("%w: %w", domain.ErrFailedToCleanupUserData, err)
 			}
 			return nil
