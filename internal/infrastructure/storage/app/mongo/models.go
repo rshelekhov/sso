@@ -6,7 +6,7 @@ import (
 	"github.com/rshelekhov/sso/internal/domain/entity"
 )
 
-type AppDoc struct {
+type appDocument struct {
 	ID        string    `bson:"_id"`
 	Name      string    `bson:"name"`
 	Secret    string    `bson:"secret"`
@@ -16,8 +16,8 @@ type AppDoc struct {
 	DeletedAt time.Time `bson:"deleted_at"`
 }
 
-func toAppDoc(app entity.AppData) AppDoc {
-	return AppDoc{
+func toAppDoc(app entity.AppData) appDocument {
+	return appDocument{
 		ID:        app.ID,
 		Name:      app.Name,
 		Secret:    app.Secret,
