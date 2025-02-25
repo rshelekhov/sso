@@ -1,18 +1,34 @@
 CONFIG_PATH ?= ./config/.env
 SERVER_PORT ?= 44044
 
-# Don't forget to set POSTGRESQL_URL with your credentials
+# Supported types: postgres, mongo
+DB_TYPE ?= mongo
+
+# Don't forget to set POSTGRESQL_URL or MONGO_URL with your credentials
 POSTGRESQL_URL ?= postgres://root:password@localhost:5432/sso_dev?sslmode=disable
+MONGO_URL ?= mongodb://root:password@localhost:27017/sso_dev
 
-.PHONY: setup setup-dev migrate migrate-down db-insert run-server stop-server build test-all-app test-api lint
+.PHONY: setup-dev setup-dev-with-postgres migrate-postgres migrate-postgres-down db-postgres-insert db-mongo-insert run-server stop-server build test-all-app test-api lint
 
-setup: migrate
+# Setup dev environment with the selected database
+setup-dev:
+ifeq ($(DB_TYPE), postgres)
+	$(MAKE) setup-dev-with-postgres
+else ifeq ($(DB_TYPE), mongo)
+	$(MAKE) setup-dev-with-mongo
+else
+	@echo "ERROR: Unsupported DB_TYPE='$(DB_TYPE)'. Use 'mongo' or 'postgres'."
+	exit 1
+endif
 
-# Run migrations and insert data to the database (only for local and dev)
-setup-dev: migrate db-insert
+# Run migrations and insert data to the postgres database (only for local and dev)
+setup-dev-with-postgres: migrate-postgres db-postgres-insert
+
+# Run migrations and insert data to the mongo database (only for local and dev)
+setup-dev-with-mongo: db-mongo-insert
 
 # Run migrations only if not already applied
-migrate:
+migrate-postgres:
 	@echo "Checking if postgresql-client is installed..."
 	@if ! which psql > /dev/null 2>&1; then \
 		echo "postgresql-client not found. Installing..."; \
@@ -40,13 +56,13 @@ migrate:
 		fi
 
 # Rollback migrations
-migrate-down:
+migrate-postgres-down:
 	@echo "Rolling back migrations..."
 	@migrate -database $(POSTGRESQL_URL) -path migrations down
 	@echo "Migrations rolled back."
 
-# Insert test data only if not already inserted
-db-insert:
+# Insert test data in postgres only if not already inserted
+db-postgres-insert:
 	@echo "Checking if test data needs to be inserted..."
 		@if psql $(POSTGRESQL_URL) -c "SELECT 1 FROM apps WHERE id = 'test-app-id';" | grep -q 1; then \
     		echo "Test data already inserted. No need to insert."; \
@@ -55,6 +71,17 @@ db-insert:
     		psql $(POSTGRESQL_URL) -c "INSERT INTO apps (id, name, secret, status, created_at, updated_at) VALUES ('test-app-id', 'test', 'test-secret', 1, NOW(), NOW()) ON CONFLICT DO NOTHING;"; \
     		echo "Test data inserted."; \
     	fi
+
+# Insert test data in mongo only if not already inserted
+db-mongo-insert:
+	@echo "Checking if test data needs to be inserted into MongoDB..."
+	@if mongo $(MONGO_URL) --quiet --eval 'db.apps.findOne({_id: "test-app-id"})' | grep -q "null"; then \
+		echo "Inserting test data into MongoDB..."; \
+		mongo $(MONGO_URL) --eval 'db.apps.insertOne({_id: "test-app-id", name: "test", secret: "test-secret", status: 1, created_at: new Date(), updated_at: new Date()})'; \
+		echo "Test data inserted."; \
+	else \
+		echo "Test data already exists in MongoDB. No need to insert."; \
+	fi
 
 # Run server
 run-server: stop-server
