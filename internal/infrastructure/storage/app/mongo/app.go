@@ -21,6 +21,16 @@ type AppStorage struct {
 const appsCollectionName = "applications"
 
 func NewAppStorage(db *mongo.Database, timeout time.Duration) (*AppStorage, error) {
+	const op = "storage.app.mongo.NewAppStorage"
+
+	if db == nil {
+		return nil, fmt.Errorf("%s: database connection is nil", op)
+	}
+
+	if timeout <= 0 {
+		return nil, fmt.Errorf("%s: ivnalid timeout value: %v", op, timeout)
+	}
+
 	coll := db.Collection(appsCollectionName)
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -28,11 +38,14 @@ func NewAppStorage(db *mongo.Database, timeout time.Duration) (*AppStorage, erro
 
 	// Create index to ensure uniqueness
 	// App name should be unique
-	if _, err := coll.Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{"name", 1}},
+	model := mongo.IndexModel{
+		Keys:    bson.D{{fieldName, 1}},
 		Options: options.Index().SetUnique(true),
-	}); err != nil {
-		return nil, fmt.Errorf("failed to create index: %w", err)
+	}
+
+	_, err := coll.Indexes().CreateOne(ctx, model)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to create index: %w", op, err)
 	}
 
 	return &AppStorage{
@@ -44,10 +57,12 @@ func NewAppStorage(db *mongo.Database, timeout time.Duration) (*AppStorage, erro
 func (s *AppStorage) RegisterApp(ctx context.Context, data entity.AppData) error {
 	const method = "storage.app.mongo.RegisterApp"
 
-	appDoc := toAppDoc(data)
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
 
-	_, err := s.coll.InsertOne(ctx, appDoc)
-	if err != nil {
+	doc := toAppDoc(data)
+
+	if _, err := s.coll.InsertOne(ctx, doc); err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			return storage.ErrAppAlreadyExists
 		}
@@ -60,15 +75,18 @@ func (s *AppStorage) RegisterApp(ctx context.Context, data entity.AppData) error
 func (s *AppStorage) DeleteApp(ctx context.Context, data entity.AppData) error {
 	const method = "storage.app.mongo.DeleteApp"
 
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
 	filter := bson.M{
-		"_id":        data.ID,
-		"secret":     data.Secret,
-		"deleted_at": nil,
+		fieldID:        data.ID,
+		fieldSecret:    data.Secret,
+		fieldDeletedAt: nil,
 	}
 
 	update := bson.M{
 		"$set": bson.M{
-			"deleted_at": data.DeletedAt,
+			fieldDeletedAt: data.DeletedAt,
 		},
 	}
 
@@ -87,16 +105,17 @@ func (s *AppStorage) DeleteApp(ctx context.Context, data entity.AppData) error {
 func (s *AppStorage) CheckAppIDExists(ctx context.Context, appID string) error {
 	const method = "storage.app.mongo.CheckAppIDExists"
 
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
 	filter := bson.M{
-		"_id":        appID,
-		"deleted_at": nil,
+		fieldID:        appID,
+		fieldDeletedAt: nil,
 	}
 
-	result := s.coll.FindOne(
-		ctx,
-		filter,
-		options.FindOne().SetProjection(bson.M{"_id": 1}),
-	)
+	opts := options.FindOne().SetProjection(bson.M{"_id": 1})
+
+	result := s.coll.FindOne(ctx, filter, opts)
 
 	if err := result.Err(); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {

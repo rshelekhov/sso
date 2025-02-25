@@ -6,6 +6,13 @@ import (
 	"github.com/rshelekhov/sso/internal/domain/entity"
 )
 
+const (
+	fieldID        = "_id"
+	fieldName      = "name"
+	fieldSecret    = "secret"
+	fieldDeletedAt = "deleted_at"
+)
+
 type appDocument struct {
 	ID        string    `bson:"_id"`
 	Name      string    `bson:"name"`
