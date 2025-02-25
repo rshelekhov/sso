@@ -11,11 +11,12 @@ import (
 )
 
 const createUserSession = `-- name: CreateUserSession :exec
-INSERT INTO refresh_sessions (user_id, app_id, device_id, refresh_token, last_visited_at, expires_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO sessions (id, user_id, app_id, device_id, refresh_token, last_visited_at, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type CreateUserSessionParams struct {
+	ID            string    `db:"id"`
 	UserID        string    `db:"user_id"`
 	AppID         string    `db:"app_id"`
 	DeviceID      string    `db:"device_id"`
@@ -26,6 +27,7 @@ type CreateUserSessionParams struct {
 
 func (q *Queries) CreateUserSession(ctx context.Context, arg CreateUserSessionParams) error {
 	_, err := q.db.Exec(ctx, createUserSession,
+		arg.ID,
 		arg.UserID,
 		arg.AppID,
 		arg.DeviceID,
@@ -37,7 +39,7 @@ func (q *Queries) CreateUserSession(ctx context.Context, arg CreateUserSessionPa
 }
 
 const deleteAllSessions = `-- name: DeleteAllSessions :exec
-DELETE FROM refresh_sessions
+DELETE FROM sessions
 WHERE user_id = $1
   AND app_id = $2
 `
@@ -69,7 +71,7 @@ func (q *Queries) DeleteAllUserDevices(ctx context.Context, arg DeleteAllUserDev
 }
 
 const deleteRefreshTokenFromSession = `-- name: DeleteRefreshTokenFromSession :exec
-DELETE FROM refresh_sessions
+DELETE FROM sessions
 WHERE refresh_token = $1
 `
 
@@ -79,7 +81,7 @@ func (q *Queries) DeleteRefreshTokenFromSession(ctx context.Context, refreshToke
 }
 
 const deleteSession = `-- name: DeleteSession :exec
-DELETE FROM refresh_sessions
+DELETE FROM sessions
 WHERE user_id = $1
   AND app_id = $2
   AND device_id = $3
@@ -98,7 +100,7 @@ func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) er
 
 const getSessionByRefreshToken = `-- name: GetSessionByRefreshToken :one
 SELECT user_id, app_id, device_id, last_visited_at, expires_at
-FROM refresh_sessions
+FROM sessions
 WHERE refresh_token = $1
 `
 

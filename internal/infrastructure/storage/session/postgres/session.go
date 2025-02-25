@@ -15,11 +15,11 @@ import (
 
 type SessionStorage struct {
 	pool    *pgxpool.Pool
-	txMgr   transaction.PostgresManager
+	txMgr   TransactionManager
 	queries *sqlc.Queries
 }
 
-func NewSessionStorage(pool *pgxpool.Pool, txMgr transaction.PostgresManager) *SessionStorage {
+func NewSessionStorage(pool *pgxpool.Pool, txMgr TransactionManager) *SessionStorage {
 	return &SessionStorage{
 		pool:    pool,
 		txMgr:   txMgr,
@@ -27,10 +27,15 @@ func NewSessionStorage(pool *pgxpool.Pool, txMgr transaction.PostgresManager) *S
 	}
 }
 
+type TransactionManager interface {
+	ExecWithinTx(ctx context.Context, fn func(tx pgx.Tx) error) error
+}
+
 func (s *SessionStorage) CreateSession(ctx context.Context, session entity.Session) error {
 	const method = "storage.session.postgres.CreateSession"
 
 	params := sqlc.CreateUserSessionParams{
+		ID:            session.DeviceID,
 		UserID:        session.UserID,
 		AppID:         session.AppID,
 		DeviceID:      session.DeviceID,
