@@ -15,11 +15,15 @@ import (
 
 type AuthStorage struct {
 	pool    *pgxpool.Pool
-	txMgr   transaction.PostgresManager
+	txMgr   TransactionManager
 	queries *sqlc.Queries
 }
 
-func NewAuthStorage(pool *pgxpool.Pool, txMgr transaction.PostgresManager) *AuthStorage {
+type TransactionManager interface {
+	ExecWithinTx(ctx context.Context, fn func(tx pgx.Tx) error) error
+}
+
+func NewAuthStorage(pool *pgxpool.Pool, txMgr TransactionManager) *AuthStorage {
 	queries := sqlc.New(pool)
 
 	return &AuthStorage{
@@ -33,7 +37,7 @@ func NewAuthStorage(pool *pgxpool.Pool, txMgr transaction.PostgresManager) *Auth
 func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.User) error {
 	const method = "storage.auth.postgres.ReplaceSoftDeletedUser"
 
-	params := sqlc.RegisterUserParams{
+	params := sqlc.ReplaceSoftDeletedUserParams{
 		ID:           user.ID,
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
@@ -48,12 +52,12 @@ func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.Us
 
 	// Save user within transaction
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
-		return s.queries.WithTx(tx).RegisterUser(ctx, params)
+		return s.queries.WithTx(tx).ReplaceSoftDeletedUser(ctx, params)
 	})
 
 	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 		// Save user without transaction
-		err = s.queries.RegisterUser(ctx, params)
+		err = s.queries.ReplaceSoftDeletedUser(ctx, params)
 	}
 
 	if err != nil {
