@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/rshelekhov/sso/internal/domain/entity"
@@ -21,33 +22,43 @@ func NewTestStorage(pool *pgxpool.Pool) *TestVerificationStorage {
 }
 
 func (s *TestVerificationStorage) GetToken(ctx context.Context, email string, tokenType entity.VerificationTokenType) (string, error) {
+	const method = "api_tests.suite.storage.verification.postgres.GetToken"
+
 	query := "SELECT token FROM tokens WHERE recipient = $1 AND token_type_id = $2"
 
 	var token string
 	err := s.Pool.QueryRow(ctx, query, email, int32(tokenType)).Scan(&token)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%s: failed to get verification token: %w", method, err)
 	}
 
 	return token, err
 }
 
 func (s *TestVerificationStorage) GetTokenExpiresAt(ctx context.Context, email string, tokenType entity.VerificationTokenType) (time.Time, error) {
+	const method = "api_tests.suite.storage.verification.postgres.GetTokenExpiresAt"
+
 	query := "SELECT expires_at FROM tokens WHERE recipient = $1 AND token_type_id = $2"
 
 	var expiresAt time.Time
 	err := s.Pool.QueryRow(ctx, query, email, int32(tokenType)).Scan(&expiresAt)
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, fmt.Errorf("%s: failed to get verification token expires at: %w", method, err)
 	}
 
 	return expiresAt, nil
 }
 
 func (s *TestVerificationStorage) SetTokenExpired(ctx context.Context, email string, tokenType entity.VerificationTokenType) error {
+	const method = "api_tests.suite.storage.verification.postgres.SetTokenExpired"
+
 	query := "UPDATE tokens SET expires_at = $1 WHERE recipient = $2 AND token_type_id = $3"
 
 	expiresAt := time.Now().Add(-24 * time.Hour)
-	_, err := s.Pool.Exec(ctx, query, expiresAt, email, int32(tokenType))
-	return err
+	
+	if _, err := s.Pool.Exec(ctx, query, expiresAt, email, int32(tokenType)); err != nil {
+		return fmt.Errorf("%s: failed to set verification token expired: %w", method, err)
+	}
+
+	return nil
 }

@@ -22,57 +22,9 @@ func (_m *Storage) EXPECT() *Storage_Expecter {
 	return &Storage_Expecter{mock: &_m.Mock}
 }
 
-// DeleteAllTokens provides a mock function with given fields: ctx, appID, userID
-func (_m *Storage) DeleteAllTokens(ctx context.Context, appID string, userID string) error {
-	ret := _m.Called(ctx, appID, userID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for DeleteAllTokens")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, appID, userID)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// Storage_DeleteAllTokens_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteAllTokens'
-type Storage_DeleteAllTokens_Call struct {
-	*mock.Call
-}
-
-// DeleteAllTokens is a helper method to define mock.On call
-//   - ctx context.Context
-//   - appID string
-//   - userID string
-func (_e *Storage_Expecter) DeleteAllTokens(ctx interface{}, appID interface{}, userID interface{}) *Storage_DeleteAllTokens_Call {
-	return &Storage_DeleteAllTokens_Call{Call: _e.mock.On("DeleteAllTokens", ctx, appID, userID)}
-}
-
-func (_c *Storage_DeleteAllTokens_Call) Run(run func(ctx context.Context, appID string, userID string)) *Storage_DeleteAllTokens_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
-	})
-	return _c
-}
-
-func (_c *Storage_DeleteAllTokens_Call) Return(_a0 error) *Storage_DeleteAllTokens_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *Storage_DeleteAllTokens_Call) RunAndReturn(run func(context.Context, string, string) error) *Storage_DeleteAllTokens_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// DeleteUser provides a mock function with given fields: ctx, _a1
-func (_m *Storage) DeleteUser(ctx context.Context, _a1 entity.User) error {
-	ret := _m.Called(ctx, _a1)
+// DeleteUser provides a mock function with given fields: ctx, user
+func (_m *Storage) DeleteUser(ctx context.Context, user entity.User) error {
+	ret := _m.Called(ctx, user)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteUser")
@@ -80,7 +32,7 @@ func (_m *Storage) DeleteUser(ctx context.Context, _a1 entity.User) error {
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, entity.User) error); ok {
-		r0 = rf(ctx, _a1)
+		r0 = rf(ctx, user)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -95,12 +47,12 @@ type Storage_DeleteUser_Call struct {
 
 // DeleteUser is a helper method to define mock.On call
 //   - ctx context.Context
-//   - _a1 entity.User
-func (_e *Storage_Expecter) DeleteUser(ctx interface{}, _a1 interface{}) *Storage_DeleteUser_Call {
-	return &Storage_DeleteUser_Call{Call: _e.mock.On("DeleteUser", ctx, _a1)}
+//   - user entity.User
+func (_e *Storage_Expecter) DeleteUser(ctx interface{}, user interface{}) *Storage_DeleteUser_Call {
+	return &Storage_DeleteUser_Call{Call: _e.mock.On("DeleteUser", ctx, user)}
 }
 
-func (_c *Storage_DeleteUser_Call) Run(run func(ctx context.Context, _a1 entity.User)) *Storage_DeleteUser_Call {
+func (_c *Storage_DeleteUser_Call) Run(run func(ctx context.Context, user entity.User)) *Storage_DeleteUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(entity.User))
 	})
@@ -291,9 +243,9 @@ func (_c *Storage_GetUserData_Call) RunAndReturn(run func(context.Context, strin
 	return _c
 }
 
-// GetUserStatusByEmail provides a mock function with given fields: ctx, email
-func (_m *Storage) GetUserStatusByEmail(ctx context.Context, email string) (string, error) {
-	ret := _m.Called(ctx, email)
+// GetUserStatusByEmail provides a mock function with given fields: ctx, appID, email
+func (_m *Storage) GetUserStatusByEmail(ctx context.Context, appID string, email string) (string, error) {
+	ret := _m.Called(ctx, appID, email)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserStatusByEmail")
@@ -301,17 +253,17 @@ func (_m *Storage) GetUserStatusByEmail(ctx context.Context, email string) (stri
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
-		return rf(ctx, email)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (string, error)); ok {
+		return rf(ctx, appID, email)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
-		r0 = rf(ctx, email)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) string); ok {
+		r0 = rf(ctx, appID, email)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, email)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, appID, email)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -326,14 +278,15 @@ type Storage_GetUserStatusByEmail_Call struct {
 
 // GetUserStatusByEmail is a helper method to define mock.On call
 //   - ctx context.Context
+//   - appID string
 //   - email string
-func (_e *Storage_Expecter) GetUserStatusByEmail(ctx interface{}, email interface{}) *Storage_GetUserStatusByEmail_Call {
-	return &Storage_GetUserStatusByEmail_Call{Call: _e.mock.On("GetUserStatusByEmail", ctx, email)}
+func (_e *Storage_Expecter) GetUserStatusByEmail(ctx interface{}, appID interface{}, email interface{}) *Storage_GetUserStatusByEmail_Call {
+	return &Storage_GetUserStatusByEmail_Call{Call: _e.mock.On("GetUserStatusByEmail", ctx, appID, email)}
 }
 
-func (_c *Storage_GetUserStatusByEmail_Call) Run(run func(ctx context.Context, email string)) *Storage_GetUserStatusByEmail_Call {
+func (_c *Storage_GetUserStatusByEmail_Call) Run(run func(ctx context.Context, appID string, email string)) *Storage_GetUserStatusByEmail_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
 	return _c
 }
@@ -343,14 +296,14 @@ func (_c *Storage_GetUserStatusByEmail_Call) Return(_a0 string, _a1 error) *Stor
 	return _c
 }
 
-func (_c *Storage_GetUserStatusByEmail_Call) RunAndReturn(run func(context.Context, string) (string, error)) *Storage_GetUserStatusByEmail_Call {
+func (_c *Storage_GetUserStatusByEmail_Call) RunAndReturn(run func(context.Context, string, string) (string, error)) *Storage_GetUserStatusByEmail_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// GetUserStatusByID provides a mock function with given fields: ctx, userID
-func (_m *Storage) GetUserStatusByID(ctx context.Context, userID string) (string, error) {
-	ret := _m.Called(ctx, userID)
+// GetUserStatusByID provides a mock function with given fields: ctx, appID, userID
+func (_m *Storage) GetUserStatusByID(ctx context.Context, appID string, userID string) (string, error) {
+	ret := _m.Called(ctx, appID, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserStatusByID")
@@ -358,17 +311,17 @@ func (_m *Storage) GetUserStatusByID(ctx context.Context, userID string) (string
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
-		return rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (string, error)); ok {
+		return rf(ctx, appID, userID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
-		r0 = rf(ctx, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) string); ok {
+		r0 = rf(ctx, appID, userID)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, userID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, appID, userID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -383,14 +336,15 @@ type Storage_GetUserStatusByID_Call struct {
 
 // GetUserStatusByID is a helper method to define mock.On call
 //   - ctx context.Context
+//   - appID string
 //   - userID string
-func (_e *Storage_Expecter) GetUserStatusByID(ctx interface{}, userID interface{}) *Storage_GetUserStatusByID_Call {
-	return &Storage_GetUserStatusByID_Call{Call: _e.mock.On("GetUserStatusByID", ctx, userID)}
+func (_e *Storage_Expecter) GetUserStatusByID(ctx interface{}, appID interface{}, userID interface{}) *Storage_GetUserStatusByID_Call {
+	return &Storage_GetUserStatusByID_Call{Call: _e.mock.On("GetUserStatusByID", ctx, appID, userID)}
 }
 
-func (_c *Storage_GetUserStatusByID_Call) Run(run func(ctx context.Context, userID string)) *Storage_GetUserStatusByID_Call {
+func (_c *Storage_GetUserStatusByID_Call) Run(run func(ctx context.Context, appID string, userID string)) *Storage_GetUserStatusByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
 	return _c
 }
@@ -400,14 +354,14 @@ func (_c *Storage_GetUserStatusByID_Call) Return(_a0 string, _a1 error) *Storage
 	return _c
 }
 
-func (_c *Storage_GetUserStatusByID_Call) RunAndReturn(run func(context.Context, string) (string, error)) *Storage_GetUserStatusByID_Call {
+func (_c *Storage_GetUserStatusByID_Call) RunAndReturn(run func(context.Context, string, string) (string, error)) *Storage_GetUserStatusByID_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// UpdateUser provides a mock function with given fields: ctx, _a1
-func (_m *Storage) UpdateUser(ctx context.Context, _a1 entity.User) error {
-	ret := _m.Called(ctx, _a1)
+// UpdateUser provides a mock function with given fields: ctx, user
+func (_m *Storage) UpdateUser(ctx context.Context, user entity.User) error {
+	ret := _m.Called(ctx, user)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateUser")
@@ -415,7 +369,7 @@ func (_m *Storage) UpdateUser(ctx context.Context, _a1 entity.User) error {
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, entity.User) error); ok {
-		r0 = rf(ctx, _a1)
+		r0 = rf(ctx, user)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -430,12 +384,12 @@ type Storage_UpdateUser_Call struct {
 
 // UpdateUser is a helper method to define mock.On call
 //   - ctx context.Context
-//   - _a1 entity.User
-func (_e *Storage_Expecter) UpdateUser(ctx interface{}, _a1 interface{}) *Storage_UpdateUser_Call {
-	return &Storage_UpdateUser_Call{Call: _e.mock.On("UpdateUser", ctx, _a1)}
+//   - user entity.User
+func (_e *Storage_Expecter) UpdateUser(ctx interface{}, user interface{}) *Storage_UpdateUser_Call {
+	return &Storage_UpdateUser_Call{Call: _e.mock.On("UpdateUser", ctx, user)}
 }
 
-func (_c *Storage_UpdateUser_Call) Run(run func(ctx context.Context, _a1 entity.User)) *Storage_UpdateUser_Call {
+func (_c *Storage_UpdateUser_Call) Run(run func(ctx context.Context, user entity.User)) *Storage_UpdateUser_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(entity.User))
 	})

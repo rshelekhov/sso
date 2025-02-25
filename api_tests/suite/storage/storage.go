@@ -39,7 +39,7 @@ func newMongoTestStorage(dbConn *storage.DBConnection) (TestStorage, error) {
 		return nil, ErrMongoVerificationStorageSettingsEmpty
 	}
 
-	return mongo.NewTestStorage(dbConn.Mongo.Database, dbConn.Mongo.Timeout), nil
+	return mongo.NewTestStorage(dbConn.Mongo.Database, dbConn.Mongo.Timeout)
 }
 
 func newPostgresTestStorage(dbConn *storage.DBConnection) (TestStorage, error) {

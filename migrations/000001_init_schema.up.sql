@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users
     deleted_at    timestamp WITH TIME ZONE DEFAULT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_active_users ON users (email) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_active_users ON users (email, app_id) WHERE deleted_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS token_types
 (
@@ -20,8 +20,7 @@ CREATE TABLE IF NOT EXISTS token_types
 
 CREATE TABLE IF NOT EXISTS tokens
 (
-    id            SERIAL PRIMARY KEY,
-    token         character varying NOT NULL,
+    token         character varying PRIMARY KEY,
     user_id       character varying NOT NULL,
     app_id        character varying NOT NULL,
     endpoint      character varying NOT NULL,
@@ -50,9 +49,9 @@ CREATE TABLE IF NOT EXISTS app_statuses
     title character varying NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS refresh_sessions
+CREATE TABLE IF NOT EXISTS sessions
 (
-    id              SERIAL PRIMARY KEY,
+    id              character varying PRIMARY KEY,
     user_id         character varying NOT NULL,
     app_id          character varying NOT NULL,
     device_id       character varying NOT NULL,
@@ -61,7 +60,7 @@ CREATE TABLE IF NOT EXISTS refresh_sessions
     expires_at      timestamp WITH TIME ZONE NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_active_sessions ON refresh_sessions (user_id, refresh_token);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_active_sessions ON sessions (user_id, refresh_token);
 
 CREATE TABLE IF NOT EXISTS user_devices
 (
@@ -75,13 +74,13 @@ CREATE TABLE IF NOT EXISTS user_devices
     detached_at     timestamp WITH TIME ZONE DEFAULT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_user_device ON user_devices (user_id, user_agent, ip);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_device ON user_devices (user_id, app_id, user_agent, ip);
 
 ALTER TABLE users ADD FOREIGN KEY (app_id) REFERENCES apps(id);
 ALTER TABLE tokens ADD FOREIGN KEY (user_id) REFERENCES users(id);
 ALTER TABLE tokens ADD FOREIGN KEY (token_type_id) REFERENCES token_types(id);
 ALTER TABLE tokens ADD FOREIGN KEY (app_id) REFERENCES apps(id);
-ALTER TABLE refresh_sessions ADD FOREIGN KEY (user_id) REFERENCES users(id);
-ALTER TABLE refresh_sessions ADD FOREIGN KEY (app_id) REFERENCES apps(id);
+ALTER TABLE sessions ADD FOREIGN KEY (user_id) REFERENCES users(id);
+ALTER TABLE sessions ADD FOREIGN KEY (app_id) REFERENCES apps(id);
 ALTER TABLE user_devices ADD FOREIGN KEY (user_id) REFERENCES users(id);
 ALTER TABLE user_devices ADD FOREIGN KEY (app_id) REFERENCES apps(id);
