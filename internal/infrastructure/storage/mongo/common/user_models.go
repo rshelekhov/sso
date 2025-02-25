@@ -1,8 +1,9 @@
 package common
 
 import (
-	"github.com/rshelekhov/sso/internal/domain/entity"
 	"time"
+
+	"github.com/rshelekhov/sso/internal/domain/entity"
 )
 
 // Mongo document field names

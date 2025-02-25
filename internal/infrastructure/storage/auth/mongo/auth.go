@@ -6,17 +6,15 @@ import (
 	"time"
 
 	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/infrastructure/storage/mongo/common"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type AuthStorage struct {
 	coll    *mongo.Collection
 	timeout time.Duration
 }
-
-const authCollectionName = "auth"
 
 func NewAuthStorage(db *mongo.Database, timeout time.Duration) (*AuthStorage, error) {
 	const op = "storage.auth.mongo.NewAuthStorage"
@@ -29,24 +27,7 @@ func NewAuthStorage(db *mongo.Database, timeout time.Duration) (*AuthStorage, er
 		return nil, fmt.Errorf("%s: ivnalid timeout value: %v", op, timeout)
 	}
 
-	coll := db.Collection(authCollectionName)
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	// Create index to ensure uniqueness
-	// Email should be unique for active (not soft-deleted) users
-	model := mongo.IndexModel{
-		Keys: bson.D{{"email", 1}},
-		Options: options.Index().
-			SetUnique(true).
-			SetPartialFilterExpression(bson.M{"deleted_at": bson.M{"$exists": false}}),
-	}
-
-	_, err := coll.Indexes().CreateOne(ctx, model)
-	if err != nil {
-		return nil, fmt.Errorf("%s:failed to create index: %w", op, err)
-	}
+	coll := db.Collection(common.UsersCollectionName)
 
 	return &AuthStorage{
 		coll:    coll,
@@ -57,18 +38,31 @@ func NewAuthStorage(db *mongo.Database, timeout time.Duration) (*AuthStorage, er
 func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.User) error {
 	const method = "storage.auth.mongo.ReplaceSoftDeletedUser"
 
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
 	filter := bson.M{
-		"email": user.Email,
-		"deleted_at": bson.M{
+		common.FieldEmail: user.Email,
+		common.FieldAppID: user.AppID,
+		common.FieldDeletedAt: bson.M{
 			"$ne": nil,
 		},
 	}
 
-	userDoc := toUserDoc(user)
-
-	_, err := s.coll.ReplaceOne(ctx, filter, userDoc)
+	result, err := s.coll.DeleteOne(ctx, filter)
 	if err != nil {
-		return fmt.Errorf("%s: failed to replace soft deleted user: %w", method, err)
+		return fmt.Errorf("%s: failed to delete soft deleted user: %w", method, err)
+	}
+
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("%s: no soft deleted user found with email %s", method, user.Email)
+	}
+
+	doc := common.ToUserDoc(user)
+
+	_, err = s.coll.InsertOne(ctx, doc)
+	if err != nil {
+		return fmt.Errorf("%s: failed to register new user: %w", method, err)
 	}
 
 	return nil
@@ -77,9 +71,12 @@ func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.Us
 func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error {
 	const method = "storage.auth.mongo.RegisterUser"
 
-	userDoc := toUserDoc(user)
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
 
-	_, err := s.coll.InsertOne(ctx, userDoc)
+	doc := common.ToUserDoc(user)
+
+	_, err := s.coll.InsertOne(ctx, doc)
 	if err != nil {
 		return fmt.Errorf("%s: failed to register new user: %w", method, err)
 	}
@@ -89,17 +86,20 @@ func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error 
 func (s *AuthStorage) MarkEmailVerified(ctx context.Context, userID, appID string) error {
 	const method = "storage.auth.mongo.MarkEmailVerified"
 
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
 	filter := bson.M{
-		"_id":    userID,
-		"app_id": appID,
-		"deleted_at": bson.M{
+		common.FieldID:    userID,
+		common.FieldAppID: appID,
+		common.FieldDeletedAt: bson.M{
 			"$exists": false,
 		},
 	}
 
 	update := bson.M{
 		"$set": bson.M{
-			"verified": true,
+			common.FieldVerified: true,
 		},
 	}
 
