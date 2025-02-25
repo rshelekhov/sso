@@ -10,3 +10,9 @@ WHERE token = $1;
 -- name: DeleteVerificationToken :exec
 DELETE FROM tokens
 WHERE token = $1;
+
+
+-- name: DeleteAllVerificationTokens :exec
+DELETE FROM tokens
+WHERE user_id = $1
+  AND app_id = $2;
