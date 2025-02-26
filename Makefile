@@ -2,7 +2,7 @@ CONFIG_PATH ?= ./config/.env
 SERVER_PORT ?= 44044
 
 # Supported types: postgres, mongo
-DB_TYPE ?= mongo
+DB_TYPE ?= postgres
 
 # Don't forget to set POSTGRESQL_URL or MONGO_URL with your credentials
 POSTGRESQL_URL ?= postgres://root:password@localhost:5432/sso_dev?sslmode=disable
