@@ -1,4 +1,4 @@
-package verification
+package storage
 
 import (
 	"context"
@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rshelekhov/sso/api_tests/suite/storage/verification/mongo"
-	"github.com/rshelekhov/sso/api_tests/suite/storage/verification/postgres"
+	"github.com/rshelekhov/sso/api_tests/suite/storage/mongo"
+	"github.com/rshelekhov/sso/api_tests/suite/storage/postgres"
+
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 )
@@ -23,7 +24,7 @@ var (
 	ErrPostgresVerificationStorageSettingsEmpty = errors.New("postgres verification storage settings are empty")
 )
 
-func NewTestStorage(dbConn *storage.DBConnection) (TestStorage, error) {
+func New(dbConn *storage.DBConnection) (TestStorage, error) {
 	switch dbConn.Type {
 	case storage.TypeMongo:
 		return newMongoTestStorage(dbConn)

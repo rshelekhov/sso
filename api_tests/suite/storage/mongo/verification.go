@@ -3,8 +3,9 @@ package mongo
 import (
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -37,7 +38,7 @@ func NewTestStorage(db *mongo.Database, timeout time.Duration) (*TestVerificatio
 }
 
 func (s *TestVerificationStorage) GetToken(ctx context.Context, email string, tokenType entity.VerificationTokenType) (string, error) {
-	const method = "api_tests.suite.storage.verification.mongo.GetToken"
+	const method = "api_tests.suite.storage.mongo.verification.GetToken"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -65,7 +66,7 @@ func (s *TestVerificationStorage) GetToken(ctx context.Context, email string, to
 }
 
 func (s *TestVerificationStorage) GetTokenExpiresAt(ctx context.Context, email string, tokenType entity.VerificationTokenType) (time.Time, error) {
-	const method = "api_tests.suite.storage.verification.mongo.GetToken"
+	const method = "api_tests.suite.mongo.verification.GetToken"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -75,12 +76,45 @@ func (s *TestVerificationStorage) GetTokenExpiresAt(ctx context.Context, email s
 		"token_type_id": int32(tokenType),
 	}
 
-	result := s.coll.FindOneAndUpdate()
+	result := s.coll.FindOne(ctx, filter)
 
-	return time.Time{}, nil
+	if err := result.Err(); err != nil {
+		return time.Time{}, fmt.Errorf("%s: failed to get verification token: %w", method, err)
+	}
+
+	var resultDoc struct {
+		ExpiresAt time.Time `bson:"expires_at"`
+	}
+
+	if err := result.Decode(&resultDoc); err != nil {
+		return time.Time{}, fmt.Errorf("%s: failed to decode verification token expires at: %w", method, err)
+	}
+
+	return resultDoc.ExpiresAt, nil
 }
 
 func (s *TestVerificationStorage) SetTokenExpired(ctx context.Context, email string, tokenType entity.VerificationTokenType) error {
-	// TODO: implement
+	const method = "api_tests.suite.storage.mongo.verification.SetTokenExpired"
+
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	filter := bson.M{
+		"recipient":     email,
+		"token_type_id": int32(tokenType),
+	}
+
+	update := bson.M{
+		"$set": bson.M{
+			"expires_at": time.Now().Add(-24 * time.Hour),
+		},
+	}
+
+	result := s.coll.FindOneAndUpdate(ctx, filter, update)
+
+	if err := result.Err(); err != nil {
+		return fmt.Errorf("%s: failed to set verification token expired: %w", method, err)
+	}
+
 	return nil
 }
