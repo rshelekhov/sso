@@ -22,6 +22,7 @@ type Storage interface {
 	SaveVerificationToken(ctx context.Context, data entity.VerificationToken) error
 	GetVerificationTokenData(ctx context.Context, token string) (entity.VerificationToken, error)
 	DeleteVerificationToken(ctx context.Context, token string) error
+	DeleteAllTokens(ctx context.Context, appID, userID string) error
 }
 
 func NewService(tokenExpiryTime time.Duration, storage Storage) *Service {
@@ -76,6 +77,16 @@ func (s *Service) DeleteToken(ctx context.Context, token string) error {
 
 	if err := s.storage.DeleteVerificationToken(ctx, token); err != nil {
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToDeleteVerificationToken, err)
+	}
+
+	return nil
+}
+
+func (s *Service) DeleteAllTokens(ctx context.Context, appID, userID string) error {
+	const method = "service.verification.DeleteAllTokens"
+
+	if err := s.storage.DeleteAllTokens(ctx, appID, userID); err != nil {
+		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToDeleteAllVerificationTokens, err)
 	}
 
 	return nil
