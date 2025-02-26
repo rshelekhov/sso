@@ -51,7 +51,7 @@ type (
 
 	UserdataManager interface {
 		GetUserByEmail(ctx context.Context, appID, email string) (entity.User, error)
-		GetUserStatusByEmail(ctx context.Context, email string) (string, error)
+		GetUserStatusByEmail(ctx context.Context, appID, email string) (string, error)
 		GetUserData(ctx context.Context, appID, userID string) (entity.User, error)
 		UpdateUserData(ctx context.Context, user entity.User) error
 	}
@@ -89,22 +89,22 @@ type (
 
 func NewUsecase(
 	log *slog.Logger,
-	tm TransactionManager,
 	ss SessionManager,
 	us UserdataManager,
 	ms MailService,
 	ts TokenManager,
 	vs VerificationManager,
+	tm TransactionManager,
 	storage Storage,
 ) *Auth {
 	return &Auth{
 		log:             log,
-		txMgr:           tm,
 		sessionMgr:      ss,
 		userMgr:         us,
 		mailService:     ms,
 		tokenMgr:        ts,
 		verificationMgr: vs,
+		txMgr:           tm,
 		storage:         storage,
 	}
 }
@@ -189,7 +189,7 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 	authTokenData := entity.SessionTokens{}
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		userStatus, err := u.userMgr.GetUserStatusByEmail(txCtx, newUser.Email)
+		userStatus, err := u.userMgr.GetUserStatusByEmail(txCtx, newUser.AppID, newUser.Email)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByEmail, err)
 		}
