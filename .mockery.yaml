@@ -19,9 +19,9 @@ packages:
       dir: internal/domain/service/token/mocks
     interfaces:
       KeyStorage:
-  github.com/rshelekhov/sso/internal/domain/service/user:
+  github.com/rshelekhov/sso/internal/domain/service/userdata:
     config:
-      dir: internal/domain/service/user/mocks
+      dir: internal/domain/service/userdata/mocks
     interfaces:
       Storage:
   github.com/rshelekhov/sso/internal/domain/service/verification:
@@ -56,4 +56,5 @@ packages:
       UserdataManager:
       PasswordManager:
       IdentityManager:
+      VerificationManager:
       TransactionManager:
