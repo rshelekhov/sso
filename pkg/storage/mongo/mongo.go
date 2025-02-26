@@ -19,7 +19,9 @@ func New(cfg *Config) (DB, error) {
 	const method = "storage.mongo.New"
 
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	opts := options.Client().ApplyURI(cfg.URI).SetServerAPIOptions(serverAPI)
+	opts := options.Client().
+		ApplyURI(cfg.URI).
+		SetServerAPIOptions(serverAPI)
 
 	client, err := mongo.Connect(context.Background(), opts)
 	if err != nil {
@@ -35,6 +37,7 @@ func New(cfg *Config) (DB, error) {
 	return DB{
 		Database: database,
 		Client:   client,
+		Timeout:  cfg.Timeout,
 	}, nil
 }
 
