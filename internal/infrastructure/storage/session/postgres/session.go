@@ -35,7 +35,7 @@ func (s *SessionStorage) CreateSession(ctx context.Context, session entity.Sessi
 	const method = "storage.session.postgres.CreateSession"
 
 	params := sqlc.CreateUserSessionParams{
-		ID:            session.DeviceID,
+		ID:            session.ID,
 		UserID:        session.UserID,
 		AppID:         session.AppID,
 		DeviceID:      session.DeviceID,
