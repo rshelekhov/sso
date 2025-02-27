@@ -22,7 +22,7 @@ type Config struct {
 const privateKeyFilePathFormat = "%s/app_%s_private.pem"
 
 func (s *KeyStorage) SavePrivateKey(appID string, privateKeyPEM []byte) error {
-	const method = "service.token.SavePrivateKey"
+	const method = "storage.key.fileSystem.SavePrivateKey"
 
 	// Ensure the keysPath directory exists
 	if err := os.MkdirAll(s.PrivateKeyPath, os.ModePerm); err != nil {
@@ -39,7 +39,7 @@ func (s *KeyStorage) SavePrivateKey(appID string, privateKeyPEM []byte) error {
 }
 
 func (s *KeyStorage) GetPrivateKey(appID string) ([]byte, error) {
-	const method = "service.token.GetPrivateKey"
+	const method = "storage.key.fileSystem.GetPrivateKey"
 
 	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, appID)
 

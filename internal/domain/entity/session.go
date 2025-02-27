@@ -1,9 +1,14 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/segmentio/ksuid"
+)
 
 type (
 	Session struct {
+		ID            string
 		UserID        string
 		AppID         string
 		DeviceID      string
@@ -27,6 +32,7 @@ func NewSession(
 	currentTime time.Time,
 ) Session {
 	return Session{
+		ID:            ksuid.New().String(),
 		UserID:        reqData.UserID,
 		AppID:         reqData.AppID,
 		DeviceID:      reqData.DeviceID,

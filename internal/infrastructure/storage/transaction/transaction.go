@@ -21,7 +21,8 @@ func NewManager(dbConn *storage.DBConnection) (Manager, error) {
 	switch dbConn.Type {
 	case storage.TypeMongo:
 		return &MongoMgr{
-			client: dbConn.Mongo.Client,
+			client:  dbConn.Mongo.Client,
+			timeout: dbConn.Mongo.Timeout,
 		}, nil
 	case storage.TypePostgres:
 		return &PostgresMgr{

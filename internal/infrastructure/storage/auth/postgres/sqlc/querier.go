@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	MarkEmailVerified(ctx context.Context, arg MarkEmailVerifiedParams) error
 	RegisterUser(ctx context.Context, arg RegisterUserParams) error
+	ReplaceSoftDeletedUser(ctx context.Context, arg ReplaceSoftDeletedUserParams) error
 }
 
 var _ Querier = (*Queries)(nil)

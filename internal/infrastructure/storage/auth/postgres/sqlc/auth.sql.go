@@ -57,3 +57,40 @@ func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) erro
 	)
 	return err
 }
+
+const replaceSoftDeletedUser = `-- name: ReplaceSoftDeletedUser :exec
+UPDATE users
+SET
+    id = $1,
+    password_hash = $2,
+    app_id = $3,
+    verified = $4,
+    created_at = $5,
+    updated_at = $6,
+    deleted_at = NULL
+WHERE email = $7
+  AND deleted_at IS NOT NULL
+`
+
+type ReplaceSoftDeletedUserParams struct {
+	ID           string      `db:"id"`
+	PasswordHash string      `db:"password_hash"`
+	AppID        string      `db:"app_id"`
+	Verified     pgtype.Bool `db:"verified"`
+	CreatedAt    time.Time   `db:"created_at"`
+	UpdatedAt    time.Time   `db:"updated_at"`
+	Email        string      `db:"email"`
+}
+
+func (q *Queries) ReplaceSoftDeletedUser(ctx context.Context, arg ReplaceSoftDeletedUserParams) error {
+	_, err := q.db.Exec(ctx, replaceSoftDeletedUser,
+		arg.ID,
+		arg.PasswordHash,
+		arg.AppID,
+		arg.Verified,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.Email,
+	)
+	return err
+}

@@ -275,6 +275,7 @@ func TestUserDataService_UpdateUser(t *testing.T) {
 
 func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 	ctx := context.Background()
+	appID := "test-app-id"
 	email := "email@example.com"
 
 	tests := []struct {
@@ -286,7 +287,7 @@ func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 			name: "Success",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByEmail(ctx, email).
+					GetUserStatusByEmail(ctx, appID, email).
 					Return("active", nil)
 			},
 			expectedError: nil,
@@ -295,7 +296,7 @@ func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 			name: "Error — User not found",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByEmail(ctx, email).
+					GetUserStatusByEmail(ctx, appID, email).
 					Return("", storage.ErrUserNotFound)
 			},
 			expectedError: domain.ErrUserNotFound,
@@ -304,7 +305,7 @@ func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 			name: "Error - Storage error",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByEmail(ctx, email).
+					GetUserStatusByEmail(ctx, appID, email).
 					Return("", errors.New("user storage error"))
 			},
 			expectedError: errors.New("user storage error"),
@@ -320,7 +321,7 @@ func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 			var status string
 			var err error
 
-			status, err = service.GetUserStatusByEmail(ctx, email)
+			status, err = service.GetUserStatusByEmail(ctx, appID, email)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -336,6 +337,7 @@ func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 
 func TestUserDataService_GetUserStatusByID(t *testing.T) {
 	ctx := context.Background()
+	appID := "test-app-id"
 	userID := "test-user-id"
 
 	tests := []struct {
@@ -347,7 +349,7 @@ func TestUserDataService_GetUserStatusByID(t *testing.T) {
 			name: "Success",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByID(ctx, userID).
+					GetUserStatusByID(ctx, appID, userID).
 					Return("active", nil)
 			},
 			expectedError: nil,
@@ -356,7 +358,7 @@ func TestUserDataService_GetUserStatusByID(t *testing.T) {
 			name: "Error — User not found",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByID(ctx, userID).
+					GetUserStatusByID(ctx, appID, userID).
 					Return("", storage.ErrUserNotFound)
 			},
 			expectedError: domain.ErrUserNotFound,
@@ -365,7 +367,7 @@ func TestUserDataService_GetUserStatusByID(t *testing.T) {
 			name: "Error - Storage error",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByID(ctx, userID).
+					GetUserStatusByID(ctx, appID, userID).
 					Return("", errors.New("user storage error"))
 			},
 			expectedError: errors.New("user storage error"),
@@ -381,7 +383,7 @@ func TestUserDataService_GetUserStatusByID(t *testing.T) {
 			var status string
 			var err error
 
-			status, err = service.GetUserStatusByID(ctx, userID)
+			status, err = service.GetUserStatusByID(ctx, appID, userID)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -447,53 +449,6 @@ func TestUserDataService_DeleteUser(t *testing.T) {
 
 			service := NewService(mockStorage)
 			err := service.DeleteUser(context.Background(), tt.user)
-
-			if tt.expectedError != nil {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tt.expectedError.Error())
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestUserDataService_DeleteUserTokens(t *testing.T) {
-	appID := "test-app-id"
-	userID := "test-user-id"
-
-	tests := []struct {
-		name          string
-		mockBehavior  func(userStorage *mocks.Storage)
-		expectedError error
-	}{
-		{
-			name: "Success",
-			mockBehavior: func(userStorage *mocks.Storage) {
-				userStorage.EXPECT().
-					DeleteAllTokens(context.Background(), appID, userID).
-					Return(nil)
-			},
-			expectedError: nil,
-		},
-		{
-			name: "Error - Storage error",
-			mockBehavior: func(userStorage *mocks.Storage) {
-				userStorage.EXPECT().
-					DeleteAllTokens(context.Background(), appID, userID).
-					Return(errors.New("user storage error"))
-			},
-			expectedError: errors.New("user storage error"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockStorage := mocks.NewStorage(t)
-			tt.mockBehavior(mockStorage)
-
-			service := NewService(mockStorage)
-			err := service.DeleteUserTokens(context.Background(), appID, userID)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)

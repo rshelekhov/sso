@@ -32,12 +32,14 @@ SELECT CASE
                SELECT 1
                FROM users
                WHERE users.email = $1
+                 AND users.app_id = $2
                  AND deleted_at IS NULL
            ) THEN 'active'
            WHEN EXISTS(
                SELECT 1
                FROM users
                WHERE users.email = $1
+                 AND users.app_id = $2
                  AND deleted_at IS NOT NULL
            ) THEN 'soft_deleted'
            ELSE 'not_found' END AS status;
@@ -48,17 +50,14 @@ SELECT CASE
                SELECT 1
                FROM users
                WHERE users.id = $1
+                 AND users.app_id = $2
                  AND deleted_at IS NULL
            ) THEN 'active'
            WHEN EXISTS(
                SELECT 1
                FROM users
                WHERE users.id = $1
+                 AND users.app_id = $2
                  AND deleted_at IS NOT NULL
            ) THEN 'soft_deleted'
            ELSE 'not_found' END AS status;
-
--- name: DeleteAllTokens :exec
-DELETE FROM tokens
-WHERE user_id = $1
-  AND app_id = $2;

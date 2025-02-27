@@ -25,8 +25,8 @@ type AppStatus struct {
 	Title string `db:"title"`
 }
 
-type RefreshSession struct {
-	ID            int32     `db:"id"`
+type Session struct {
+	ID            string    `db:"id"`
 	UserID        string    `db:"user_id"`
 	AppID         string    `db:"app_id"`
 	DeviceID      string    `db:"device_id"`
@@ -36,7 +36,6 @@ type RefreshSession struct {
 }
 
 type Token struct {
-	ID          int32     `db:"id"`
 	Token       string    `db:"token"`
 	UserID      string    `db:"user_id"`
 	AppID       string    `db:"app_id"`

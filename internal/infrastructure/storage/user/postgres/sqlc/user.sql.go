@@ -12,22 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const deleteAllTokens = `-- name: DeleteAllTokens :exec
-DELETE FROM tokens
-WHERE user_id = $1
-  AND app_id = $2
-`
-
-type DeleteAllTokensParams struct {
-	UserID string `db:"user_id"`
-	AppID  string `db:"app_id"`
-}
-
-func (q *Queries) DeleteAllTokens(ctx context.Context, arg DeleteAllTokensParams) error {
-	_, err := q.db.Exec(ctx, deleteAllTokens, arg.UserID, arg.AppID)
-	return err
-}
-
 const deleteUser = `-- name: DeleteUser :exec
 UPDATE users
 SET deleted_at = $1
@@ -153,19 +137,26 @@ SELECT CASE
                SELECT 1
                FROM users
                WHERE users.email = $1
+                 AND users.app_id = $2
                  AND deleted_at IS NULL
            ) THEN 'active'
            WHEN EXISTS(
                SELECT 1
                FROM users
                WHERE users.email = $1
+                 AND users.app_id = $2
                  AND deleted_at IS NOT NULL
            ) THEN 'soft_deleted'
            ELSE 'not_found' END AS status
 `
 
-func (q *Queries) GetUserStatusByEmail(ctx context.Context, email string) (string, error) {
-	row := q.db.QueryRow(ctx, getUserStatusByEmail, email)
+type GetUserStatusByEmailParams struct {
+	Email string `db:"email"`
+	AppID string `db:"app_id"`
+}
+
+func (q *Queries) GetUserStatusByEmail(ctx context.Context, arg GetUserStatusByEmailParams) (string, error) {
+	row := q.db.QueryRow(ctx, getUserStatusByEmail, arg.Email, arg.AppID)
 	var status string
 	err := row.Scan(&status)
 	return status, err
@@ -177,19 +168,26 @@ SELECT CASE
                SELECT 1
                FROM users
                WHERE users.id = $1
+                 AND users.app_id = $2
                  AND deleted_at IS NULL
            ) THEN 'active'
            WHEN EXISTS(
                SELECT 1
                FROM users
                WHERE users.id = $1
+                 AND users.app_id = $2
                  AND deleted_at IS NOT NULL
            ) THEN 'soft_deleted'
            ELSE 'not_found' END AS status
 `
 
-func (q *Queries) GetUserStatusByID(ctx context.Context, id string) (string, error) {
-	row := q.db.QueryRow(ctx, getUserStatusByID, id)
+type GetUserStatusByIDParams struct {
+	ID    string `db:"id"`
+	AppID string `db:"app_id"`
+}
+
+func (q *Queries) GetUserStatusByID(ctx context.Context, arg GetUserStatusByIDParams) (string, error) {
+	row := q.db.QueryRow(ctx, getUserStatusByID, arg.ID, arg.AppID)
 	var status string
 	err := row.Scan(&status)
 	return status, err

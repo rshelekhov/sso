@@ -17,11 +17,15 @@ import (
 
 type UserStorage struct {
 	pool    *pgxpool.Pool
-	txMgr   transaction.PostgresManager
+	txMgr   TransactionManager
 	queries *sqlc.Queries
 }
 
-func NewUserStorage(pool *pgxpool.Pool, txMgr transaction.PostgresManager) *UserStorage {
+type TransactionManager interface {
+	ExecWithinTx(ctx context.Context, fn func(tx pgx.Tx) error) error
+}
+
+func NewUserStorage(pool *pgxpool.Pool, txMgr TransactionManager) *UserStorage {
 	return &UserStorage{
 		pool:    pool,
 		txMgr:   txMgr,
@@ -30,7 +34,7 @@ func NewUserStorage(pool *pgxpool.Pool, txMgr transaction.PostgresManager) *User
 }
 
 func (s *UserStorage) GetUserByID(ctx context.Context, appID, userID string) (entity.User, error) {
-	const method = "user.postgres.GetUserByID"
+	const method = "storage.user.postgres.GetUserByID"
 
 	user, err := s.queries.GetUserByID(ctx, sqlc.GetUserByIDParams{
 		ID:    userID,
@@ -52,7 +56,7 @@ func (s *UserStorage) GetUserByID(ctx context.Context, appID, userID string) (en
 }
 
 func (s *UserStorage) GetUserByEmail(ctx context.Context, appID, email string) (entity.User, error) {
-	const method = "user.postgres.GetUserByEmail"
+	const method = "storage.user.postgres.GetUserByEmail"
 
 	user, err := s.queries.GetUserByEmail(ctx, sqlc.GetUserByEmailParams{
 		Email: email,
@@ -74,7 +78,7 @@ func (s *UserStorage) GetUserByEmail(ctx context.Context, appID, email string) (
 }
 
 func (s *UserStorage) GetUserData(ctx context.Context, appID, userID string) (entity.User, error) {
-	const method = "user.postgres.GetUserData"
+	const method = "storage.user.postgres.GetUserData"
 
 	user, err := s.queries.GetUserData(ctx, sqlc.GetUserDataParams{
 		ID:    userID,
@@ -97,7 +101,7 @@ func (s *UserStorage) GetUserData(ctx context.Context, appID, userID string) (en
 }
 
 func (s *UserStorage) UpdateUser(ctx context.Context, user entity.User) error {
-	const method = "user.postgres.UpdateUser"
+	const method = "storage.user.postgres.UpdateUser"
 
 	// Prepare the dynamic update query based on the provided fields
 	queryUpdate, queryParams := s.buildUpdateUserQuery(user)
@@ -150,7 +154,7 @@ func (s *UserStorage) executeUpdateQuery(ctx context.Context, query string, para
 }
 
 func (s *UserStorage) DeleteUser(ctx context.Context, user entity.User) error {
-	const method = "user.postgres.DeleteUser"
+	const method = "storage.user.postgres.DeleteUser"
 
 	params := sqlc.DeleteUserParams{
 		ID:    user.ID,
@@ -185,10 +189,15 @@ func (s *UserStorage) executeDeleteUser(ctx context.Context, params sqlc.DeleteU
 }
 
 // GetUserStatusByEmail returns the status of the user with the given email
-func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, email string) (string, error) {
-	const method = "user.postgres.GetUserStatusByEmail"
+func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, appID, email string) (string, error) {
+	const method = "storage.user.postgres.GetUserStatusByEmail"
 
-	status, err := s.queries.GetUserStatusByEmail(ctx, email)
+	params := sqlc.GetUserStatusByEmailParams{
+		Email: email,
+		AppID: appID,
+	}
+
+	status, err := s.queries.GetUserStatusByEmail(ctx, params)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", storage.ErrUserNotFound
@@ -200,10 +209,15 @@ func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, email string) (s
 }
 
 // GetUserStatusByID returns the status of the user with the given userID
-func (s *UserStorage) GetUserStatusByID(ctx context.Context, userID string) (string, error) {
-	const method = "user.postgres.GetUserStatusByID"
+func (s *UserStorage) GetUserStatusByID(ctx context.Context, appID, userID string) (string, error) {
+	const method = "storage.user.postgres.GetUserStatusByID"
 
-	status, err := s.queries.GetUserStatusByID(ctx, userID)
+	params := sqlc.GetUserStatusByIDParams{
+		ID:    userID,
+		AppID: appID,
+	}
+
+	status, err := s.queries.GetUserStatusByID(ctx, params)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", storage.ErrUserNotFound
@@ -212,29 +226,4 @@ func (s *UserStorage) GetUserStatusByID(ctx context.Context, userID string) (str
 	}
 
 	return status, nil
-}
-
-func (s *UserStorage) DeleteAllTokens(ctx context.Context, appID, userID string) error {
-	const method = "user.postgres.DeleteAllTokens"
-
-	params := sqlc.DeleteAllTokensParams{
-		UserID: userID,
-		AppID:  appID,
-	}
-
-	// Delete all tokens within transaction
-	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
-		return s.queries.WithTx(tx).DeleteAllTokens(ctx, params)
-	})
-
-	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
-		// Delete all tokens without transaction
-		err = s.queries.DeleteAllTokens(ctx, params)
-	}
-
-	if err != nil {
-		return fmt.Errorf("%s: failed to delete tokens: %w", method, err)
-	}
-
-	return nil
 }

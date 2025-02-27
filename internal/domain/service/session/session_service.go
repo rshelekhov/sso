@@ -29,6 +29,7 @@ type Storage interface {
 	DeleteRefreshToken(ctx context.Context, refreshToken string) error
 	DeleteSession(ctx context.Context, session entity.Session) error
 	DeleteAllSessions(ctx context.Context, userID, appID string) error
+	DeleteAllUserDevices(ctx context.Context, userID, appID string) error
 	GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
 	RegisterDevice(ctx context.Context, device entity.UserDevice) error
 }
@@ -136,6 +137,16 @@ func (s *Session) DeleteUserSessions(ctx context.Context, user entity.User) erro
 	const method = "service.session.DeleteAllUserSessions"
 
 	if err := s.storage.DeleteAllSessions(ctx, user.ID, user.AppID); err != nil {
+		return fmt.Errorf("%s: %w", method, err)
+	}
+
+	return nil
+}
+
+func (s *Session) DeleteUserDevices(ctx context.Context, user entity.User) error {
+	const method = "service.session.DeleteUserDevices"
+
+	if err := s.storage.DeleteAllUserDevices(ctx, user.ID, user.AppID); err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
 

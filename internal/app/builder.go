@@ -172,18 +172,17 @@ func (b *Builder) BuildUsecases() {
 
 	b.usecases.auth = auth.NewUsecase(
 		b.logger,
-		b.storages.trMgr,
 		b.services.session,
 		b.services.user,
 		b.services.mail,
 		b.services.token,
 		b.services.verification,
+		b.storages.trMgr,
 		b.storages.auth,
 	)
 
 	b.usecases.user = user.NewUsecase(
 		b.logger,
-		b.storages.trMgr,
 		b.managers.requestID,
 		b.managers.appIDManager,
 		b.services.appValidator,
@@ -191,6 +190,8 @@ func (b *Builder) BuildUsecases() {
 		b.services.user,
 		b.services.token,
 		b.services.token,
+		b.services.verification,
+		b.storages.trMgr,
 	)
 }
 
@@ -309,10 +310,11 @@ func newTokenService(jwt settings.JWT, passwordHash settings.PasswordHashParams,
 		return nil, err
 	}
 
-	tokenService := token.NewService(token.Config{
-		JWT:                jwtConfig,
-		PasswordHashParams: passwordHashConfig,
-	},
+	tokenService := token.NewService(
+		token.Config{
+			JWT:                jwtConfig,
+			PasswordHashParams: passwordHashConfig,
+		},
 		keyStorage,
 	)
 

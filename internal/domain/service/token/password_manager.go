@@ -72,5 +72,5 @@ func generateSalt(length uint32) ([]byte, error) {
 		return nil, err
 	}
 
-	return salt, err
+	return salt, nil
 }

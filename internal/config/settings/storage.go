@@ -23,8 +23,9 @@ type Storage struct {
 }
 
 type MongoParams struct {
-	URI    string `mapstructure:"DB_MONGO_URI"`
-	DBName string `mapstructure:"DB_MONGO_NAME"`
+	URI     string        `mapstructure:"DB_MONGO_URI"`
+	DBName  string        `mapstructure:"DB_MONGO_NAME"`
+	Timeout time.Duration `mapstructure:"DB_MONGO_TIMEOUT" envDefault:"30s"`
 }
 
 type PostgresParams struct {
@@ -70,8 +71,9 @@ func convertMongoParams(params *MongoParams) *mongoStorage.Config {
 	}
 
 	return &mongoStorage.Config{
-		URI:    params.URI,
-		DBName: params.DBName,
+		URI:     params.URI,
+		DBName:  params.DBName,
+		Timeout: params.Timeout,
 	}
 }
 
