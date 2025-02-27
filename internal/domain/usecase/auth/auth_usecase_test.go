@@ -371,7 +371,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -420,7 +420,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusSoftDeleted.String(), nil)
 
@@ -469,7 +469,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 			},
@@ -518,7 +518,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return("", fmt.Errorf("user manager error"))
 			},
@@ -547,7 +547,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusSoftDeleted.String(), nil)
 
@@ -580,7 +580,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -613,7 +613,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return("some unknown user status", nil)
 			},
@@ -642,7 +642,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, "test@example.com").
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, "test@example.com").
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -683,7 +683,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -728,7 +728,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, "test@example.com").
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, "test@example.com").
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
