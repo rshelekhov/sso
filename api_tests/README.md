@@ -6,10 +6,17 @@
     ```
     export CONFIG_PATH=./config/.env
     ```
-3. Set URL for PostgresQL:
-    ```
-    export POSTGRESQL_URL='postgres://login:password@host:port/db_name?sslmode=disable'
-    ```
+3. Set database type (supported types – postgres or mongo):
+   ```bash
+   export DB_TYPE=postgres
+   ```
+
+   Set URL for Database:
+   ```bash
+   export POSTGRESQL_URL='postgres://login:password@host:port/db_name?sslmode=disable'
+   # or if you use mongo:
+   export MONGO_URL='mongodb+srv://login:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=Cluster'
+   ```
 4. If you use S3 for key storage you need to copy `app_test-app-id_private.pem` from the `certs` folder and upload to your S3 bucket.
 5. Run tests — `make test-all-app` or `make test-api`. You'll run database migrations, insert test-app into database, run the server and then run tests.
 
