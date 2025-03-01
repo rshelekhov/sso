@@ -13,15 +13,16 @@ import (
 )
 
 type User struct {
-	log          *slog.Logger
-	txMgr        TransactionManager
-	requestIDMgr ContextManager
-	appIDMgr     ContextManager
-	appValidator AppValidator
-	sessionMgr   SessionManager
-	userMgr      UserdataManager
-	passwordMgr  PasswordManager
-	identityMgr  IdentityManager
+	log             *slog.Logger
+	requestIDMgr    ContextManager
+	appIDMgr        ContextManager
+	appValidator    AppValidator
+	sessionMgr      SessionManager
+	userMgr         UserdataManager
+	passwordMgr     PasswordManager
+	identityMgr     IdentityManager
+	verificationMgr VerificationManager
+	txMgr           TransactionManager
 }
 
 type (
@@ -42,16 +43,16 @@ type (
 
 	SessionManager interface {
 		DeleteUserSessions(ctx context.Context, user entity.User) error
+		DeleteUserDevices(ctx context.Context, user entity.User) error
 	}
 
 	UserdataManager interface {
 		GetUserByID(ctx context.Context, appID, userID string) (entity.User, error)
 		GetUserData(ctx context.Context, appID, userID string) (entity.User, error)
-		GetUserStatusByEmail(ctx context.Context, email string) (string, error)
-		GetUserStatusByID(ctx context.Context, userID string) (string, error)
+		GetUserStatusByEmail(ctx context.Context, appID, email string) (string, error)
+		GetUserStatusByID(ctx context.Context, appID, userID string) (string, error)
 		UpdateUserData(ctx context.Context, user entity.User) error
 		DeleteUser(ctx context.Context, user entity.User) error
-		DeleteUserTokens(ctx context.Context, appID, userID string) error
 	}
 
 	PasswordManager interface {
@@ -63,6 +64,10 @@ type (
 		ExtractUserIDFromContext(ctx context.Context, appID string) (string, error)
 	}
 
+	VerificationManager interface {
+		DeleteAllTokens(ctx context.Context, appID, userID string) error
+	}
+
 	TransactionManager interface {
 		WithinTransaction(ctx context.Context, fn func(ctx context.Context) error) error
 	}
@@ -70,25 +75,27 @@ type (
 
 func NewUsecase(
 	log *slog.Logger,
-	tm TransactionManager,
 	reqIDMgr ContextManager,
 	appIDMgr ContextManager,
 	av AppValidator,
 	ss SessionManager,
-	us UserdataManager,
+	um UserdataManager,
 	pm PasswordManager,
 	im IdentityManager,
+	vm VerificationManager,
+	tm TransactionManager,
 ) *User {
 	return &User{
-		log:          log,
-		txMgr:        tm,
-		requestIDMgr: reqIDMgr,
-		appIDMgr:     appIDMgr,
-		appValidator: av,
-		sessionMgr:   ss,
-		userMgr:      us,
-		passwordMgr:  pm,
-		identityMgr:  im,
+		log:             log,
+		requestIDMgr:    reqIDMgr,
+		appIDMgr:        appIDMgr,
+		appValidator:    av,
+		sessionMgr:      ss,
+		userMgr:         um,
+		passwordMgr:     pm,
+		identityMgr:     im,
+		verificationMgr: vm,
+		txMgr:           tm,
 	}
 }
 
@@ -169,14 +176,14 @@ func (u *User) DeleteUser(ctx context.Context, appID string) error {
 	}
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		userStatus, err := u.userMgr.GetUserStatusByID(ctx, userData.ID)
+		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.AppID, userData.ID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByID, err)
 		}
 
 		switch userStatus {
 		case entity.UserStatusActive.String():
-			if err = u.cleanupUserData(ctx, userData); err != nil {
+			if err = u.cleanupUserData(txCtx, userData); err != nil {
 				return fmt.Errorf("%w: %w", domain.ErrFailedToCleanupUserData, err)
 			}
 			return nil
@@ -301,7 +308,7 @@ func (u *User) handleEmailUpdate(ctx context.Context, userDataFromDB entity.User
 		return domain.ErrNoEmailChangesDetected
 	}
 
-	userStatus, err := u.userMgr.GetUserStatusByEmail(ctx, updatedUser.Email)
+	userStatus, err := u.userMgr.GetUserStatusByEmail(ctx, updatedUser.AppID, updatedUser.Email)
 	if err != nil {
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToGetUserStatusByEmail, err)
 	}
@@ -322,7 +329,11 @@ func (u *User) cleanupUserData(ctx context.Context, user entity.User) error {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteAllUserSessions, err)
 	}
 
-	if err := u.userMgr.DeleteUserTokens(ctx, user.AppID, user.ID); err != nil {
+	if err := u.sessionMgr.DeleteUserDevices(ctx, user); err != nil {
+		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteUserDevices, err)
+	}
+
+	if err := u.verificationMgr.DeleteAllTokens(ctx, user.AppID, user.ID); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteUserTokens, err)
 	}
 

@@ -10,18 +10,12 @@ const (
 	AppStatusDeleted
 )
 
-type (
-	AppData struct {
-		ID        string
-		Name      string
-		Secret    string
-		Status    appStatusType
-		CreatedAt time.Time
-		UpdatedAt time.Time
-		DeletedAt time.Time
-	}
-
-	AppRequestData struct {
-		Name string
-	}
-)
+type AppData struct {
+	ID        string
+	Name      string
+	Secret    string
+	Status    appStatusType
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt time.Time
+}

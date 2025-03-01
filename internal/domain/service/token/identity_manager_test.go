@@ -23,9 +23,9 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 		{
 			name: "Success",
 			setupContext: func() context.Context {
-				return createContextWithToken(t, privateKey, jwt.MapClaims{
+				return context.WithValue(context.Background(), domain.AuthorizationHeader, createSignedToken(t, privateKey, jwt.MapClaims{
 					"user_id": "test-user-id",
-				})
+				}))
 			},
 			mockBehavior: func() {
 				mockKeyStorage.EXPECT().GetPrivateKey(appID).
@@ -38,7 +38,7 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 		{
 			name: "User ID not found",
 			setupContext: func() context.Context {
-				return createContextWithToken(t, privateKey, jwt.MapClaims{})
+				return context.WithValue(context.Background(), domain.AuthorizationHeader, createSignedToken(t, privateKey, jwt.MapClaims{}))
 			},
 			mockBehavior: func() {
 				mockKeyStorage.EXPECT().GetPrivateKey(appID).
@@ -53,16 +53,16 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 			setupContext: func() context.Context {
 				return context.Background()
 			},
-			mockBehavior:  func() {},
+			mockBehavior:  func() {}, // No need to mock anything, as the token will not be found
 			expectedID:    "",
 			expectedError: domain.ErrNoTokenFoundInContext,
 		},
 		{
 			name: "Invalid token",
 			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), "access_token", "invalid-token")
+				return context.WithValue(context.Background(), domain.AuthorizationHeader, "invalid-token")
 			},
-			mockBehavior:  func() {},
+			mockBehavior:  func() {}, // No need to mock anything, as the token not valid and will not be parsed
 			expectedID:    "",
 			expectedError: domain.ErrFailedToParseTokenWithClaims,
 		},
@@ -89,10 +89,10 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 	}
 }
 
-func createContextWithToken(t *testing.T, privateKey *rsa.PrivateKey, claims jwt.MapClaims) context.Context {
+func createSignedToken(t *testing.T, privateKey *rsa.PrivateKey, claims jwt.MapClaims) string {
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	tokenString, err := token.SignedString(privateKey)
 	require.NoError(t, err)
 
-	return context.WithValue(context.Background(), "access_token", tokenString)
+	return tokenString
 }

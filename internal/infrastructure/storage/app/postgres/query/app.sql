@@ -7,7 +7,12 @@ UPDATE apps
 SET deleted_at = $1
 WHERE id = $2
   AND secret = $3
-    AND deleted_at IS NULL;
+  AND deleted_at IS NULL;
 
 -- name: CheckAppIDExists :one
-SELECT EXISTS(SELECT 1 FROM apps WHERE id = $1);
+SELECT EXISTS(
+    SELECT 1
+    FROM apps
+    WHERE id = $1
+        AND deleted_at IS NULL
+    );

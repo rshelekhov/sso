@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/api_tests/suite/storage/verification"
+	testStorage "github.com/rshelekhov/sso/api_tests/suite/storage"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
@@ -20,7 +20,7 @@ type Suite struct {
 	*testing.T
 	Cfg        *config.ServerSettings
 	AuthClient ssov1.AuthClient
-	Storage    verification.TestStorage
+	Storage    testStorage.TestStorage
 }
 
 const (
@@ -54,7 +54,7 @@ func New(t *testing.T) (context.Context, *Suite) {
 		t.Fatal(fmt.Errorf("failed to init database connection for the test suite: %w", err))
 	}
 
-	testStorage, err := verification.NewTestStorage(dbConn)
+	testStorage, err := testStorage.New(dbConn)
 	if err != nil {
 		t.Fatal(fmt.Errorf("failed to init test storage for the test suite: %w", err))
 	}

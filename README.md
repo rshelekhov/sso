@@ -20,9 +20,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 Backend is written in GO, so I suggest you have installed [Golang](https://golang.org).
 
-Also, you need to install [golang-migrate](https://github.com/golang-migrate/migrate) tool for running database migrations.
-
-And the last one, you need to have `psql` (PostgreSQL interactive terminal), because this tool  is used in the commands described in the makefile.
+If you use postgres you need to install [golang-migrate](https://github.com/golang-migrate/migrate) tool for running database migrations for postgres. And you need to have `psql` (PostgreSQL interactive terminal), because this tool  is used in the commands described in the makefile.
 
 ### Installing
 
@@ -33,9 +31,16 @@ Set path to config:
 export CONFIG_PATH=./config/.env
 ```
 
-Set URL for PostgresQL:
+Set database type (supported types – postgres or mongo):
+```bash
+export DB_TYPE=postgres
+```
+
+Set URL for Database:
 ```bash
 export POSTGRESQL_URL='postgres://login:password@host:port/db_name?sslmode=disable'
+# or if you use mongo:
+export MONGO_URL='mongodb+srv://login:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=Cluster'
 ```
 
 By default, this app use port `44044`. Set `SERVER_PORT` environment variable with this or your value:

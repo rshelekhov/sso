@@ -19,10 +19,9 @@ type Storage interface {
 	GetUserByEmail(ctx context.Context, appID, email string) (entity.User, error)
 	GetUserData(ctx context.Context, appID, userID string) (entity.User, error)
 	UpdateUser(ctx context.Context, user entity.User) error
-	GetUserStatusByEmail(ctx context.Context, email string) (string, error)
-	GetUserStatusByID(ctx context.Context, userID string) (string, error)
+	GetUserStatusByEmail(ctx context.Context, appID, email string) (string, error)
+	GetUserStatusByID(ctx context.Context, appID, userID string) (string, error)
 	DeleteUser(ctx context.Context, user entity.User) error
-	DeleteAllTokens(ctx context.Context, appID, userID string) error
 }
 
 func NewService(storage Storage) *UserData {
@@ -86,10 +85,10 @@ func (d *UserData) UpdateUserData(ctx context.Context, user entity.User) error {
 	return nil
 }
 
-func (d *UserData) GetUserStatusByEmail(ctx context.Context, email string) (string, error) {
+func (d *UserData) GetUserStatusByEmail(ctx context.Context, appID, email string) (string, error) {
 	const method = "service.user.GetUserStatusByEmail"
 
-	status, err := d.storage.GetUserStatusByEmail(ctx, email)
+	status, err := d.storage.GetUserStatusByEmail(ctx, appID, email)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return "", domain.ErrUserNotFound
@@ -100,10 +99,10 @@ func (d *UserData) GetUserStatusByEmail(ctx context.Context, email string) (stri
 	return status, nil
 }
 
-func (d *UserData) GetUserStatusByID(ctx context.Context, userID string) (string, error) {
+func (d *UserData) GetUserStatusByID(ctx context.Context, appID, userID string) (string, error) {
 	const method = "service.user.GetUserStatusByID"
 
-	status, err := d.storage.GetUserStatusByID(ctx, userID)
+	status, err := d.storage.GetUserStatusByID(ctx, appID, userID)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return "", domain.ErrUserNotFound
@@ -121,16 +120,6 @@ func (d *UserData) DeleteUser(ctx context.Context, user entity.User) error {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return domain.ErrUserNotFound
 		}
-		return fmt.Errorf("%s: %w", method, err)
-	}
-
-	return nil
-}
-
-func (d *UserData) DeleteUserTokens(ctx context.Context, appID, userID string) error {
-	const method = "service.user.DeleteUserTokens"
-
-	if err := d.storage.DeleteAllTokens(ctx, appID, userID); err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
 

@@ -22,6 +22,54 @@ func (_m *Storage) EXPECT() *Storage_Expecter {
 	return &Storage_Expecter{mock: &_m.Mock}
 }
 
+// DeleteAllTokens provides a mock function with given fields: ctx, appID, userID
+func (_m *Storage) DeleteAllTokens(ctx context.Context, appID string, userID string) error {
+	ret := _m.Called(ctx, appID, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAllTokens")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, appID, userID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Storage_DeleteAllTokens_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteAllTokens'
+type Storage_DeleteAllTokens_Call struct {
+	*mock.Call
+}
+
+// DeleteAllTokens is a helper method to define mock.On call
+//   - ctx context.Context
+//   - appID string
+//   - userID string
+func (_e *Storage_Expecter) DeleteAllTokens(ctx interface{}, appID interface{}, userID interface{}) *Storage_DeleteAllTokens_Call {
+	return &Storage_DeleteAllTokens_Call{Call: _e.mock.On("DeleteAllTokens", ctx, appID, userID)}
+}
+
+func (_c *Storage_DeleteAllTokens_Call) Run(run func(ctx context.Context, appID string, userID string)) *Storage_DeleteAllTokens_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *Storage_DeleteAllTokens_Call) Return(_a0 error) *Storage_DeleteAllTokens_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Storage_DeleteAllTokens_Call) RunAndReturn(run func(context.Context, string, string) error) *Storage_DeleteAllTokens_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteVerificationToken provides a mock function with given fields: ctx, token
 func (_m *Storage) DeleteVerificationToken(ctx context.Context, token string) error {
 	ret := _m.Called(ctx, token)

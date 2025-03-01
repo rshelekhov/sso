@@ -10,7 +10,23 @@ import (
 	"time"
 )
 
-const deleteVerificationToken = `-- name: DeleteToken :exec
+const deleteAllVerificationTokens = `-- name: DeleteAllVerificationTokens :exec
+DELETE FROM tokens
+WHERE user_id = $1
+  AND app_id = $2
+`
+
+type DeleteAllVerificationTokensParams struct {
+	UserID string `db:"user_id"`
+	AppID  string `db:"app_id"`
+}
+
+func (q *Queries) DeleteAllVerificationTokens(ctx context.Context, arg DeleteAllVerificationTokensParams) error {
+	_, err := q.db.Exec(ctx, deleteAllVerificationTokens, arg.UserID, arg.AppID)
+	return err
+}
+
+const deleteVerificationToken = `-- name: DeleteVerificationToken :exec
 DELETE FROM tokens
 WHERE token = $1
 `
@@ -20,7 +36,7 @@ func (q *Queries) DeleteVerificationToken(ctx context.Context, token string) err
 	return err
 }
 
-const getVerificationTokenData = `-- name: GetTokenData :one
+const getVerificationTokenData = `-- name: GetVerificationTokenData :one
 SELECT token, user_id, app_id, endpoint, token_type_id, recipient, expires_at
 FROM tokens
 WHERE token = $1

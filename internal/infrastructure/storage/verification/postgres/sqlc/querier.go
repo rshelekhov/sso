@@ -9,6 +9,7 @@ import (
 )
 
 type Querier interface {
+	DeleteAllVerificationTokens(ctx context.Context, arg DeleteAllVerificationTokensParams) error
 	DeleteVerificationToken(ctx context.Context, token string) error
 	GetVerificationTokenData(ctx context.Context, token string) (GetVerificationTokenDataRow, error)
 	SaveVerificationToken(ctx context.Context, arg SaveVerificationTokenParams) error

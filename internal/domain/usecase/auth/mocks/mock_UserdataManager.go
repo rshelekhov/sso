@@ -138,9 +138,9 @@ func (_c *UserdataManager_GetUserData_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
-// GetUserStatusByEmail provides a mock function with given fields: ctx, email
-func (_m *UserdataManager) GetUserStatusByEmail(ctx context.Context, email string) (string, error) {
-	ret := _m.Called(ctx, email)
+// GetUserStatusByEmail provides a mock function with given fields: ctx, appID, email
+func (_m *UserdataManager) GetUserStatusByEmail(ctx context.Context, appID string, email string) (string, error) {
+	ret := _m.Called(ctx, appID, email)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserStatusByEmail")
@@ -148,17 +148,17 @@ func (_m *UserdataManager) GetUserStatusByEmail(ctx context.Context, email strin
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
-		return rf(ctx, email)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (string, error)); ok {
+		return rf(ctx, appID, email)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
-		r0 = rf(ctx, email)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) string); ok {
+		r0 = rf(ctx, appID, email)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, email)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, appID, email)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -173,14 +173,15 @@ type UserdataManager_GetUserStatusByEmail_Call struct {
 
 // GetUserStatusByEmail is a helper method to define mock.On call
 //   - ctx context.Context
+//   - appID string
 //   - email string
-func (_e *UserdataManager_Expecter) GetUserStatusByEmail(ctx interface{}, email interface{}) *UserdataManager_GetUserStatusByEmail_Call {
-	return &UserdataManager_GetUserStatusByEmail_Call{Call: _e.mock.On("GetUserStatusByEmail", ctx, email)}
+func (_e *UserdataManager_Expecter) GetUserStatusByEmail(ctx interface{}, appID interface{}, email interface{}) *UserdataManager_GetUserStatusByEmail_Call {
+	return &UserdataManager_GetUserStatusByEmail_Call{Call: _e.mock.On("GetUserStatusByEmail", ctx, appID, email)}
 }
 
-func (_c *UserdataManager_GetUserStatusByEmail_Call) Run(run func(ctx context.Context, email string)) *UserdataManager_GetUserStatusByEmail_Call {
+func (_c *UserdataManager_GetUserStatusByEmail_Call) Run(run func(ctx context.Context, appID string, email string)) *UserdataManager_GetUserStatusByEmail_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
 	return _c
 }
@@ -190,7 +191,7 @@ func (_c *UserdataManager_GetUserStatusByEmail_Call) Return(_a0 string, _a1 erro
 	return _c
 }
 
-func (_c *UserdataManager_GetUserStatusByEmail_Call) RunAndReturn(run func(context.Context, string) (string, error)) *UserdataManager_GetUserStatusByEmail_Call {
+func (_c *UserdataManager_GetUserStatusByEmail_Call) RunAndReturn(run func(context.Context, string, string) (string, error)) *UserdataManager_GetUserStatusByEmail_Call {
 	_c.Call.Return(run)
 	return _c
 }

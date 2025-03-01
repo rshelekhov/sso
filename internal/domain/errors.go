@@ -63,13 +63,14 @@ var (
 	// Verification service errors
 	// ===========================================================================
 
-	ErrFailedToCreateVerificationToken   = errors.New("failed to create verification token")
-	ErrFailedToSaveVerificationToken     = errors.New("failed to save verification token")
-	ErrFailedToGenerateVerificationToken = errors.New("failed to generate verification token")
-	ErrFailedToProcessToken              = errors.New("failed to process token")
-	ErrVerificationTokenNotFound         = errors.New("token not found")
-	ErrFailedToGetVerificationTokenData  = errors.New("failed to get verification token data")
-	ErrFailedToDeleteVerificationToken   = errors.New("failed to delete verification token")
+	ErrFailedToCreateVerificationToken     = errors.New("failed to create verification token")
+	ErrFailedToSaveVerificationToken       = errors.New("failed to save verification token")
+	ErrFailedToGenerateVerificationToken   = errors.New("failed to generate verification token")
+	ErrFailedToProcessToken                = errors.New("failed to process token")
+	ErrVerificationTokenNotFound           = errors.New("token not found")
+	ErrFailedToGetVerificationTokenData    = errors.New("failed to get verification token data")
+	ErrFailedToDeleteVerificationToken     = errors.New("failed to delete verification token")
+	ErrFailedToDeleteAllVerificationTokens = errors.New("failed to delete all verification tokens")
 
 	// ===========================================================================
 	// App usecase errors
@@ -121,5 +122,6 @@ var (
 	ErrFailedToCleanupUserData        = errors.New("failed to cleanup user data")
 	ErrFailedToDeleteUser             = errors.New("failed to delete user")
 	ErrFailedToDeleteAllUserSessions  = errors.New("failed to delete all user sessions")
+	ErrFailedToDeleteUserDevices      = errors.New("failed to delete user devices")
 	ErrFailedToDeleteUserTokens       = errors.New("failed to delete tokens")
 )

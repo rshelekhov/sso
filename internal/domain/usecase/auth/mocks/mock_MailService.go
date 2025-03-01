@@ -5,6 +5,7 @@ package mocks
 import (
 	context "context"
 
+	mail "github.com/rshelekhov/sso/internal/infrastructure/service/mail"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -21,62 +22,17 @@ func (_m *MailService) EXPECT() *MailService_Expecter {
 	return &MailService_Expecter{mock: &_m.Mock}
 }
 
-// GetTemplatesPath provides a mock function with no fields
-func (_m *MailService) GetTemplatesPath() string {
-	ret := _m.Called()
+// SendEmail provides a mock function with given fields: ctx, data
+func (_m *MailService) SendEmail(ctx context.Context, data mail.Data) error {
+	ret := _m.Called(ctx, data)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetTemplatesPath")
-	}
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func() string); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	return r0
-}
-
-// MailService_GetTemplatesPath_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetTemplatesPath'
-type MailService_GetTemplatesPath_Call struct {
-	*mock.Call
-}
-
-// GetTemplatesPath is a helper method to define mock.On call
-func (_e *MailService_Expecter) GetTemplatesPath() *MailService_GetTemplatesPath_Call {
-	return &MailService_GetTemplatesPath_Call{Call: _e.mock.On("GetTemplatesPath")}
-}
-
-func (_c *MailService_GetTemplatesPath_Call) Run(run func()) *MailService_GetTemplatesPath_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *MailService_GetTemplatesPath_Call) Return(_a0 string) *MailService_GetTemplatesPath_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MailService_GetTemplatesPath_Call) RunAndReturn(run func() string) *MailService_GetTemplatesPath_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// SendHTML provides a mock function with given fields: ctx, subject, html, recipient
-func (_m *MailService) SendHTML(ctx context.Context, subject string, html string, recipient string) error {
-	ret := _m.Called(ctx, subject, html, recipient)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SendHTML")
+		panic("no return value specified for SendEmail")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
-		r0 = rf(ctx, subject, html, recipient)
+	if rf, ok := ret.Get(0).(func(context.Context, mail.Data) error); ok {
+		r0 = rf(ctx, data)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -84,82 +40,31 @@ func (_m *MailService) SendHTML(ctx context.Context, subject string, html string
 	return r0
 }
 
-// MailService_SendHTML_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendHTML'
-type MailService_SendHTML_Call struct {
+// MailService_SendEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendEmail'
+type MailService_SendEmail_Call struct {
 	*mock.Call
 }
 
-// SendHTML is a helper method to define mock.On call
+// SendEmail is a helper method to define mock.On call
 //   - ctx context.Context
-//   - subject string
-//   - html string
-//   - recipient string
-func (_e *MailService_Expecter) SendHTML(ctx interface{}, subject interface{}, html interface{}, recipient interface{}) *MailService_SendHTML_Call {
-	return &MailService_SendHTML_Call{Call: _e.mock.On("SendHTML", ctx, subject, html, recipient)}
+//   - data mail.Data
+func (_e *MailService_Expecter) SendEmail(ctx interface{}, data interface{}) *MailService_SendEmail_Call {
+	return &MailService_SendEmail_Call{Call: _e.mock.On("SendEmail", ctx, data)}
 }
 
-func (_c *MailService_SendHTML_Call) Run(run func(ctx context.Context, subject string, html string, recipient string)) *MailService_SendHTML_Call {
+func (_c *MailService_SendEmail_Call) Run(run func(ctx context.Context, data mail.Data)) *MailService_SendEmail_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
+		run(args[0].(context.Context), args[1].(mail.Data))
 	})
 	return _c
 }
 
-func (_c *MailService_SendHTML_Call) Return(_a0 error) *MailService_SendHTML_Call {
+func (_c *MailService_SendEmail_Call) Return(_a0 error) *MailService_SendEmail_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *MailService_SendHTML_Call) RunAndReturn(run func(context.Context, string, string, string) error) *MailService_SendHTML_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// SendPlainText provides a mock function with given fields: ctx, subject, body, recipient
-func (_m *MailService) SendPlainText(ctx context.Context, subject string, body string, recipient string) error {
-	ret := _m.Called(ctx, subject, body, recipient)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SendPlainText")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
-		r0 = rf(ctx, subject, body, recipient)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MailService_SendPlainText_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SendPlainText'
-type MailService_SendPlainText_Call struct {
-	*mock.Call
-}
-
-// SendPlainText is a helper method to define mock.On call
-//   - ctx context.Context
-//   - subject string
-//   - body string
-//   - recipient string
-func (_e *MailService_Expecter) SendPlainText(ctx interface{}, subject interface{}, body interface{}, recipient interface{}) *MailService_SendPlainText_Call {
-	return &MailService_SendPlainText_Call{Call: _e.mock.On("SendPlainText", ctx, subject, body, recipient)}
-}
-
-func (_c *MailService_SendPlainText_Call) Run(run func(ctx context.Context, subject string, body string, recipient string)) *MailService_SendPlainText_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
-	})
-	return _c
-}
-
-func (_c *MailService_SendPlainText_Call) Return(_a0 error) *MailService_SendPlainText_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MailService_SendPlainText_Call) RunAndReturn(run func(context.Context, string, string, string) error) *MailService_SendPlainText_Call {
+func (_c *MailService_SendEmail_Call) RunAndReturn(run func(context.Context, mail.Data) error) *MailService_SendEmail_Call {
 	_c.Call.Return(run)
 	return _c
 }

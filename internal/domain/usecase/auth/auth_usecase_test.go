@@ -17,7 +17,6 @@ import (
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/domain/usecase/auth/mocks"
-	"github.com/rshelekhov/sso/internal/infrastructure/service/mail"
 	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogdiscard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -289,7 +288,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, txMgr, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, db)
+			auth := NewUsecase(log, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, txMgr, db)
 
 			tokens, err := auth.Login(ctx, appID, tt.reqData)
 
@@ -372,7 +371,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -392,16 +391,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 					Once().
 					Return(tokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(nil)
 			},
@@ -430,7 +420,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusSoftDeleted.String(), nil)
 
@@ -450,15 +440,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 					Once().
 					Return(tokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(nil)
 			},
@@ -487,7 +469,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 			},
@@ -536,7 +518,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return("", fmt.Errorf("user manager error"))
 			},
@@ -565,7 +547,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusSoftDeleted.String(), nil)
 
@@ -598,7 +580,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -631,7 +613,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return("some unknown user status", nil)
 			},
@@ -660,7 +642,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, "test@example.com").
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, "test@example.com").
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -701,7 +683,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -746,7 +728,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, "test@example.com").
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, "test@example.com").
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -766,16 +748,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 					Once().
 					Return(tokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(fmt.Errorf("mail service error"))
 			},
@@ -823,7 +796,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, txMgr, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, db)
+			auth := NewUsecase(log, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, txMgr, db)
 
 			tokens, err := auth.RegisterUser(ctx, appID, tt.reqData, tt.endpoint)
 
@@ -941,16 +914,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 					Once().
 					Return(newTokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(nil)
 			},
@@ -1069,11 +1033,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 					Once().
 					Return(newTokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(ctx, mock.AnythingOfType("string"), mock.AnythingOfType("string"), "test@example.com").
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(fmt.Errorf("mail service error"))
 			},
@@ -1130,7 +1090,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, txMgr, nil, nil, mailService, nil, verificationMgr, db)
+			auth := NewUsecase(log, nil, nil, mailService, nil, verificationMgr, txMgr, db)
 
 			_, err := auth.VerifyEmail(ctx, tokenStr)
 
@@ -1196,16 +1156,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 					Once().
 					Return(expectedTokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					reqData.Email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(nil)
 			},
@@ -1268,17 +1219,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 				verificationMgr.EXPECT().CreateToken(ctx, userData, endpoint, tokenType).
 					Once().
 					Return(expectedTokenData, nil)
-
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					reqData.Email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(fmt.Errorf("mail service error"))
 			},
@@ -1296,7 +1237,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, nil, userMgr, mailService, nil, verificationMgr, nil)
+			auth := NewUsecase(log, nil, userMgr, mailService, nil, verificationMgr, nil, nil)
 
 			err := auth.ResetPassword(ctx, appID, reqData, endpoint)
 
@@ -1448,16 +1389,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 					Once().
 					Return(newTokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					userData.Email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(nil)
 			},
@@ -1561,16 +1493,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 					Once().
 					Return(newTokenData, nil)
 
-				mailService.EXPECT().GetTemplatesPath().
-					Once().
-					Return(mail.DefaultTemplatesPath)
-
-				mailService.EXPECT().SendHTML(
-					ctx,
-					mock.AnythingOfType("string"),
-					mock.AnythingOfType("string"),
-					userData.Email,
-				).
+				mailService.EXPECT().SendEmail(ctx, mock.AnythingOfType("mail.Data")).
 					Once().
 					Return(fmt.Errorf("mail service error"))
 			},
@@ -1782,7 +1705,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, txMgr, nil, userMgr, mailService, tokenMgr, verificationMgr, nil)
+			auth := NewUsecase(log, nil, userMgr, mailService, tokenMgr, verificationMgr, txMgr, nil)
 
 			_, err := auth.ChangePassword(ctx, userData.AppID, reqData)
 
@@ -1821,11 +1744,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, entity.SessionRequestData{
-					UserID:     userID,
-					AppID:      appID,
-					UserDevice: userDeviceReqData,
-				}).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -1856,11 +1775,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, entity.SessionRequestData{
-					UserID:     userID,
-					AppID:      appID,
-					UserDevice: userDeviceReqData,
-				}).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
 					Once().
 					Return("", domain.ErrUserDeviceNotFound)
 			},
@@ -1873,11 +1788,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, entity.SessionRequestData{
-					UserID:     userID,
-					AppID:      appID,
-					UserDevice: userDeviceReqData,
-				}).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
 					Once().
 					Return("", fmt.Errorf("session manager error"))
 			},
@@ -1890,11 +1801,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, entity.SessionRequestData{
-					UserID:     userID,
-					AppID:      appID,
-					UserDevice: userDeviceReqData,
-				}).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -1920,7 +1827,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, sessionMgr, nil, nil, tokenMgr, nil, nil)
+			auth := NewUsecase(log, sessionMgr, nil, nil, tokenMgr, nil, nil, nil)
 
 			err := auth.LogoutUser(ctx, appID, &userDeviceReqData)
 
@@ -1996,6 +1903,10 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+					Once().
+					Return(deviceID, nil)
+
 				sessionMgr.EXPECT().DeleteRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(nil)
@@ -2032,7 +1943,11 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 			mockBehavior: func(sessionMgr *mocks.SessionManager) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
 					Once().
-					Return(entity.Session{}, domain.ErrUserDeviceNotFound)
+					Return(userSession, nil)
+
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+					Once().
+					Return("", domain.ErrUserDeviceNotFound)
 			},
 			expectedError:         domain.ErrUserDeviceNotFound,
 			expectedSessionTokens: entity.SessionTokens{},
@@ -2054,6 +1969,10 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+					Once().
+					Return(deviceID, nil)
+
 				sessionMgr.EXPECT().DeleteRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(domain.ErrFailedToDeleteRefreshToken)
@@ -2067,6 +1986,10 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(userSession, nil)
+
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+					Once().
+					Return(deviceID, nil)
 
 				sessionMgr.EXPECT().DeleteRefreshToken(ctx, reqData.RefreshToken).
 					Once().
@@ -2089,7 +2012,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, sessionMgr, nil, nil, nil, nil, nil)
+			auth := NewUsecase(log, sessionMgr, nil, nil, nil, nil, nil, nil)
 
 			sessionTokens, err := auth.RefreshTokens(ctx, appID, &reqData)
 
@@ -2254,7 +2177,7 @@ func TestAuthUsecase_GetJWKS(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, nil, nil, nil, tokenMgr, nil, nil)
+			auth := NewUsecase(log, nil, nil, nil, tokenMgr, nil, nil, nil)
 
 			jwks, err := auth.GetJWKS(ctx, appID)
 

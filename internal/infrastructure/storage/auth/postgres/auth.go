@@ -15,23 +15,29 @@ import (
 
 type AuthStorage struct {
 	pool    *pgxpool.Pool
-	txMgr   transaction.PostgresManager
+	txMgr   TransactionManager
 	queries *sqlc.Queries
 }
 
-func NewAuthStorage(pool *pgxpool.Pool, txMgr transaction.PostgresManager) *AuthStorage {
+type TransactionManager interface {
+	ExecWithinTx(ctx context.Context, fn func(tx pgx.Tx) error) error
+}
+
+func NewAuthStorage(pool *pgxpool.Pool, txMgr TransactionManager) *AuthStorage {
+	queries := sqlc.New(pool)
+
 	return &AuthStorage{
 		pool:    pool,
 		txMgr:   txMgr,
-		queries: sqlc.New(pool),
+		queries: queries,
 	}
 }
 
 // ReplaceSoftDeletedUser replaces a soft deleted user with the given user
 func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.User) error {
-	const method = "auth.postgres.ReplaceSoftDeletedUser"
+	const method = "storage.auth.postgres.ReplaceSoftDeletedUser"
 
-	params := sqlc.RegisterUserParams{
+	params := sqlc.ReplaceSoftDeletedUserParams{
 		ID:           user.ID,
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
@@ -46,12 +52,12 @@ func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.Us
 
 	// Save user within transaction
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
-		return s.queries.WithTx(tx).RegisterUser(ctx, params)
+		return s.queries.WithTx(tx).ReplaceSoftDeletedUser(ctx, params)
 	})
 
 	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 		// Save user without transaction
-		err = s.queries.RegisterUser(ctx, params)
+		err = s.queries.ReplaceSoftDeletedUser(ctx, params)
 	}
 
 	if err != nil {
@@ -63,7 +69,7 @@ func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.Us
 
 // RegisterUser creates a new user
 func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error {
-	const method = "auth.postgres.RegisterUser"
+	const method = "storage.auth.postgres.RegisterUser"
 
 	params := sqlc.RegisterUserParams{
 		ID:           user.ID,
@@ -96,7 +102,7 @@ func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error 
 }
 
 func (s *AuthStorage) MarkEmailVerified(ctx context.Context, userID, appID string) error {
-	const method = "auth.postgres.MarkEmailVerified"
+	const method = "storage.auth.postgres.MarkEmailVerified"
 
 	params := sqlc.MarkEmailVerifiedParams{
 		ID:    userID,

@@ -22,6 +22,53 @@ func (_m *SessionManager) EXPECT() *SessionManager_Expecter {
 	return &SessionManager_Expecter{mock: &_m.Mock}
 }
 
+// DeleteUserDevices provides a mock function with given fields: ctx, _a1
+func (_m *SessionManager) DeleteUserDevices(ctx context.Context, _a1 entity.User) error {
+	ret := _m.Called(ctx, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteUserDevices")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, entity.User) error); ok {
+		r0 = rf(ctx, _a1)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SessionManager_DeleteUserDevices_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteUserDevices'
+type SessionManager_DeleteUserDevices_Call struct {
+	*mock.Call
+}
+
+// DeleteUserDevices is a helper method to define mock.On call
+//   - ctx context.Context
+//   - _a1 entity.User
+func (_e *SessionManager_Expecter) DeleteUserDevices(ctx interface{}, _a1 interface{}) *SessionManager_DeleteUserDevices_Call {
+	return &SessionManager_DeleteUserDevices_Call{Call: _e.mock.On("DeleteUserDevices", ctx, _a1)}
+}
+
+func (_c *SessionManager_DeleteUserDevices_Call) Run(run func(ctx context.Context, _a1 entity.User)) *SessionManager_DeleteUserDevices_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(entity.User))
+	})
+	return _c
+}
+
+func (_c *SessionManager_DeleteUserDevices_Call) Return(_a0 error) *SessionManager_DeleteUserDevices_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *SessionManager_DeleteUserDevices_Call) RunAndReturn(run func(context.Context, entity.User) error) *SessionManager_DeleteUserDevices_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteUserSessions provides a mock function with given fields: ctx, _a1
 func (_m *SessionManager) DeleteUserSessions(ctx context.Context, _a1 entity.User) error {
 	ret := _m.Called(ctx, _a1)
