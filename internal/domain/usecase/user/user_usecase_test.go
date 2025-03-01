@@ -131,7 +131,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		reqData      *entity.UserRequestData
+		reqData      entity.UserRequestData
 		mockBehavior func(
 			identityMgr *mocks.IdentityManager,
 			userMgr *mocks.UserdataManager,
@@ -141,7 +141,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 	}{
 		{
 			name: "Success - Update email only",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Email: newEmail,
 			},
 			mockBehavior: func(
@@ -169,7 +169,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "Success - Update password only",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Password:        currentPassword,
 				UpdatedPassword: newPassword,
 			},
@@ -208,7 +208,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "Failed to extract user ID",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Email: newEmail,
 			},
 			mockBehavior: func(
@@ -224,7 +224,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "User not found",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Email: newEmail,
 			},
 			mockBehavior: func(
@@ -244,7 +244,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "Failed to get user",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Email: newEmail,
 			},
 			mockBehavior: func(
@@ -264,7 +264,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "Email already taken",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Email: newEmail,
 			},
 			mockBehavior: func(
@@ -288,7 +288,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "Update email — No email changes detected",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Email: currentEmail,
 			},
 			mockBehavior: func(
@@ -308,7 +308,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "Update email — Failed to get user status by email",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Email: newEmail,
 			},
 			mockBehavior: func(
@@ -332,7 +332,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "Update password – Failed to validate current password",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Password:        currentPassword,
 				UpdatedPassword: newPassword,
 			},
@@ -359,7 +359,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 
 		{
 			name: "Update password - current password does not match",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Password:        currentPassword,
 				UpdatedPassword: newPassword,
 			},
@@ -386,7 +386,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 
 		{
 			name: "Update password - Failed to validate new password",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Password:        currentPassword,
 				UpdatedPassword: newPassword,
 			},
@@ -417,7 +417,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "Update password - New password is the same as the current password",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Password:        currentPassword,
 				UpdatedPassword: newPassword,
 			},
@@ -448,7 +448,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "Update password — Failed to hash new password",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Password:        currentPassword,
 				UpdatedPassword: newPassword,
 			},
@@ -483,7 +483,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		},
 		{
 			name: "Failed to update user data",
-			reqData: &entity.UserRequestData{
+			reqData: entity.UserRequestData{
 				Password:        currentPassword,
 				UpdatedPassword: newPassword,
 			},
@@ -534,12 +534,13 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 
 			user := NewUsecase(log, nil, nil, nil, nil, userMgr, passwordMgr, identityMgr, nil, nil)
 
-			err := user.UpdateUser(ctx, appID, tt.reqData)
+			updatedUser, err := user.UpdateUser(ctx, appID, tt.reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
 			} else {
 				require.NoError(t, err)
+				require.Equal(t, tt.reqData.Email, updatedUser.Email)
 			}
 		})
 	}
