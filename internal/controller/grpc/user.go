@@ -42,7 +42,6 @@ func (c *gRPCController) GetUser(ctx context.Context, req *ssov1.GetUserRequest)
 	return toGetUserResponse(user), nil
 }
 
-// TODO: need to return a user data instead of empty struct
 func (c *gRPCController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.UpdateUserResponse, error) {
 	const method = "сontroller.gRPC.UpdateUser"
 
@@ -69,13 +68,13 @@ func (c *gRPCController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRe
 
 	userData := fromUpdateUserRequest(req)
 
-	err = c.userUsecase.UpdateUser(ctx, appID, userData)
+	updatedUser, err := c.userUsecase.UpdateUser(ctx, appID, userData)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToUpdateUser, err)
 		return nil, mapErrorToGRPCStatus(err)
 	}
 
-	return &ssov1.UpdateUserResponse{}, nil
+	return toUpdateUserResponse(updatedUser), nil
 }
 
 func (c *gRPCController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRequest) (*ssov1.DeleteUserResponse, error) {

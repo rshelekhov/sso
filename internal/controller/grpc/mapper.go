@@ -136,11 +136,18 @@ func toGetUserResponse(user entity.User) *ssov1.GetUserResponse {
 	}
 }
 
-func fromUpdateUserRequest(req *ssov1.UpdateUserRequest) *entity.UserRequestData {
-	return &entity.UserRequestData{
+func fromUpdateUserRequest(req *ssov1.UpdateUserRequest) entity.UserRequestData {
+	return entity.UserRequestData{
 		Email:           req.GetEmail(),
 		Password:        req.GetCurrentPassword(),
 		UpdatedPassword: req.GetUpdatedPassword(),
+	}
+}
+
+func toUpdateUserResponse(user entity.User) *ssov1.UpdateUserResponse {
+	return &ssov1.UpdateUserResponse{
+		Email:     user.Email,
+		UpdatedAt: timestamppb.New(user.UpdatedAt),
 	}
 }
 
