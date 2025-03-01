@@ -25,11 +25,6 @@ type App struct {
 }
 
 type (
-	Usecase interface {
-		RegisterApp(ctx context.Context, appName string) error
-		DeleteApp(ctx context.Context, appID, secretHash string) error
-	}
-
 	KeyManager interface {
 		GenerateAndSavePrivateKey(appID string) error
 		PublicKey(appID string) (interface{}, error)

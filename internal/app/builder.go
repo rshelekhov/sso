@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"log/slog"
 
-	v1 "github.com/rshelekhov/sso/internal/controller/http/v1"
-
 	"github.com/rshelekhov/jwtauth"
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	httpapp "github.com/rshelekhov/sso/internal/app/http"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/grpcmethods"
 	"github.com/rshelekhov/sso/internal/config/settings"
+	v1 "github.com/rshelekhov/sso/internal/controller/http/v1"
 	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
 	"github.com/rshelekhov/sso/internal/domain/service/session"
 	"github.com/rshelekhov/sso/internal/domain/service/token"
@@ -230,9 +229,7 @@ func (b *Builder) BuildHTTPServer() *httpapp.App {
 		b.managers.appIDManager,
 		b.managers.jwt,
 		b.services.appValidator,
-		b.usecases.app,
 		b.usecases.auth,
-		b.usecases.user,
 	)
 
 	httpServer := httpapp.New(

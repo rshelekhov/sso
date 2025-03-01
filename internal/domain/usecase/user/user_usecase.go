@@ -26,12 +26,6 @@ type User struct {
 }
 
 type (
-	Usecase interface {
-		GetUserByID(ctx context.Context, appID string) (entity.User, error)
-		UpdateUser(ctx context.Context, appID string, data entity.UserRequestData) (entity.User, error)
-		DeleteUser(ctx context.Context, appID string) error
-	}
-
 	ContextManager interface {
 		FromContext(ctx context.Context) (string, bool)
 		ToContext(ctx context.Context, value string) context.Context
