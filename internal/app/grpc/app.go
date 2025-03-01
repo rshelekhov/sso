@@ -6,18 +6,14 @@ import (
 	"log/slog"
 	"net"
 
-	"github.com/rshelekhov/sso/internal/config/grpcmethods"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
-	authenticate "github.com/rshelekhov/sso/internal/lib/interceptor/auth"
-
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"github.com/rshelekhov/jwtauth"
+	"github.com/rshelekhov/sso/internal/config/grpcmethods"
 	ssogrpc "github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
-	"github.com/rshelekhov/sso/internal/domain/usecase/app"
-	"github.com/rshelekhov/sso/internal/domain/usecase/auth"
-	"github.com/rshelekhov/sso/internal/domain/usecase/user"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	authenticate "github.com/rshelekhov/sso/internal/lib/interceptor/auth"
 	"github.com/rshelekhov/sso/pkg/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -38,9 +34,9 @@ func New(
 	appIDMgr middleware.Manager,
 	jwtMiddleware jwtauth.Middleware,
 	appValidator appvalidator.Validator,
-	appUsecase app.Usecase,
-	authUsecase auth.Usecase,
-	userUsecase user.Usecase,
+	appUsecase ssogrpc.AppUsecase,
+	authUsecase ssogrpc.AuthUsecase,
+	userUsecase ssogrpc.UserUsecase,
 ) *App {
 	loggingOpts := []logging.Option{
 		logging.WithLogOnEvents(

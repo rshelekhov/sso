@@ -30,17 +30,6 @@ type Auth struct {
 }
 
 type (
-	Usecase interface {
-		Login(ctx context.Context, appID string, reqData *entity.UserRequestData) (entity.SessionTokens, error)
-		RegisterUser(ctx context.Context, appID string, reqData *entity.UserRequestData, confirmEmailEndpoint string) (entity.SessionTokens, error)
-		VerifyEmail(ctx context.Context, verificationToken string) (entity.VerificationResult, error)
-		ResetPassword(ctx context.Context, appID string, reqData *entity.ResetPasswordRequestData, changePasswordEndpoint string) error
-		ChangePassword(ctx context.Context, appID string, reqData *entity.ChangePasswordRequestData) (entity.ChangingPasswordResult, error)
-		LogoutUser(ctx context.Context, appID string, reqData *entity.UserDeviceRequestData) error
-		RefreshTokens(ctx context.Context, appID string, reqData *entity.RefreshTokenRequestData) (entity.SessionTokens, error)
-		GetJWKS(ctx context.Context, appID string) (entity.JWKS, error)
-	}
-
 	SessionManager interface {
 		CreateSession(ctx context.Context, reqData entity.SessionRequestData) (entity.SessionTokens, error)
 		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error)
