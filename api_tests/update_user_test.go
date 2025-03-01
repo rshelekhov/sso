@@ -50,13 +50,17 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
+	updatedEmail := gofakeit.Email()
+
 	// Update user
-	_, err = st.AuthClient.UpdateUser(ctx, &ssov1.UpdateUserRequest{
-		Email:           gofakeit.Email(),
+	resp, err := st.AuthClient.UpdateUser(ctx, &ssov1.UpdateUserRequest{
+		Email:           updatedEmail,
 		CurrentPassword: pass,
 		UpdatedPassword: randomFakePassword(),
 	})
 	require.NoError(t, err)
+	require.NotEmpty(t, resp)
+	require.Equal(t, updatedEmail, resp.GetEmail())
 
 	// Cleanup database after test
 	params := cleanupParams{

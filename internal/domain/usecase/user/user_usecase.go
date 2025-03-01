@@ -28,7 +28,7 @@ type User struct {
 type (
 	Usecase interface {
 		GetUserByID(ctx context.Context, appID string) (entity.User, error)
-		UpdateUser(ctx context.Context, appID string, data *entity.UserRequestData) error
+		UpdateUser(ctx context.Context, appID string, data entity.UserRequestData) (entity.User, error)
 		DeleteUser(ctx context.Context, appID string) error
 	}
 
@@ -126,7 +126,7 @@ func (u *User) GetUserByID(ctx context.Context, appID string) (entity.User, erro
 	return userData, nil
 }
 
-func (u *User) UpdateUser(ctx context.Context, appID string, data *entity.UserRequestData) error {
+func (u *User) UpdateUser(ctx context.Context, appID string, data entity.UserRequestData) (entity.User, error) {
 	const method = "usecase.User.UpdateUser"
 
 	log := u.log.With(slog.String("method", method))
@@ -134,28 +134,29 @@ func (u *User) UpdateUser(ctx context.Context, appID string, data *entity.UserRe
 	userID, err := u.identityMgr.ExtractUserIDFromContext(ctx, appID)
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
-		return domain.ErrFailedToExtractUserIDFromContext
+		return entity.User{}, domain.ErrFailedToExtractUserIDFromContext
 	}
 
 	userDataFromDB, err := u.userMgr.GetUserData(ctx, appID, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
-			return domain.ErrUserNotFound
+			return entity.User{}, domain.ErrUserNotFound
 		}
 
 		e.LogError(ctx, log, domain.ErrFailedToGetUserData, err, slog.Any("userID", userID))
-		return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
+		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
 	}
 
-	if err = u.updateUserFields(ctx, appID, data, userDataFromDB); err != nil {
+	updatedUser, err := u.updateUserFields(ctx, appID, data, userDataFromDB)
+	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToUpdateUser, err, slog.Any("userID", userID))
-		return fmt.Errorf("%w: %w", domain.ErrFailedToUpdateUser, err)
+		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToUpdateUser, err)
 	}
 
 	log.Info("user updated", slog.String("userID", userID))
 
-	return nil
+	return updatedUser, nil
 }
 
 func (u *User) DeleteUser(ctx context.Context, appID string) error {
@@ -205,9 +206,9 @@ func (u *User) DeleteUser(ctx context.Context, appID string) error {
 func (u *User) updateUserFields(
 	ctx context.Context,
 	appID string,
-	data *entity.UserRequestData,
+	data entity.UserRequestData,
 	userDataFromDB entity.User,
-) error {
+) (entity.User, error) {
 	updatedUser := entity.User{
 		ID:        userDataFromDB.ID,
 		Email:     data.Email,
@@ -216,23 +217,23 @@ func (u *User) updateUserFields(
 	}
 
 	if err := u.handlePasswordUpdate(data, userDataFromDB, &updatedUser); err != nil {
-		return err
+		return entity.User{}, err
 	}
 
 	if err := u.handleEmailUpdate(ctx, userDataFromDB, &updatedUser); err != nil {
-		return err
+		return entity.User{}, err
 	}
 
 	err := u.userMgr.UpdateUserData(ctx, updatedUser)
 	if err != nil {
-		return fmt.Errorf("%w: %w", domain.ErrFailedToUpdateUser, err)
+		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToUpdateUser, err)
 	}
 
-	return nil
+	return updatedUser, nil
 }
 
 func (u *User) handlePasswordUpdate(
-	data *entity.UserRequestData,
+	data entity.UserRequestData,
 	userDataFromDB entity.User,
 	updatedUser *entity.User,
 ) error {
