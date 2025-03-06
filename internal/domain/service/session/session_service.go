@@ -11,38 +11,45 @@ import (
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 )
 
-type JWTManager interface {
-	NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error)
-	NewRefreshToken() string
-	Issuer() string
-	AccessTokenTTL() time.Duration
-	RefreshTokenTTL() time.Duration
-	Kid(appID string) (string, error)
-	RefreshTokenCookieDomain() string
-	RefreshTokenCookiePath() string
-}
+type (
+	JWTManager interface {
+		NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error)
+		NewRefreshToken() string
+		Issuer() string
+		AccessTokenTTL() time.Duration
+		RefreshTokenTTL() time.Duration
+		Kid(appID string) (string, error)
+		RefreshTokenCookieDomain() string
+		RefreshTokenCookiePath() string
+	}
 
-type Storage interface {
-	CreateSession(ctx context.Context, session entity.Session) error
-	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error)
-	UpdateLastVisitedAt(ctx context.Context, session entity.Session) error
-	DeleteRefreshToken(ctx context.Context, refreshToken string) error
-	DeleteSession(ctx context.Context, session entity.Session) error
-	DeleteAllSessions(ctx context.Context, userID, appID string) error
-	DeleteAllUserDevices(ctx context.Context, userID, appID string) error
-	GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
-	RegisterDevice(ctx context.Context, device entity.UserDevice) error
-}
+	SessionStorage interface {
+		CreateSession(ctx context.Context, session entity.Session) error
+		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error)
+		DeleteRefreshToken(ctx context.Context, refreshToken string) error
+		DeleteSession(ctx context.Context, session entity.Session) error
+		DeleteAllSessions(ctx context.Context, userID, appID string) error
+		DeleteAllUserDevices(ctx context.Context, userID, appID string) error
+	}
+
+	DeviceStorage interface {
+		RegisterDevice(ctx context.Context, device entity.UserDevice) error
+		GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
+		UpdateLastVisitedAt(ctx context.Context, session entity.Session) error
+	}
+)
 
 type Session struct {
-	jwtMgr  JWTManager
-	storage Storage
+	jwtMgr         JWTManager
+	sessionStorage SessionStorage
+	deviceStorage  DeviceStorage
 }
 
-func NewService(ts JWTManager, storage Storage) *Session {
+func NewService(ts JWTManager, sessionStorage SessionStorage, deviceStorage DeviceStorage) *Session {
 	return &Session{
-		jwtMgr:  ts,
-		storage: storage,
+		jwtMgr:         ts,
+		sessionStorage: sessionStorage,
+		deviceStorage:  deviceStorage,
 	}
 }
 
@@ -80,7 +87,7 @@ func (s *Session) CreateSession(ctx context.Context, sessionReqData entity.Sessi
 func (s *Session) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error) {
 	const method = "service.session.GetSessionByRefreshToken"
 
-	session, err := s.storage.GetSessionByRefreshToken(ctx, refreshToken)
+	session, err := s.sessionStorage.GetSessionByRefreshToken(ctx, refreshToken)
 	if err != nil {
 		if errors.Is(err, storage.ErrSessionNotFound) {
 			return entity.Session{}, domain.ErrSessionNotFound
@@ -98,7 +105,7 @@ func (s *Session) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 func (s *Session) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
 	const method = "service.session.GetUserDeviceID"
 
-	deviceID, err := s.storage.GetUserDeviceID(ctx, userID, userAgent)
+	deviceID, err := s.deviceStorage.GetUserDeviceID(ctx, userID, userAgent)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserDeviceNotFound) {
 			return "", domain.ErrUserDeviceNotFound
@@ -112,7 +119,7 @@ func (s *Session) GetUserDeviceID(ctx context.Context, userID, userAgent string)
 func (s *Session) DeleteRefreshToken(ctx context.Context, refreshToken string) error {
 	const method = "service.session.DeleteRefreshToken"
 
-	if err := s.storage.DeleteRefreshToken(ctx, refreshToken); err != nil {
+	if err := s.sessionStorage.DeleteRefreshToken(ctx, refreshToken); err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
 
@@ -122,7 +129,7 @@ func (s *Session) DeleteRefreshToken(ctx context.Context, refreshToken string) e
 func (s *Session) DeleteSession(ctx context.Context, sessionReqData entity.SessionRequestData) error {
 	const method = "service.session.DeleteSession"
 
-	if err := s.storage.DeleteSession(ctx, entity.Session{
+	if err := s.sessionStorage.DeleteSession(ctx, entity.Session{
 		UserID:   sessionReqData.UserID,
 		DeviceID: sessionReqData.DeviceID,
 		AppID:    sessionReqData.AppID,
@@ -136,7 +143,7 @@ func (s *Session) DeleteSession(ctx context.Context, sessionReqData entity.Sessi
 func (s *Session) DeleteUserSessions(ctx context.Context, user entity.User) error {
 	const method = "service.session.DeleteAllUserSessions"
 
-	if err := s.storage.DeleteAllSessions(ctx, user.ID, user.AppID); err != nil {
+	if err := s.sessionStorage.DeleteAllSessions(ctx, user.ID, user.AppID); err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
 
@@ -146,7 +153,7 @@ func (s *Session) DeleteUserSessions(ctx context.Context, user entity.User) erro
 func (s *Session) DeleteUserDevices(ctx context.Context, user entity.User) error {
 	const method = "service.session.DeleteUserDevices"
 
-	if err := s.storage.DeleteAllUserDevices(ctx, user.ID, user.AppID); err != nil {
+	if err := s.sessionStorage.DeleteAllUserDevices(ctx, user.ID, user.AppID); err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
 
@@ -162,7 +169,7 @@ func (s *Session) prepareTokenConfig() (issuer string, accessTokenTTL, refreshTo
 }
 
 func (s *Session) getOrRegisterDeviceID(ctx context.Context, session entity.SessionRequestData) (string, error) {
-	deviceID, err := s.storage.GetUserDeviceID(ctx, session.UserID, session.UserDevice.UserAgent)
+	deviceID, err := s.deviceStorage.GetUserDeviceID(ctx, session.UserID, session.UserDevice.UserAgent)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserDeviceNotFound) {
 			return s.registerDevice(ctx, session)
@@ -176,7 +183,7 @@ func (s *Session) getOrRegisterDeviceID(ctx context.Context, session entity.Sess
 func (s *Session) registerDevice(ctx context.Context, session entity.SessionRequestData) (string, error) {
 	userDevice := entity.NewUserDevice(session)
 
-	if err := s.storage.RegisterDevice(ctx, userDevice); err != nil {
+	if err := s.deviceStorage.RegisterDevice(ctx, userDevice); err != nil {
 		return "", fmt.Errorf("%w: %w", domain.ErrFailedToRegisterDevice, err)
 	}
 
@@ -216,11 +223,11 @@ func (s *Session) createTokens(
 }
 
 func (s *Session) saveSession(ctx context.Context, session entity.Session) error {
-	if err := s.storage.CreateSession(ctx, session); err != nil {
+	if err := s.sessionStorage.CreateSession(ctx, session); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
 	}
 
-	if err := s.storage.UpdateLastVisitedAt(ctx, session); err != nil {
+	if err := s.deviceStorage.UpdateLastVisitedAt(ctx, session); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToUpdateLastVisitedAt, err)
 	}
 
