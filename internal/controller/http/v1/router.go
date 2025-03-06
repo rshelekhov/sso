@@ -1,17 +1,15 @@
 package v1
 
 import (
+	"context"
 	"log/slog"
 
-	"github.com/rshelekhov/jwtauth"
-	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
-	"github.com/rshelekhov/sso/internal/domain/usecase/app"
-	"github.com/rshelekhov/sso/internal/domain/usecase/auth"
-	"github.com/rshelekhov/sso/internal/domain/usecase/user"
-	"github.com/rshelekhov/sso/pkg/middleware"
-
 	"github.com/go-chi/chi/v5"
+	"github.com/rshelekhov/jwtauth"
 	"github.com/rshelekhov/sso/internal/config/settings"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
+	"github.com/rshelekhov/sso/pkg/middleware"
 )
 
 type Router struct {
@@ -21,9 +19,11 @@ type Router struct {
 	appIDMgr     middleware.Manager
 	jwtMgr       jwtauth.Manager
 	appValidator appvalidator.Validator
-	appUsecase   app.Usecase
-	authUsecase  auth.Usecase
-	userUsecase  user.Usecase
+	authUsecase  AuthUsecase
+}
+
+type AuthUsecase interface {
+	GetJWKS(ctx context.Context, appID string) (entity.JWKS, error)
 }
 
 func NewRouter(
@@ -33,9 +33,7 @@ func NewRouter(
 	appIDMgr middleware.Manager,
 	jwtMgr jwtauth.Manager,
 	appValidator appvalidator.Validator,
-	appUsecase app.Usecase,
-	authUsecase auth.Usecase,
-	userUsecase user.Usecase,
+	authUsecase AuthUsecase,
 ) *chi.Mux {
 	config := Config{
 		RequestLimitByIP: cfg.RequestLimitByIP,
@@ -48,9 +46,7 @@ func NewRouter(
 		appIDMgr:     appIDMgr,
 		jwtMgr:       jwtMgr,
 		appValidator: appValidator,
-		appUsecase:   appUsecase,
 		authUsecase:  authUsecase,
-		userUsecase:  userUsecase,
 	}
 
 	return ar.initRoutes()
