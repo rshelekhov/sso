@@ -2,13 +2,10 @@ package session
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/rshelekhov/sso/internal/domain/service/session"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
-	mongoStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/session/mongo"
-	pgStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/session/postgres"
-	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
+	redisStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/session/redis"
 )
 
 var (
@@ -16,33 +13,11 @@ var (
 	ErrPostgresSessionStorageSettingsEmpty = errors.New("postgres session storage settings are empty")
 )
 
-func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (session.Storage, error) {
-	switch dbConn.Type {
-	case storage.TypeMongo:
-		return newMongoStorage(dbConn)
-	case storage.TypePostgres:
-		pgTxMgr, ok := txMgr.(transaction.PostgresManager)
-		if !ok {
-			return nil, fmt.Errorf("invalid transaction manager for Postgres")
-		}
-		return newPostgresStorage(dbConn, pgTxMgr)
-	default:
-		return nil, fmt.Errorf("unknown session storage type: %s", dbConn.Type)
-	}
-}
-
-func newMongoStorage(dbConn *storage.DBConnection) (session.Storage, error) {
-	if dbConn.Mongo == nil {
-		return nil, ErrMongoSessionStorageSettingsEmpty
+func NewStorage(redisConn *storage.RedisConnection) (session.SessionStorage, error) {
+	storage, err := redisStorage.NewSessionStorage(redisConn)
+	if err != nil {
+		return nil, err
 	}
 
-	return mongoStorage.NewSessionStorage(dbConn.Mongo.Database, dbConn.Mongo.Timeout)
-}
-
-func newPostgresStorage(dbConn *storage.DBConnection, txMgr transaction.PostgresManager) (session.Storage, error) {
-	if dbConn.Postgres == nil {
-		return nil, ErrPostgresSessionStorageSettingsEmpty
-	}
-
-	return pgStorage.NewSessionStorage(dbConn.Postgres.Pool, txMgr), nil
+	return storage, nil
 }

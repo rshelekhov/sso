@@ -23,6 +23,7 @@ import (
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	appDB "github.com/rshelekhov/sso/internal/infrastructure/storage/app"
 	authDB "github.com/rshelekhov/sso/internal/infrastructure/storage/auth"
+	deviceDB "github.com/rshelekhov/sso/internal/infrastructure/storage/device"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
 	sessionDB "github.com/rshelekhov/sso/internal/infrastructure/storage/session"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
@@ -45,10 +46,12 @@ type Builder struct {
 
 type Storages struct {
 	dbConn       *storage.DBConnection
+	redisConn    *storage.RedisConnection
 	trMgr        transaction.Manager
 	app          appDB.Storage
 	auth         auth.Storage
-	session      session.Storage
+	session      session.SessionStorage
+	device       session.DeviceStorage
 	user         userdata.Storage
 	verification verification.Storage
 	key          token.KeyStorage
@@ -91,6 +94,11 @@ func (b *Builder) BuildStorages() error {
 		return fmt.Errorf("failed to init database connection: %w", err)
 	}
 
+	b.storages.redisConn, err = newRedisConnection(b.cfg.Cache.Redis)
+	if err != nil {
+		return fmt.Errorf("failed to init redis client: %w", err)
+	}
+
 	b.storages.trMgr, err = transaction.NewManager(b.storages.dbConn)
 	if err != nil {
 		return fmt.Errorf("failed to init transaction manager: %w", err)
@@ -106,9 +114,14 @@ func (b *Builder) BuildStorages() error {
 		return fmt.Errorf("failed to init auth storage: %w", err)
 	}
 
-	b.storages.session, err = sessionDB.NewStorage(b.storages.dbConn, b.storages.trMgr)
+	b.storages.session, err = sessionDB.NewStorage(b.storages.redisConn)
 	if err != nil {
 		return fmt.Errorf("failed to init session storage: %w", err)
+	}
+
+	b.storages.device, err = deviceDB.NewStorage(b.storages.dbConn, b.storages.trMgr)
+	if err != nil {
+		return fmt.Errorf("failed to init user device storage: %w", err)
 	}
 
 	b.storages.user, err = userDB.NewStorage(b.storages.dbConn, b.storages.trMgr)
@@ -148,7 +161,7 @@ func (b *Builder) BuildServices() error {
 		return fmt.Errorf("failed to init token service: %w", err)
 	}
 
-	b.services.session = session.NewService(b.services.token, b.storages.session)
+	b.services.session = session.NewService(b.services.token, b.storages.session, b.storages.device)
 	b.services.user = userdata.NewService(b.storages.user)
 	b.services.verification = verification.NewService(b.cfg.VerificationService.TokenExpiryTime, b.storages.verification)
 
@@ -280,6 +293,17 @@ func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
 	}
 
 	return dbConnection, nil
+}
+
+func newRedisConnection(cfg *settings.RedisParams) (*storage.RedisConnection, error) {
+	redisConfig := settings.ToRedisConfig(cfg)
+
+	redisConnection, err := storage.NewRedisConnection(*redisConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return redisConnection, nil
 }
 
 func newKeyStorage(cfg settings.KeyStorage) (token.KeyStorage, error) {
