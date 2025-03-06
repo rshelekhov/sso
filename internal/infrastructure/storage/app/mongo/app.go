@@ -39,7 +39,7 @@ func NewAppStorage(db *mongo.Database, timeout time.Duration) (*AppStorage, erro
 	// Create index to ensure uniqueness
 	// App name should be unique
 	model := mongo.IndexModel{
-		Keys:    bson.D{{fieldName, 1}},
+		Keys:    bson.D{{Key: fieldName, Value: 1}},
 		Options: options.Index().SetUnique(true),
 	}
 
