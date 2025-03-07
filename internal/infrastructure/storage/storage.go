@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/mongo/common"
 	mongoStorage "github.com/rshelekhov/sso/pkg/storage/mongo"
 	pgStorage "github.com/rshelekhov/sso/pkg/storage/postgres"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // TODO: refactor this code, split to separate files
