@@ -13,7 +13,8 @@ packages:
       dir: internal/domain/service/session/mocks
     interfaces:
       JWTManager:
-      Storage:
+      SessionStorage:
+      DeviceStorage:
   github.com/rshelekhov/sso/internal/domain/service/token:
     config:
       dir: internal/domain/service/token/mocks
