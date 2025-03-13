@@ -94,10 +94,12 @@ func (b *Builder) BuildStorages() error {
 		return fmt.Errorf("failed to init database connection: %w", err)
 	}
 
-	b.storages.redisConn, err = newRedisConnection(b.cfg.Cache.Redis)
+	redisConn, err := newRedisConnection(b.cfg.Cache.Redis)
 	if err != nil {
-		return fmt.Errorf("failed to init redis client: %w", err)
+		return fmt.Errorf("failed to create redis connection: %w", err)
 	}
+
+	b.storages.redisConn = redisConn
 
 	b.storages.trMgr, err = transaction.NewManager(b.storages.dbConn)
 	if err != nil {
@@ -295,10 +297,13 @@ func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
 	return dbConnection, nil
 }
 
-func newRedisConnection(cfg *settings.RedisParams) (*storage.RedisConnection, error) {
+func newRedisConnection(cfg settings.RedisParams) (*storage.RedisConnection, error) {
 	redisConfig := settings.ToRedisConfig(cfg)
+	if redisConfig == nil {
+		return nil, fmt.Errorf("failed to create redis config")
+	}
 
-	redisConnection, err := storage.NewRedisConnection(*redisConfig)
+	redisConnection, err := storage.NewRedisConnection(redisConfig)
 	if err != nil {
 		return nil, err
 	}
