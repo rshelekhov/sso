@@ -14,7 +14,7 @@ type RedisConnection struct {
 	RevokedTokenTTL time.Duration
 }
 
-func NewRedisConnection(cfg RedisConfig) (*RedisConnection, error) {
+func NewRedisConnection(cfg *RedisConfig) (*RedisConnection, error) {
 	const method = "storage.NewRedisConnection"
 
 	client, err := redisStorage.New(cfg.Redis)

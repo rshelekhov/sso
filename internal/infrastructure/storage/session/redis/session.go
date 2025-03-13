@@ -2,20 +2,12 @@ package redis
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
-)
-
-const (
-	sessionKeyPrefix      = "session:"
-	deviceKeyPrefix       = "device:"
-	refreshTokenKeyPrefix = "refresh_token:"
-	revokedTokenKeyPrefix = "revoked_token:"
 )
 
 type SessionStorage struct {
@@ -29,146 +21,155 @@ func NewSessionStorage(redisConn *storage.RedisConnection) (*SessionStorage, err
 		return nil, fmt.Errorf("redis client is nil")
 	}
 
-	return &SessionStorage{
+	storage := &SessionStorage{
 		client:          redisConn.Client,
 		sessionTTL:      redisConn.SessionTTL,
 		revokedTokenTTL: redisConn.RevokedTokenTTL,
-	}, nil
+	}
+
+	ctx := context.Background()
+	if err := storage.client.Ping(ctx).Err(); err != nil {
+		return nil, fmt.Errorf("failed to ping redis: %w", err)
+	}
+
+	return storage, nil
 }
 
 func (s *SessionStorage) CreateSession(ctx context.Context, session entity.Session) error {
-	sessionData, err := json.Marshal(session)
-	if err != nil {
-		return fmt.Errorf("failed to marshal session: %w", err)
+	const method = "storage.redis.CreateSession"
+
+	sessionKey := s.sessionKey(session.UserID, session.AppID, session.DeviceID)
+	data := toRedisSessionData(session)
+
+	if err := s.client.HSet(ctx, sessionKey, data).Err(); err != nil {
+		return fmt.Errorf("%s: failed to save session: %w", method, err)
 	}
 
-	key := s.sessionKey(session.RefreshToken)
-	pipe := s.client.Pipeline()
+	refreshKey := s.refreshIndexKey(session.RefreshToken)
+	if err := s.client.Set(ctx, refreshKey, sessionKey, 0).Err(); err != nil {
+		return fmt.Errorf("%s: failed to save refresh token index: %w", method, err)
+	}
 
-	pipe.Set(ctx, key, sessionData, s.sessionTTL)
+	if err := s.client.ExpireAt(ctx, sessionKey, session.ExpiresAt).Err(); err != nil {
+		return fmt.Errorf("%s: failed to set expiration for session: %w", method, err)
+	}
 
-	refreshKey := s.refreshTokenKey(session.RefreshToken)
-	pipe.HSet(ctx, refreshKey, map[string]interface{}{
-		"user_id":    session.UserID,
-		"app_id":     session.AppID,
-		"device_id":  session.DeviceID,
-		"expires_at": session.ExpiresAt.Unix(),
-	})
-	pipe.ExpireAt(ctx, refreshKey, session.ExpiresAt)
-
-	if _, err := pipe.Exec(ctx); err != nil {
-		return fmt.Errorf("failed to save session: %w", err)
+	if err := s.client.ExpireAt(ctx, refreshKey, session.ExpiresAt).Err(); err != nil {
+		return fmt.Errorf("%s: failed to set expiration for refresh token index: %w", method, err)
 	}
 
 	return nil
 }
 
 func (s *SessionStorage) GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error) {
-	key := s.sessionKey(refreshToken)
-	data, err := s.client.Get(ctx, key).Bytes()
+	const method = "storage.redis.GetSessionByRefreshToken"
+
+	refreshKey := s.refreshIndexKey(refreshToken)
+	sessionKey, err := s.client.Get(ctx, refreshKey).Result()
+	if err == redis.Nil {
+		return entity.Session{}, storage.ErrSessionNotFound
+	}
 	if err != nil {
-		if err == redis.Nil {
-			return entity.Session{}, storage.ErrSessionNotFound
-		}
-		return entity.Session{}, fmt.Errorf("failed to get session: %w", err)
+		return entity.Session{}, fmt.Errorf("%s: failed to get session key: %w", method, err)
 	}
 
-	var session entity.Session
-	if err := json.Unmarshal(data, &session); err != nil {
-		return entity.Session{}, fmt.Errorf("failed to unmarshal session: %w", err)
+	data, err := s.client.HGetAll(ctx, sessionKey).Result()
+	if err != nil {
+		return entity.Session{}, fmt.Errorf("%s: failed to get session data: %w", method, err)
+	}
+	if len(data) == 0 {
+		return entity.Session{}, storage.ErrSessionNotFound
 	}
 
-	return session, nil
+	return toSessionEntity(data), nil
 }
 
 func (s *SessionStorage) DeleteRefreshToken(ctx context.Context, refreshToken string) error {
-	pipe := s.client.Pipeline()
+	const method = "storage.redis.DeleteRefreshToken"
 
-	sessionKey := s.sessionKey(refreshToken)
-	pipe.Del(ctx, sessionKey)
+	refreshKey := s.refreshIndexKey(refreshToken)
+	sessionKey, err := s.client.Get(ctx, refreshKey).Result()
+	if err == redis.Nil {
+		return storage.ErrSessionNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("%s: failed to get session key: %w", method, err)
+	}
 
-	refreshKey := s.refreshTokenKey(refreshToken)
-	pipe.Del(ctx, refreshKey)
-
-	if _, err := pipe.Exec(ctx); err != nil {
-		return fmt.Errorf("failed to delete refresh token: %w", err)
+	if err := s.client.Del(ctx, refreshKey, sessionKey).Err(); err != nil {
+		return fmt.Errorf("%s: failed to delete session: %w", method, err)
 	}
 
 	return nil
 }
 
 func (s *SessionStorage) DeleteSession(ctx context.Context, session entity.Session) error {
-	pattern := fmt.Sprintf("%s*", refreshTokenKeyPrefix)
-	iter := s.client.Scan(ctx, 0, pattern, 0).Iterator()
+	const method = "storage.redis.DeleteSession"
 
-	for iter.Next(ctx) {
-		key := iter.Val()
-		data, err := s.client.HGetAll(ctx, key).Result()
-		if err != nil {
-			continue
-		}
+	sessionKey := s.sessionKey(session.UserID, session.AppID, session.DeviceID)
 
-		if data["user_id"] == session.UserID &&
-			data["app_id"] == session.AppID &&
-			data["device_id"] == session.DeviceID {
-			refreshToken := key[len(refreshTokenKeyPrefix):]
-			return s.DeleteRefreshToken(ctx, refreshToken)
-		}
+	data, err := s.client.HGetAll(ctx, sessionKey).Result()
+	if err != nil {
+		return fmt.Errorf("%s: failed to get session data: %w", method, err)
+	}
+	if len(data) == 0 {
+		return storage.ErrSessionNotFound
 	}
 
-	return storage.ErrSessionNotFound
-}
+	refreshKey := s.refreshIndexKey(data[refreshTokenKeyPrefix])
 
-func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID, appID string) error {
-	pattern := fmt.Sprintf("%s*", refreshTokenKeyPrefix)
-	return s.deleteSessionsByPattern(ctx, pattern, func(data map[string]string) bool {
-		return data["user_id"] == userID && data["app_id"] == appID
-	})
-}
-
-func (s *SessionStorage) DeleteAllUserDevices(ctx context.Context, userID, appID string) error {
-	return fmt.Errorf("device operations are not supported in redis storage")
-}
-
-func (s *SessionStorage) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
-	return "", storage.ErrUserDeviceNotFound
-}
-
-func (s *SessionStorage) RegisterDevice(ctx context.Context, device entity.UserDevice) error {
-	return fmt.Errorf("device operations are not supported in redis storage")
-}
-
-func (s *SessionStorage) UpdateLastVisitedAt(ctx context.Context, session entity.Session) error {
-	return fmt.Errorf("device operations are not supported in redis storage")
-}
-
-func (s *SessionStorage) deleteSessionsByPattern(ctx context.Context, pattern string, filter func(map[string]string) bool) error {
-	iter := s.client.Scan(ctx, 0, pattern, 0).Iterator()
-
-	for iter.Next(ctx) {
-		key := iter.Val()
-		data, err := s.client.HGetAll(ctx, key).Result()
-		if err != nil {
-			continue
-		}
-
-		if filter(data) {
-			refreshToken := key[len(refreshTokenKeyPrefix):]
-			if err := s.DeleteRefreshToken(ctx, refreshToken); err != nil {
-				return fmt.Errorf("failed to delete session: %w", err)
-			}
-		}
+	if err := s.client.Del(ctx, sessionKey, refreshKey).Err(); err != nil {
+		return fmt.Errorf("%s: failed to delete session: %w", method, err)
 	}
 
 	return nil
 }
 
-func (s *SessionStorage) sessionKey(refreshToken string) string {
-	return fmt.Sprintf("%s%s", sessionKeyPrefix, refreshToken)
-}
+func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID, appID string) error {
+	const method = "storage.redis.DeleteAllSessions"
 
-func (s *SessionStorage) refreshTokenKey(refreshToken string) string {
-	return fmt.Sprintf("%s%s", refreshTokenKeyPrefix, refreshToken)
+	pattern := fmt.Sprintf("%s%s:%s:*", sessionKeyPrefix, userID, appID)
+	iter := s.client.Scan(ctx, 0, pattern, 0).Iterator()
+
+	var keysToDelete []string
+
+	for iter.Next(ctx) {
+		sessionKey := iter.Val()
+
+		data, err := s.client.HGetAll(ctx, sessionKey).Result()
+		if err != nil {
+			return fmt.Errorf("%s: failed to get session data for key %s: %w", method, sessionKey, err)
+		}
+		if len(data) == 0 {
+			// If there is no data, delete the "empty" key
+			keysToDelete = append(keysToDelete, sessionKey)
+			continue
+		}
+
+		refreshToken, ok := data[refreshTokenKeyPrefix]
+		if !ok {
+			// If there is no refresh token, this is incorrect data, delete such a session
+			keysToDelete = append(keysToDelete, sessionKey)
+			continue
+		}
+
+		keysToDelete = append(keysToDelete,
+			sessionKey,
+			s.refreshIndexKey(refreshToken),
+		)
+	}
+
+	if err := iter.Err(); err != nil {
+		return fmt.Errorf("%s: failed to iterate over sessions: %w", method, err)
+	}
+
+	if len(keysToDelete) > 0 {
+		if err := s.client.Del(ctx, keysToDelete...).Err(); err != nil {
+			return fmt.Errorf("%s: failed to delete sessions: %w", method, err)
+		}
+	}
+
+	return nil
 }
 
 func (s *SessionStorage) RevokeAccessToken(ctx context.Context, token string) error {
@@ -189,6 +190,14 @@ func (s *SessionStorage) IsAccessTokenRevoked(ctx context.Context, token string)
 		return false, fmt.Errorf("failed to check if access token is revoked: %w", err)
 	}
 	return true, nil
+}
+
+func (s *SessionStorage) sessionKey(userID, appID, deviceID string) string {
+	return fmt.Sprintf("%s%s:%s:%s", sessionKeyPrefix, userID, appID, deviceID)
+}
+
+func (s *SessionStorage) refreshIndexKey(refreshToken string) string {
+	return fmt.Sprintf("%s%s", refreshIndexPrefix, refreshToken)
 }
 
 func (s *SessionStorage) revokedTokenKey(token string) string {
