@@ -61,12 +61,13 @@ func (s *DeviceStorage) RegisterDevice(ctx context.Context, device entity.UserDe
 	return nil
 }
 
-func (s *DeviceStorage) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
+func (s *DeviceStorage) GetUserDeviceID(ctx context.Context, userID, appID, userAgent string) (string, error) {
 	const method = "storage.device.postgres.GetUserDeviceID"
 
 	deviceID, err := s.queries.GetUserDeviceID(ctx, sqlc.GetUserDeviceIDParams{
 		UserID:    userID,
 		UserAgent: userAgent,
+		AppID:     appID,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -99,6 +100,32 @@ func (s *DeviceStorage) UpdateLastVisitedAt(ctx context.Context, session entity.
 
 	if err != nil {
 		return fmt.Errorf("%s: failed to update last visited at: %w", method, err)
+	}
+
+	return nil
+}
+
+func (s *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID, appID string) error {
+	const method = "storage.device.postgres.DeleteAllUserDevices"
+
+	// Delete all user devices within transaction
+	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
+		return s.queries.WithTx(tx).DeleteAllUserDevices(ctx, sqlc.DeleteAllUserDevicesParams{
+			UserID: userID,
+			AppID:  appID,
+		})
+	})
+
+	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
+		// Delete all user devices without transaction
+		err = s.queries.DeleteAllUserDevices(ctx, sqlc.DeleteAllUserDevicesParams{
+			UserID: userID,
+			AppID:  appID,
+		})
+	}
+
+	if err != nil {
+		return fmt.Errorf("%s: failed to delete all user devices: %w", method, err)
 	}
 
 	return nil
