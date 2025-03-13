@@ -49,8 +49,6 @@ CREATE TABLE IF NOT EXISTS app_statuses
     title character varying NOT NULL
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_active_sessions ON sessions (user_id, refresh_token);
-
 CREATE TABLE IF NOT EXISTS user_devices
 (
     id              character varying PRIMARY KEY,
