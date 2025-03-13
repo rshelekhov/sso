@@ -13,4 +13,10 @@ SELECT id
 FROM user_devices
 WHERE user_id = $1
   AND user_agent = $2
+  AND app_id = $3
   AND detached = FALSE;
+
+-- name: DeleteAllUserDevices :exec
+DELETE FROM user_devices
+WHERE user_id = $1
+  AND app_id = $2;

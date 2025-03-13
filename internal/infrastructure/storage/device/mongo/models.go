@@ -9,6 +9,7 @@ import (
 const (
 	fieldID            = "_id"
 	fieldUserID        = "user_id"
+	fieldAppID         = "app_id"
 	fieldUserAgent     = "user_agent"
 	fieldLastVisitedAt = "last_visited_at"
 )
