@@ -10,21 +10,39 @@ import (
 	"time"
 )
 
+const deleteAllUserDevices = `-- name: DeleteAllUserDevices :exec
+DELETE FROM user_devices
+WHERE user_id = $1
+  AND app_id = $2
+`
+
+type DeleteAllUserDevicesParams struct {
+	UserID string `db:"user_id"`
+	AppID  string `db:"app_id"`
+}
+
+func (q *Queries) DeleteAllUserDevices(ctx context.Context, arg DeleteAllUserDevicesParams) error {
+	_, err := q.db.Exec(ctx, deleteAllUserDevices, arg.UserID, arg.AppID)
+	return err
+}
+
 const getUserDeviceID = `-- name: GetUserDeviceID :one
 SELECT id
 FROM user_devices
 WHERE user_id = $1
   AND user_agent = $2
+  AND app_id = $3
   AND detached = FALSE
 `
 
 type GetUserDeviceIDParams struct {
 	UserID    string `db:"user_id"`
 	UserAgent string `db:"user_agent"`
+	AppID     string `db:"app_id"`
 }
 
 func (q *Queries) GetUserDeviceID(ctx context.Context, arg GetUserDeviceIDParams) (string, error) {
-	row := q.db.QueryRow(ctx, getUserDeviceID, arg.UserID, arg.UserAgent)
+	row := q.db.QueryRow(ctx, getUserDeviceID, arg.UserID, arg.UserAgent, arg.AppID)
 	var id string
 	err := row.Scan(&id)
 	return id, err

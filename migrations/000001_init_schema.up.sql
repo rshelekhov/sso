@@ -49,19 +49,6 @@ CREATE TABLE IF NOT EXISTS app_statuses
     title character varying NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS sessions
-(
-    id              character varying PRIMARY KEY,
-    user_id         character varying NOT NULL,
-    app_id          character varying NOT NULL,
-    device_id       character varying NOT NULL,
-    refresh_token   character varying NOT NULL,
-    last_visited_at timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
-    expires_at      timestamp WITH TIME ZONE NOT NULL
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_active_sessions ON sessions (user_id, refresh_token);
-
 CREATE TABLE IF NOT EXISTS user_devices
 (
     id              character varying PRIMARY KEY,
@@ -80,7 +67,5 @@ ALTER TABLE users ADD FOREIGN KEY (app_id) REFERENCES apps(id);
 ALTER TABLE tokens ADD FOREIGN KEY (user_id) REFERENCES users(id);
 ALTER TABLE tokens ADD FOREIGN KEY (token_type_id) REFERENCES token_types(id);
 ALTER TABLE tokens ADD FOREIGN KEY (app_id) REFERENCES apps(id);
-ALTER TABLE sessions ADD FOREIGN KEY (user_id) REFERENCES users(id);
-ALTER TABLE sessions ADD FOREIGN KEY (app_id) REFERENCES apps(id);
 ALTER TABLE user_devices ADD FOREIGN KEY (user_id) REFERENCES users(id);
 ALTER TABLE user_devices ADD FOREIGN KEY (app_id) REFERENCES apps(id);

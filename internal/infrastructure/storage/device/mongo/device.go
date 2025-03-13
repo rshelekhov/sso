@@ -53,7 +53,7 @@ func (s *DeviceStorage) RegisterDevice(ctx context.Context, device entity.UserDe
 	return nil
 }
 
-func (s *DeviceStorage) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
+func (s *DeviceStorage) GetUserDeviceID(ctx context.Context, userID, appID, userAgent string) (string, error) {
 	const method = "storage.session.mongo.GetUserDeviceID"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
@@ -61,6 +61,7 @@ func (s *DeviceStorage) GetUserDeviceID(ctx context.Context, userID, userAgent s
 
 	filter := bson.M{
 		fieldUserID:    userID,
+		fieldAppID:     appID,
 		fieldUserAgent: userAgent,
 	}
 
@@ -108,5 +109,28 @@ func (s *DeviceStorage) UpdateLastVisitedAt(ctx context.Context, session entity.
 		}
 		return fmt.Errorf("%s: failed to update last visited at: %w", method, err)
 	}
+	return nil
+}
+
+func (s *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID, appID string) error {
+	const method = "storage.session.mongo.DeleteAllUserDevices"
+
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	filter := bson.M{
+		fieldUserID: userID,
+		fieldAppID:  appID,
+	}
+
+	result, err := s.devicesColl.DeleteMany(ctx, filter)
+	if err != nil {
+		return fmt.Errorf("%s: failed to delete user devices: %w", method, err)
+	}
+
+	if result.DeletedCount == 0 {
+		return storage.ErrUserDeviceNotFound
+	}
+
 	return nil
 }

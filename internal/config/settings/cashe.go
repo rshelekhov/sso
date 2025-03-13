@@ -8,7 +8,7 @@ import (
 )
 
 type Cache struct {
-	Redis *RedisParams
+	Redis RedisParams `mapstructure:",squash"`
 }
 
 type RedisParams struct {
@@ -22,11 +22,7 @@ type RedisParams struct {
 	RevokedTokenTTL time.Duration `mapstructure:"DB_REDIS_REVOKED_TOKEN_TTL"`
 }
 
-func ToRedisConfig(p *RedisParams) *storage.RedisConfig {
-	if p == nil {
-		return nil
-	}
-
+func ToRedisConfig(p RedisParams) *storage.RedisConfig {
 	return &storage.RedisConfig{
 		Redis: &redisStorage.Config{
 			Host:         p.Host,

@@ -33,7 +33,7 @@ type (
 	SessionManager interface {
 		CreateSession(ctx context.Context, reqData entity.SessionRequestData) (entity.SessionTokens, error)
 		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error)
-		GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
+		GetUserDeviceID(ctx context.Context, userID, appID, userAgent string) (string, error)
 		DeleteSession(ctx context.Context, sessionReqData entity.SessionRequestData) error
 		DeleteRefreshToken(ctx context.Context, refreshToken string) error
 	}
@@ -371,7 +371,7 @@ func (u *Auth) LogoutUser(ctx context.Context, appID string, reqData *entity.Use
 	}
 
 	// Check if the device exists
-	sessionReqData.DeviceID, err = u.sessionMgr.GetUserDeviceID(ctx, userID, reqData.UserAgent)
+	sessionReqData.DeviceID, err = u.sessionMgr.GetUserDeviceID(ctx, userID, appID, reqData.UserAgent)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserDeviceNotFound) {
 			e.LogError(ctx, log, domain.ErrUserDeviceNotFound, err)
@@ -416,7 +416,7 @@ func (u *Auth) RefreshTokens(ctx context.Context, appID string, reqData *entity.
 		return entity.SessionTokens{}, domain.ErrFailedToGetSessionByRefreshToken
 	}
 
-	_, err = u.sessionMgr.GetUserDeviceID(ctx, userSession.UserID, reqData.UserDevice.UserAgent)
+	_, err = u.sessionMgr.GetUserDeviceID(ctx, userSession.UserID, userSession.AppID, reqData.UserDevice.UserAgent)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserDeviceNotFound) {
 			e.LogError(ctx, log, domain.ErrUserDeviceNotFound, err)

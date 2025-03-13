@@ -32,14 +32,14 @@ sql:
           - db_type: "pg_catalog.timestamptz"
             go_type: "time.Time"
 
-  - name: session
+  - name: device
     schema: "migrations"
-    queries: "internal/infrastructure/storage/session/postgres/query"
+    queries: "internal/infrastructure/storage/device/postgres/query"
     engine: "postgresql"
     gen:
       go:
         package: "sqlc"
-        out: "internal/infrastructure/storage/session/postgres/sqlc"
+        out: "internal/infrastructure/storage/device/postgres/sqlc"
         sql_package: "pgx/v5"
         emit_db_tags: true
         emit_interface: true

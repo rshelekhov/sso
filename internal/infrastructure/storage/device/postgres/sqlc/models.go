@@ -25,16 +25,6 @@ type AppStatus struct {
 	Title string `db:"title"`
 }
 
-type Session struct {
-	ID            string    `db:"id"`
-	UserID        string    `db:"user_id"`
-	AppID         string    `db:"app_id"`
-	DeviceID      string    `db:"device_id"`
-	RefreshToken  string    `db:"refresh_token"`
-	LastVisitedAt time.Time `db:"last_visited_at"`
-	ExpiresAt     time.Time `db:"expires_at"`
-}
-
 type Token struct {
 	Token       string    `db:"token"`
 	UserID      string    `db:"user_id"`
