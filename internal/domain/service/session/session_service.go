@@ -29,13 +29,13 @@ type (
 		DeleteRefreshToken(ctx context.Context, refreshToken string) error
 		DeleteSession(ctx context.Context, session entity.Session) error
 		DeleteAllSessions(ctx context.Context, userID, appID string) error
-		DeleteAllUserDevices(ctx context.Context, userID, appID string) error
 	}
 
 	DeviceStorage interface {
 		RegisterDevice(ctx context.Context, device entity.UserDevice) error
-		GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
+		GetUserDeviceID(ctx context.Context, userID, appID, userAgent string) (string, error)
 		UpdateLastVisitedAt(ctx context.Context, session entity.Session) error
+		DeleteAllUserDevices(ctx context.Context, userID, appID string) error
 	}
 )
 
@@ -102,10 +102,10 @@ func (s *Session) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 	return session, nil
 }
 
-func (s *Session) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
+func (s *Session) GetUserDeviceID(ctx context.Context, userID, appID, userAgent string) (string, error) {
 	const method = "service.session.GetUserDeviceID"
 
-	deviceID, err := s.deviceStorage.GetUserDeviceID(ctx, userID, userAgent)
+	deviceID, err := s.deviceStorage.GetUserDeviceID(ctx, userID, appID, userAgent)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserDeviceNotFound) {
 			return "", domain.ErrUserDeviceNotFound
@@ -153,7 +153,7 @@ func (s *Session) DeleteUserSessions(ctx context.Context, user entity.User) erro
 func (s *Session) DeleteUserDevices(ctx context.Context, user entity.User) error {
 	const method = "service.session.DeleteUserDevices"
 
-	if err := s.sessionStorage.DeleteAllUserDevices(ctx, user.ID, user.AppID); err != nil {
+	if err := s.deviceStorage.DeleteAllUserDevices(ctx, user.ID, user.AppID); err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
 
@@ -169,7 +169,7 @@ func (s *Session) prepareTokenConfig() (issuer string, accessTokenTTL, refreshTo
 }
 
 func (s *Session) getOrRegisterDeviceID(ctx context.Context, session entity.SessionRequestData) (string, error) {
-	deviceID, err := s.deviceStorage.GetUserDeviceID(ctx, session.UserID, session.UserDevice.UserAgent)
+	deviceID, err := s.deviceStorage.GetUserDeviceID(ctx, session.UserID, session.AppID, session.UserDevice.UserAgent)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserDeviceNotFound) {
 			return s.registerDevice(ctx, session)

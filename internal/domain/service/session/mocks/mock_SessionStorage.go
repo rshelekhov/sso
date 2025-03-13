@@ -117,54 +117,6 @@ func (_c *SessionStorage_DeleteAllSessions_Call) RunAndReturn(run func(context.C
 	return _c
 }
 
-// DeleteAllUserDevices provides a mock function with given fields: ctx, userID, appID
-func (_m *SessionStorage) DeleteAllUserDevices(ctx context.Context, userID string, appID string) error {
-	ret := _m.Called(ctx, userID, appID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for DeleteAllUserDevices")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, userID, appID)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// SessionStorage_DeleteAllUserDevices_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteAllUserDevices'
-type SessionStorage_DeleteAllUserDevices_Call struct {
-	*mock.Call
-}
-
-// DeleteAllUserDevices is a helper method to define mock.On call
-//   - ctx context.Context
-//   - userID string
-//   - appID string
-func (_e *SessionStorage_Expecter) DeleteAllUserDevices(ctx interface{}, userID interface{}, appID interface{}) *SessionStorage_DeleteAllUserDevices_Call {
-	return &SessionStorage_DeleteAllUserDevices_Call{Call: _e.mock.On("DeleteAllUserDevices", ctx, userID, appID)}
-}
-
-func (_c *SessionStorage_DeleteAllUserDevices_Call) Run(run func(ctx context.Context, userID string, appID string)) *SessionStorage_DeleteAllUserDevices_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
-	})
-	return _c
-}
-
-func (_c *SessionStorage_DeleteAllUserDevices_Call) Return(_a0 error) *SessionStorage_DeleteAllUserDevices_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *SessionStorage_DeleteAllUserDevices_Call) RunAndReturn(run func(context.Context, string, string) error) *SessionStorage_DeleteAllUserDevices_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // DeleteRefreshToken provides a mock function with given fields: ctx, refreshToken
 func (_m *SessionStorage) DeleteRefreshToken(ctx context.Context, refreshToken string) error {
 	ret := _m.Called(ctx, refreshToken)
