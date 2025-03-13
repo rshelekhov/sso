@@ -22,8 +22,8 @@ type RedisParams struct {
 	RevokedTokenTTL time.Duration `mapstructure:"DB_REDIS_REVOKED_TOKEN_TTL"`
 }
 
-func ToRedisConfig(p RedisParams) *storage.RedisConfig {
-	return &storage.RedisConfig{
+func ToRedisConfig(p RedisParams) storage.RedisConfig {
+	return storage.RedisConfig{
 		Redis: &redisStorage.Config{
 			Host:         p.Host,
 			Port:         p.Port,

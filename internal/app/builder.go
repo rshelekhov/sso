@@ -299,9 +299,6 @@ func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
 
 func newRedisConnection(cfg settings.RedisParams) (*storage.RedisConnection, error) {
 	redisConfig := settings.ToRedisConfig(cfg)
-	if redisConfig == nil {
-		return nil, fmt.Errorf("failed to create redis config")
-	}
 
 	redisConnection, err := storage.NewRedisConnection(redisConfig)
 	if err != nil {
