@@ -67,9 +67,6 @@ jobs:
       - name: Check PostgreSQL connection
         run: pg_isready -h localhost -p 5432
 
-      - name: Check Redis connection
-        run: redis-cli ping
-
       - name: Run tests
         run: make test-all-app
 
