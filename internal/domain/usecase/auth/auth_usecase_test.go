@@ -1744,7 +1744,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -1775,7 +1775,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
 					Once().
 					Return("", domain.ErrUserDeviceNotFound)
 			},
@@ -1788,7 +1788,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
 					Once().
 					Return("", fmt.Errorf("session manager error"))
 			},
@@ -1801,7 +1801,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -1903,7 +1903,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -1945,7 +1945,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
 					Once().
 					Return("", domain.ErrUserDeviceNotFound)
 			},
@@ -1969,7 +1969,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -1987,7 +1987,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
 					Once().
 					Return(deviceID, nil)
 

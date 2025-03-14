@@ -9,6 +9,7 @@ type ServerSettings struct {
 	GRPCServer          settings.GRPCServer          `mapstructure:",squash"`
 	HTTPServer          settings.HTTPServer          `mapstructure:",squash"`
 	Storage             settings.Storage             `mapstructure:",squash"`
+	Cache               settings.Cache               `mapstructure:",squash"`
 	JWT                 settings.JWT                 `mapstructure:",squash"`
 	PasswordHash        settings.PasswordHashParams  `mapstructure:",squash"`
 	KeyStorage          settings.KeyStorage          `mapstructure:",squash"`
