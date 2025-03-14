@@ -25,13 +25,22 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v3
 
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: '1.23'
+          go-version: "1.23"
 
       - name: Install golang-migrate
         run: |
@@ -58,8 +67,10 @@ jobs:
       - name: Check PostgreSQL connection
         run: pg_isready -h localhost -p 5432
 
+      - name: Check Redis connection
+        run: redis-cli ping
+
       - name: Run tests
-        # TODO: maybe need to add env POSTGRESQL_URL here (?)
         run: make test-all-app
 
       - name: Notify results
