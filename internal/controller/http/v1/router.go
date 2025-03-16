@@ -5,10 +5,10 @@ import (
 	"log/slog"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/rshelekhov/jwtauth"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
+	"github.com/rshelekhov/sso/pkg/jwtauth"
 	"github.com/rshelekhov/sso/pkg/middleware"
 )
 

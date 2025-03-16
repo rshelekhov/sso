@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/rshelekhov/jwtauth"
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	httpapp "github.com/rshelekhov/sso/internal/app/http"
 	"github.com/rshelekhov/sso/internal/config"
@@ -29,6 +28,7 @@ import (
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
 	userDB "github.com/rshelekhov/sso/internal/infrastructure/storage/user"
 	verificationDB "github.com/rshelekhov/sso/internal/infrastructure/storage/verification"
+	"github.com/rshelekhov/sso/pkg/jwtauth"
 	"github.com/rshelekhov/sso/pkg/middleware"
 	"github.com/rshelekhov/sso/pkg/middleware/appid"
 	"github.com/rshelekhov/sso/pkg/middleware/requestid"

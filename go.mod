@@ -18,6 +18,7 @@ require (
 	github.com/mailgun/mailgun-go/v4 v4.12.0
 	github.com/redis/go-redis/v9 v9.7.1
 	github.com/rshelekhov/jwtauth v0.1.14
+	github.com/rshelekhov/sso-protos v0.1.8
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.10.0
@@ -51,7 +52,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
-	github.com/rshelekhov/sso-protos v0.1.8 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
