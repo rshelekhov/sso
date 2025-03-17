@@ -5,18 +5,18 @@ A lightweight, secure JWT authentication library for Go applications with JSON W
 ## Features
 
 - JWKS (JSON Web Key Set) support with automatic key rotation
-- In-memory cache for JWKS to minimize HTTP requests
+- In-memory cache for JWKS to minimize requests
 - Thread-safe JWKS operations
 - Multiple token extraction strategies:
-- - From gRPC metadata
-- - From HTTP headers (Authorization Bearer token)
-- - From HTTP cookies
+  - From gRPC metadata
+  - From HTTP headers (Authorization Bearer token)
+  - From HTTP cookies
 - Middleware support for both gRPC and HTTP servers
 - Context-based token management
 - Flexible token handling for web and mobile applications
 - Configurable token expiration
 - Easy integration with existing applications
-- No external authentication service dependencies
+- Support for both local and remote JWKS providers
 
 ## Installation
 
@@ -24,99 +24,100 @@ A lightweight, secure JWT authentication library for Go applications with JSON W
 go get github.com/rshelekhov/sso/pkg/jwtauth
 ```
 
-## Usage
+## Usage Examples
 
-### Initializing the JWT Manager
+### 1. SSO Service (Authentication Server)
+
+```go
+package main
+
+import (
+    "github.com/rshelekhov/sso/internal/adapter"
+    "github.com/rshelekhov/sso/pkg/jwtauth"
+    "github.com/rshelekhov/sso/internal/domain/usecase/auth"
+)
+
+func main() {
+    // Initialize your auth usecase
+    authUsecase := auth.NewUsecase(...)
+
+    // Create JWKS adapter for local access
+    jwksAdapter := adapter.NewJWKSAdapter(authUsecase)
+
+    // Create JWT manager with local JWKS provider
+    jwtManager := jwtauth.NewManager(jwtauth.NewLocalJWKSProvider(jwksAdapter))
+
+    // Use in gRPC server
+    grpcServer := grpc.NewServer(
+        grpc.UnaryInterceptor(jwtManager.UnaryServerInterceptor()),
+    )
+}
+```
+
+### 2. Other gRPC Services
 
 ```go
 package main
 
 import (
     "github.com/rshelekhov/sso/pkg/jwtauth"
-    "net/http"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
-    // For SSO service or authentication server
+    // Create remote JWKS provider that connects to SSO service
+    jwksProvider, err := jwtauth.NewRemoteJWKSProvider(
+        "sso-service:50051", // SSO service address
+        grpc.WithTransportCredentials(insecure.NewCredentials()),
+        grpc.WithBlock(),
+        grpc.WithTimeout(5*time.Second),
+    )
+    if err != nil {
+        log.Fatal("Failed to create JWKS provider:", err)
+    }
+    defer jwksProvider.Close()
+
+    // Create JWT manager with remote provider and app ID
     jwtManager := jwtauth.NewManager(
-        "https://your-auth-server/.well-known/jwks.json"
+        jwksProvider,
+        jwtauth.WithAppID("my-service"),
     )
 
-    // For client application with an optional app ID
-    jwtManager := jwtauth.NewManager(
-        "https://your-auth-server/.well-known/jwks.json",
-        jwtauth.WithAppID("your-app-id")
+    // Use in your gRPC server
+    grpcServer := grpc.NewServer(
+        grpc.UnaryInterceptor(jwtManager.UnaryServerInterceptor()),
     )
 }
 ```
 
-### Middleware for Different Protocols
-
-#### gRPC Middleware
+### 3. API Gateway
 
 ```go
-// Use as a gRPC unary server interceptor
-grpcServer := grpc.NewServer(
-    grpc.UnaryInterceptor(jwtManager.UnaryServerInterceptor()),
+package main
+
+import (
+    "github.com/rshelekhov/sso/pkg/jwtauth"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
 )
-```
 
-#### HTTP Middleware
-
-```go
-// Wrap your HTTP handler with JWT verification
-protectedHandler := jwtManager.HTTPMiddleware(yourHandler)
-```
-
-### Web Application Integration
-
-```go
-func (h *handler) handleLogin(w http.ResponseWriter, r *http.Request) {
-    // After successful authentication, send tokens to web client
-    tokenResp := &jwtauth.TokenResponse{
-        AccessToken:  "generated-access-token",
-        RefreshToken: "generated-refresh-token",
-        Domain:      "yourdomain.com",
-        Path:        "/",
-        ExpiresAt:   time.Now().Add(24 * time.Hour),
-        HttpOnly:    true,
+func main() {
+    // Create remote JWKS provider
+    jwksProvider, err := jwtauth.NewRemoteJWKSProvider(
+        "sso-service:50051",
+        grpc.WithTransportCredentials(insecure.NewCredentials()),
+    )
+    if err != nil {
+        log.Fatal("Failed to create JWKS provider:", err)
     }
+    defer jwksProvider.Close()
 
-    h.jwtManager.SendTokensToWeb(w, tokenResp, http.StatusOK)
-}
-```
+    // Create JWT manager
+    jwtManager := jwtauth.NewManager(jwksProvider)
 
-### Mobile Application Integration
-
-```go
-func (h *handler) handleMobileLogin(w http.ResponseWriter, r *http.Request) {
-    // After successful authentication, send tokens to mobile client
-    tokenResp := &jwtauth.TokenResponse{
-        AccessToken:  "generated-access-token",
-        RefreshToken: "generated-refresh-token",
-        AdditionalFields: map[string]string{
-            "user_id": "123",
-            "role": "user",
-        },
-    }
-
-    h.jwtManager.SendTokensToMobileApp(w, tokenResp, http.StatusOK)
-}
-```
-
-### Token Response Structure
-
-The library provides a flexible TokenResponse structure that can be used to handle various authentication scenarios:
-
-```go
-type TokenResponse struct {
-    AccessToken      string            // JWT access token
-    RefreshToken     string            // Refresh token for token renewal
-    Domain           string            // Cookie domain (optional)
-    Path             string            // Cookie path (optional)
-    ExpiresAt        time.Time         // Token expiration time
-    HttpOnly         bool              // HttpOnly flag for cookies
-    AdditionalFields map[string]string // Additional data to be included in response
+    // Use in your HTTP server
+    http.Handle("/api/", jwtManager.HTTPMiddleware)
 }
 ```
 
@@ -149,11 +150,11 @@ default:
 
 ## Security Considerations
 
-- Always use HTTPS for token transmission
+- Always use TLS for gRPC connections
 - Set appropriate token expiration times
 - Use HttpOnly cookies for web applications
-- Keep your JWKS endpoint secure
 - Regularly rotate your signing keys
+- Use appropriate app IDs for service identification
 
 ## License
 

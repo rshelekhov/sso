@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	jwksadapter "github.com/rshelekhov/sso/internal/adapter"
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	httpapp "github.com/rshelekhov/sso/internal/app/http"
 	"github.com/rshelekhov/sso/internal/config"
@@ -144,14 +145,6 @@ func (b *Builder) BuildStorages() error {
 	return nil
 }
 
-func (b *Builder) BuildManagers() {
-	b.managers = &Managers{}
-
-	b.managers.requestID = requestid.NewManager()
-	b.managers.appIDManager = appid.NewManager()
-	b.managers.jwt = jwtauth.NewManager(b.cfg.JWT.JWKSURL)
-}
-
 func (b *Builder) BuildServices() error {
 	b.services = &Services{}
 	var err error
@@ -261,13 +254,19 @@ func (b *Builder) Build() (*App, error) {
 		return nil, err
 	}
 
-	b.BuildManagers()
+	b.managers = &Managers{}
+	b.managers.requestID = requestid.NewManager()
+	b.managers.appIDManager = appid.NewManager()
 
 	if err := b.BuildServices(); err != nil {
 		return nil, err
 	}
 
 	b.BuildUsecases()
+
+	jwksAdapter := jwksadapter.NewJWKSAdapter(b.usecases.auth)
+	jwksProvider := jwtauth.NewLocalJWKSProvider(jwksAdapter)
+	b.managers.jwt = jwtauth.NewManager(jwksProvider)
 
 	grpcServer, err := b.BuildGRPCServer()
 	if err != nil {
