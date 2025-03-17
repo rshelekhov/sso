@@ -7,7 +7,6 @@ import (
 type ServerSettings struct {
 	AppEnv              string                       `mapstructure:"APP_ENV"`
 	GRPCServer          settings.GRPCServer          `mapstructure:",squash"`
-	HTTPServer          settings.HTTPServer          `mapstructure:",squash"`
 	Storage             settings.Storage             `mapstructure:",squash"`
 	Cache               settings.Cache               `mapstructure:",squash"`
 	JWT                 settings.JWT                 `mapstructure:",squash"`
