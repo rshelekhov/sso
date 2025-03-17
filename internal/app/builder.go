@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 
+	jwksadapter "github.com/rshelekhov/sso/internal/adapter"
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
-	httpapp "github.com/rshelekhov/sso/internal/app/http"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/grpcmethods"
 	"github.com/rshelekhov/sso/internal/config/settings"
-	v1 "github.com/rshelekhov/sso/internal/controller/http/v1"
 	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
 	"github.com/rshelekhov/sso/internal/domain/service/session"
 	"github.com/rshelekhov/sso/internal/domain/service/token"
@@ -144,14 +143,6 @@ func (b *Builder) BuildStorages() error {
 	return nil
 }
 
-func (b *Builder) BuildManagers() {
-	b.managers = &Managers{}
-
-	b.managers.requestID = requestid.NewManager()
-	b.managers.appIDManager = appid.NewManager()
-	b.managers.jwt = jwtauth.NewManager(b.cfg.JWT.JWKSURL)
-}
-
 func (b *Builder) BuildServices() error {
 	b.services = &Services{}
 	var err error
@@ -236,32 +227,14 @@ func (b *Builder) BuildGRPCServer() (*grpcapp.App, error) {
 	return grpcServer, nil
 }
 
-func (b *Builder) BuildHTTPServer() *httpapp.App {
-	router := v1.NewRouter(
-		b.cfg.HTTPServer,
-		b.logger,
-		b.managers.requestID,
-		b.managers.appIDManager,
-		b.managers.jwt,
-		b.services.appValidator,
-		b.usecases.auth,
-	)
-
-	httpServer := httpapp.New(
-		b.cfg.HTTPServer,
-		b.logger,
-		router,
-	)
-
-	return httpServer
-}
-
 func (b *Builder) Build() (*App, error) {
 	if err := b.BuildStorages(); err != nil {
 		return nil, err
 	}
 
-	b.BuildManagers()
+	b.managers = &Managers{}
+	b.managers.requestID = requestid.NewManager()
+	b.managers.appIDManager = appid.NewManager()
 
 	if err := b.BuildServices(); err != nil {
 		return nil, err
@@ -269,16 +242,17 @@ func (b *Builder) Build() (*App, error) {
 
 	b.BuildUsecases()
 
+	jwksAdapter := jwksadapter.NewJWKSAdapter(b.usecases.auth)
+	jwksProvider := jwtauth.NewLocalJWKSProvider(jwksAdapter)
+	b.managers.jwt = jwtauth.NewManager(jwksProvider)
+
 	grpcServer, err := b.BuildGRPCServer()
 	if err != nil {
 		return nil, err
 	}
 
-	httpServer := b.BuildHTTPServer()
-
 	return &App{
 		GRPCServer: grpcServer,
-		HTTPServer: httpServer,
 		dbConn:     b.storages.dbConn,
 	}, nil
 }

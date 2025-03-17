@@ -33,10 +33,6 @@ func main() {
 		application.GRPCServer.MustRun()
 	}()
 
-	go func() {
-		application.HTTPServer.MustRun()
-	}()
-
 	// Graceful shutdown
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)

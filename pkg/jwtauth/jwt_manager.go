@@ -17,8 +17,8 @@ import (
 )
 
 type manager struct {
-	// URL to fetch JWKS from SSO service
-	jwksURL string
+	// JWKS provider for fetching JWKS
+	jwksProvider JWKSProvider
 
 	// Cache to store JWKS
 	jwksCache *cache.Cache
@@ -31,10 +31,10 @@ type manager struct {
 	appID string
 }
 
-func NewManager(jwksURL string, opts ...Option) Manager {
+func NewManager(jwksProvider JWKSProvider, opts ...Option) Manager {
 	m := &manager{
-		jwksURL:   jwksURL,
-		jwksCache: cache.New(),
+		jwksProvider: jwksProvider,
+		jwksCache:    cache.New(),
 	}
 
 	for _, opt := range opts {
@@ -64,27 +64,6 @@ const (
 
 	KidTokenHeader = "kid"
 	AlgTokenHeader = "alg"
-)
-
-var (
-	ErrInvalidToken  = errors.New("invalid token")
-	ErrTokenNotFound = errors.New("token not found")
-	ErrUnauthorized  = errors.New("unauthorized")
-
-	ErrNoGRPCMetadata                            = errors.New("no gRPC metadata")
-	ErrAuthorizationHeaderNotFoundInGRPCMetadata = errors.New("authorization header not found in gRPC metadata")
-	ErrAuthorizationHeaderNotFoundInHTTPRequest  = errors.New("authorization header not found in HTTP request")
-	ErrBearerTokenNotFound                       = errors.New("bearer token not found")
-	ErrAppIDHeaderNotFoundInGRPCMetadata         = errors.New("app ID header not found in gRPC metadata")
-	ErrAppIDHeaderNotFoundInHTTPRequest          = errors.New("app ID header not found in HTTP request")
-
-	ErrKidNotFoundInTokenHeader = errors.New("kid not found in token header")
-	ErrKidIsNotAString          = errors.New("kid is not a string")
-	ErrUnexpectedSigningMethod  = errors.New("unexpected signing method")
-
-	ErrUserIDNotFoundInToken    = errors.New("user ID not found in token")
-	ErrTokenNotFoundInContext   = errors.New("token not found in context")
-	ErrFailedToParseTokenClaims = errors.New("failed to parse token claims")
 )
 
 // ExtractTokenFromGRPC retrieves the JWT token from gRPC metadata.
@@ -161,7 +140,7 @@ func (m *manager) ParseToken(appID, token string) (*jwt.Token, error) {
 			return nil, ErrKidIsNotAString
 		}
 
-		jwk, err := m.getJWK(appID, kid)
+		jwk, err := m.getJWK(context.Background(), appID, kid)
 		if err != nil {
 			return nil, err
 		}
