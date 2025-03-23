@@ -97,7 +97,7 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, nil, nil, userMgr, nil, identityMgr, nil, nil)
+			user := NewUsecase(log, nil, nil, userMgr, nil, identityMgr, nil, nil)
 
 			userData, err := user.GetUserByID(ctx, appID)
 
@@ -532,7 +532,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, nil, nil, userMgr, passwordMgr, identityMgr, nil, nil)
+			user := NewUsecase(log, nil, nil, userMgr, passwordMgr, identityMgr, nil, nil)
 
 			updatedUser, err := user.UpdateUser(ctx, appID, tt.reqData)
 
@@ -859,7 +859,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, nil, sessionMgr, userMgr, nil, identityMgr, verificationMgr, txMgr)
+			user := NewUsecase(log, nil, sessionMgr, userMgr, nil, identityMgr, verificationMgr, txMgr)
 
 			err := user.DeleteUser(ctx, appID)
 

@@ -3,23 +3,16 @@ package auth
 import (
 	"context"
 
-	"github.com/rshelekhov/sso/internal/config/grpcmethods"
+	"github.com/rshelekhov/sso/internal/config"
 	"google.golang.org/grpc"
 )
 
-func UnaryServerInterceptor(cfg *grpcmethods.Methods, jwtInterceptor grpc.UnaryServerInterceptor) grpc.UnaryServerInterceptor {
-	return func(
-		ctx context.Context,
-		req interface{},
-		info *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler,
-	) (interface{}, error) {
-		// Check token and place it to context
-		if cfg.IsTokenRequired(info.FullMethod) {
+func UnaryServerInterceptor(cfg *config.GRPCMethodsConfig, jwtInterceptor grpc.UnaryServerInterceptor) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		methodConfigs := cfg.GetMethodConfigs()
+		if methodConfig, exists := methodConfigs[info.FullMethod]; exists && methodConfig.RequireJWT {
 			return jwtInterceptor(ctx, req, info, handler)
 		}
-
-		// Continue without token
 		return handler(ctx, req)
 	}
 }
