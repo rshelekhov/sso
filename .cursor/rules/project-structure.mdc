@@ -1,8 +1,9 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
+
 # Cursor Rules for Golang Backend Project
 
 ## Go General Guidelines
