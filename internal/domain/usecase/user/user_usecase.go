@@ -14,8 +14,6 @@ import (
 
 type User struct {
 	log             *slog.Logger
-	requestIDMgr    ContextManager
-	appIDMgr        ContextManager
 	appValidator    AppValidator
 	sessionMgr      SessionManager
 	userMgr         UserdataManager
@@ -69,8 +67,6 @@ type (
 
 func NewUsecase(
 	log *slog.Logger,
-	reqIDMgr ContextManager,
-	appIDMgr ContextManager,
 	av AppValidator,
 	ss SessionManager,
 	um UserdataManager,
@@ -81,8 +77,6 @@ func NewUsecase(
 ) *User {
 	return &User{
 		log:             log,
-		requestIDMgr:    reqIDMgr,
-		appIDMgr:        appIDMgr,
 		appValidator:    av,
 		sessionMgr:      ss,
 		userMgr:         um,

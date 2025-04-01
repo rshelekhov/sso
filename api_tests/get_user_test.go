@@ -9,7 +9,7 @@ import (
 	"github.com/rshelekhov/jwtauth"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/pkg/middleware/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 )
@@ -55,8 +55,8 @@ func TestGetUser_HappyPath(t *testing.T) {
 	// Get user
 	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{})
 	require.NoError(t, err)
-	require.NotEmpty(t, respGet.GetEmail())
-	require.NotEmpty(t, respGet.GetUpdatedAt())
+	require.NotEmpty(t, respGet.User.GetEmail())
+	require.NotEmpty(t, respGet.User.GetUpdatedAt())
 
 	// Cleanup database after test
 	params := cleanupParams{

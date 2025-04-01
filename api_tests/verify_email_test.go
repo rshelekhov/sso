@@ -9,7 +9,7 @@ import (
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/pkg/middleware/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 )
@@ -65,8 +65,8 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 	// Get user data to check if email was verified
 	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{})
 	require.NoError(t, err)
-	require.NotEmpty(t, respGet.GetVerified())
-	require.True(t, respGet.GetVerified())
+	require.NotEmpty(t, respGet.User.GetVerified())
+	require.True(t, respGet.User.GetVerified())
 
 	// Cleanup database after test
 	params := cleanupParams{
