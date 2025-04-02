@@ -130,9 +130,13 @@ func toJWKSResponse(jwks entity.JWKS) *ssov1.GetJWKSResponse {
 
 func toGetUserResponse(user entity.User) *ssov1.GetUserResponse {
 	return &ssov1.GetUserResponse{
+		User: &ssov1.User{
+			Id:        user.ID,
 		Email:     user.Email,
 		Verified:  user.Verified,
+			Role:      user.Role,
 		UpdatedAt: timestamppb.New(user.UpdatedAt),
+		},
 	}
 }
 
