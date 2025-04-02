@@ -9,8 +9,6 @@ import (
 
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/internal/lib/e"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func (c *gRPCController) GetUser(ctx context.Context, req *ssov1.GetUserRequest) (*ssov1.GetUserResponse, error) {
@@ -21,7 +19,7 @@ func (c *gRPCController) GetUser(ctx context.Context, req *ssov1.GetUserRequest)
 	reqID, err := c.getRequestID(ctx)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToGetRequestID, err)
-		return nil, status.Errorf(codes.Internal, "%v: %v", controller.ErrFailedToGetRequestID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetRequestID, err))
 	}
 
 	log = log.With(slog.String("requestID", reqID))
@@ -29,17 +27,48 @@ func (c *gRPCController) GetUser(ctx context.Context, req *ssov1.GetUserRequest)
 	appID, err := c.getAndValidateAppID(ctx)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		// return nil, status.Errorf(codes.Internal, "%v: %v", controller.ErrFailedToGetAndValidateAppID, err)
 		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
 	}
 
-	user, err := c.userUsecase.GetUserByID(ctx, appID)
+	user, err := c.userUsecase.GetUser(ctx, appID)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToGetUser, err)
 		return nil, mapErrorToGRPCStatus(err)
 	}
 
 	return toGetUserResponse(user), nil
+}
+
+func (c *gRPCController) GetUserByID(ctx context.Context, req *ssov1.GetUserByIDRequest) (*ssov1.GetUserByIDResponse, error) {
+	const method = "controller.gRPC.GetUserByID"
+
+	log := c.log.With(slog.String("method", method))
+
+	reqID, err := c.getRequestID(ctx)
+	if err != nil {
+		e.LogError(ctx, log, controller.ErrFailedToGetRequestID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetRequestID, err))
+	}
+
+	log = log.With(slog.String("requestID", reqID))
+
+	if err = validateGetUserByIDRequest(req); err != nil {
+		e.LogError(ctx, log, controller.ErrValidationError, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
+	}
+
+	appID, err := c.getAndValidateAppID(ctx)
+	if err != nil {
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+	}
+
+	user, err := c.userUsecase.GetUserByID(ctx, appID, req.GetUserId())
+	if err != nil {
+		return nil, mapErrorToGRPCStatus(err)
+	}
+
+	return toGetUserByIDResponse(user), nil
 }
 
 func (c *gRPCController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.UpdateUserResponse, error) {
@@ -103,4 +132,36 @@ func (c *gRPCController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRe
 	}
 
 	return &ssov1.DeleteUserResponse{}, nil
+}
+
+func (c *gRPCController) DeleteUserByID(ctx context.Context, req *ssov1.DeleteUserByIDRequest) (*ssov1.DeleteUserByIDResponse, error) {
+	const method = "controller.gRPC.DeleteUserByID"
+
+	log := c.log.With(slog.String("method", method))
+
+	reqID, err := c.getRequestID(ctx)
+	if err != nil {
+		e.LogError(ctx, log, controller.ErrFailedToGetRequestID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetRequestID, err))
+	}
+
+	log = log.With(slog.String("requestID", reqID))
+
+	if err = validateDeleteUserByIDRequest(req); err != nil {
+		e.LogError(ctx, log, controller.ErrValidationError, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
+	}
+
+	appID, err := c.getAndValidateAppID(ctx)
+	if err != nil {
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+	}
+
+	err = c.userUsecase.DeleteUserByID(ctx, appID, req.GetUserId())
+	if err != nil {
+		return nil, mapErrorToGRPCStatus(err)
+	}
+
+	return &ssov1.DeleteUserByIDResponse{}, nil
 }

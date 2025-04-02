@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -25,10 +26,8 @@ func (s *Service) NewAccessToken(appID, kid string, additionalClaims map[string]
 
 	claims := jwt.MapClaims{}
 
-	if additionalClaims != nil { // nolint:gosimple
-		for k, v := range additionalClaims {
-			claims[k] = v
-		}
+	if additionalClaims != nil {
+		maps.Copy(claims, additionalClaims)
 	}
 
 	privateKeyPEM, err := s.keyStorage.GetPrivateKey(appID)

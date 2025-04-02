@@ -7,4 +7,5 @@ const (
 	IssuerKey           = "issuer"
 	AppIDKey            = "app_id"
 	ExpirationAtKey     = "expiration_at"
+	RoleKey             = "role"
 )
