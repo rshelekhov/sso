@@ -53,7 +53,7 @@ type (
 	}
 
 	IdentityManager interface {
-		ExtractUserIDFromContext(ctx context.Context, appID string) (string, error)
+		ExtractUserIDFromTokenInContext(ctx context.Context, appID string) (string, error)
 	}
 
 	VerificationManager interface {
