@@ -8,13 +8,15 @@ import (
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
+	"github.com/redis/go-redis/v9"
 	"github.com/rshelekhov/jwtauth"
-	"github.com/rshelekhov/sso/internal/config/grpcmethods"
+	"github.com/rshelekhov/sso/internal/config"
 	ssogrpc "github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
 	authenticate "github.com/rshelekhov/sso/internal/lib/interceptor/auth"
-	"github.com/rshelekhov/sso/pkg/middleware"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/rbac"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/requestid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,19 +30,18 @@ type App struct {
 
 func New(
 	port string,
-	grpcMethods *grpcmethods.Methods,
 	log *slog.Logger,
-	requestIDMgr middleware.Manager,
-	appIDMgr middleware.Manager,
 	jwtMiddleware jwtauth.Middleware,
 	appValidator appvalidator.Validator,
+	roleExtractor rbac.RoleExtractor,
 	appUsecase ssogrpc.AppUsecase,
 	authUsecase ssogrpc.AuthUsecase,
 	userUsecase ssogrpc.UserUsecase,
+	redisClient *redis.Client,
+	methodsConfig *config.GRPCMethodsConfig,
 ) *App {
 	loggingOpts := []logging.Option{
 		logging.WithLogOnEvents(
-			// logging.StartCall, logging.FinishCall,
 			logging.PayloadReceived, logging.PayloadSent,
 		),
 	}
@@ -48,27 +49,29 @@ func New(
 	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandler(func(p interface{}) (err error) {
 			log.Error("Recovered from panic", slog.Any("panic", p))
-
 			return status.Errorf(codes.Internal, "internal error")
 		}),
 	}
+
+	requestIDInterceptor := requestid.NewInterceptor()
+	appIDInterceptor := appid.NewInterceptor(methodsConfig)
+
+	rbacInterceptor := rbac.NewInterceptor(log, methodsConfig, appValidator, roleExtractor)
 
 	gRPCServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			recovery.UnaryServerInterceptor(recoveryOpts...),
 			logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
-			requestIDMgr.UnaryServerInterceptor(),
-			appid.UnaryServerInterceptor(grpcMethods, appIDMgr.UnaryServerInterceptor()),
-			authenticate.UnaryServerInterceptor(grpcMethods, jwtMiddleware.UnaryServerInterceptor()),
+			requestIDInterceptor.UnaryServerInterceptor(),
+			appIDInterceptor.UnaryServerInterceptor(),
+			authenticate.UnaryServerInterceptor(methodsConfig, jwtMiddleware.UnaryServerInterceptor()),
+			rbacInterceptor.UnaryServerInterceptor(),
 		),
 	)
 
-	// Auth grpc
 	ssogrpc.RegisterController(
 		gRPCServer,
 		log,
-		requestIDMgr,
-		appIDMgr,
 		appValidator,
 		appUsecase,
 		authUsecase,

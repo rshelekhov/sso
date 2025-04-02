@@ -7,9 +7,9 @@ import (
 	jwksadapter "github.com/rshelekhov/sso/internal/adapter"
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	"github.com/rshelekhov/sso/internal/config"
-	"github.com/rshelekhov/sso/internal/config/grpcmethods"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
+	"github.com/rshelekhov/sso/internal/domain/service/rbac"
 	"github.com/rshelekhov/sso/internal/domain/service/session"
 	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/domain/service/userdata"
@@ -23,24 +23,24 @@ import (
 	authDB "github.com/rshelekhov/sso/internal/infrastructure/storage/auth"
 	deviceDB "github.com/rshelekhov/sso/internal/infrastructure/storage/device"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
+	rbacDB "github.com/rshelekhov/sso/internal/infrastructure/storage/rbac"
 	sessionDB "github.com/rshelekhov/sso/internal/infrastructure/storage/session"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
 	userDB "github.com/rshelekhov/sso/internal/infrastructure/storage/user"
 	verificationDB "github.com/rshelekhov/sso/internal/infrastructure/storage/verification"
 	"github.com/rshelekhov/sso/pkg/jwtauth"
-	"github.com/rshelekhov/sso/pkg/middleware"
-	"github.com/rshelekhov/sso/pkg/middleware/appid"
-	"github.com/rshelekhov/sso/pkg/middleware/requestid"
 )
 
 type Builder struct {
 	logger *slog.Logger
 	cfg    *config.ServerSettings
 
-	storages *Storages
-	managers *Managers
-	services *Services
-	usecases *Usecases
+	storages   *Storages
+	managers   *Managers
+	services   *Services
+	usecases   *Usecases
+	configs    *Configs
+	grpcServer *grpcapp.App
 }
 
 type Storages struct {
@@ -48,6 +48,7 @@ type Storages struct {
 	redisConn    *storage.RedisConnection
 	trMgr        transaction.Manager
 	app          appDB.Storage
+	rbac         rbac.Storage
 	auth         auth.Storage
 	session      session.SessionStorage
 	device       session.DeviceStorage
@@ -57,13 +58,12 @@ type Storages struct {
 }
 
 type Managers struct {
-	requestID    middleware.Manager
-	appIDManager middleware.Manager
-	jwt          jwtauth.Manager
+	jwt jwtauth.Manager
 }
 
 type Services struct {
 	appValidator *appvalidator.AppValidator
+	rbac         *rbac.Service
 	token        *token.Service
 	session      *session.Session
 	user         *userdata.UserData
@@ -75,6 +75,10 @@ type Usecases struct {
 	app  *app.App
 	auth *auth.Auth
 	user *user.User
+}
+
+type Configs struct {
+	gRPCMethodsConfig *config.GRPCMethodsConfig
 }
 
 func newBuilder(logger *slog.Logger, cfg *config.ServerSettings) *Builder {
@@ -108,6 +112,11 @@ func (b *Builder) BuildStorages() error {
 	b.storages.app, err = appDB.NewStorage(b.storages.dbConn)
 	if err != nil {
 		return fmt.Errorf("failed to init app storage: %w", err)
+	}
+
+	b.storages.rbac, err = rbacDB.NewStorage(b.storages.dbConn)
+	if err != nil {
+		return fmt.Errorf("failed to init rbac storage: %w", err)
 	}
 
 	b.storages.auth, err = authDB.NewStorage(b.storages.dbConn, b.storages.trMgr)
@@ -156,6 +165,7 @@ func (b *Builder) BuildServices() error {
 
 	b.services.session = session.NewService(b.services.token, b.storages.session, b.storages.device)
 	b.services.user = userdata.NewService(b.storages.user)
+	b.services.rbac = rbac.NewService(b.storages.rbac)
 	b.services.verification = verification.NewService(b.cfg.VerificationService.TokenExpiryTime, b.storages.verification)
 
 	b.services.mail, err = newMailService(b.cfg.MailService)
@@ -188,9 +198,8 @@ func (b *Builder) BuildUsecases() {
 
 	b.usecases.user = user.NewUsecase(
 		b.logger,
-		b.managers.requestID,
-		b.managers.appIDManager,
 		b.services.appValidator,
+		b.services.rbac,
 		b.services.session,
 		b.services.user,
 		b.services.token,
@@ -200,31 +209,26 @@ func (b *Builder) BuildUsecases() {
 	)
 }
 
-func (b *Builder) BuildGRPCServer() (*grpcapp.App, error) {
-	cfg, err := grpcmethods.Load(b.cfg.GRPCServer.GRPCMethodsConfigPath)
-	if err != nil {
-		return nil, err
-	}
+func (b *Builder) BuildGRPCServer() error {
+	b.logger.Info("building gRPC server")
 
-	grpcMethods, err := grpcmethods.New(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	grpcServer := grpcapp.New(
+	// Initialize gRPC server
+	grpcApp := grpcapp.New(
 		b.cfg.GRPCServer.Port,
-		grpcMethods,
 		b.logger,
-		b.managers.requestID,
-		b.managers.appIDManager,
 		b.managers.jwt,
 		b.services.appValidator,
+		b.services.token,
 		b.usecases.app,
 		b.usecases.auth,
 		b.usecases.user,
+		b.storages.redisConn.Client,
+		b.configs.gRPCMethodsConfig,
 	)
 
-	return grpcServer, nil
+	b.grpcServer = grpcApp
+
+	return nil
 }
 
 func (b *Builder) Build() (*App, error) {
@@ -232,27 +236,27 @@ func (b *Builder) Build() (*App, error) {
 		return nil, err
 	}
 
-	b.managers = &Managers{}
-	b.managers.requestID = requestid.NewManager()
-	b.managers.appIDManager = appid.NewManager()
-
 	if err := b.BuildServices(); err != nil {
 		return nil, err
 	}
 
 	b.BuildUsecases()
 
+	b.configs = &Configs{}
+	b.configs.gRPCMethodsConfig = config.NewGRPCMethodsConfig()
+
+	b.managers = &Managers{}
 	jwksAdapter := jwksadapter.NewJWKSAdapter(b.usecases.auth)
 	jwksProvider := jwtauth.NewLocalJWKSProvider(jwksAdapter)
 	b.managers.jwt = jwtauth.NewManager(jwksProvider)
 
-	grpcServer, err := b.BuildGRPCServer()
+	err := b.BuildGRPCServer()
 	if err != nil {
 		return nil, err
 	}
 
 	return &App{
-		GRPCServer: grpcServer,
+		GRPCServer: b.grpcServer,
 		dbConn:     b.storages.dbConn,
 	}, nil
 }
