@@ -184,6 +184,13 @@ func validateRefreshRequest(req *ssov1.RefreshRequest) error {
 	return nil
 }
 
+func validateGetUserByIDRequest(req *ssov1.GetUserByIDRequest) error {
+	if req.GetUserId() == "" {
+		return status.Error(codes.InvalidArgument, ErrUserIDIsRequired.Error())
+	}
+	return nil
+}
+
 func validateUpdateUserRequest(req *ssov1.UpdateUserRequest) error {
 	var errMessages []string
 
@@ -199,5 +206,12 @@ func validateUpdateUserRequest(req *ssov1.UpdateUserRequest) error {
 		return fmt.Errorf("%s", strings.Join(errMessages, "; "))
 	}
 
+	return nil
+}
+
+func validateDeleteUserByIDRequest(req *ssov1.DeleteUserByIDRequest) error {
+	if req.GetUserId() == "" {
+		return status.Error(codes.InvalidArgument, ErrUserIDIsRequired.Error())
+	}
 	return nil
 }

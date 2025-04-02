@@ -53,6 +53,7 @@ var (
 	ErrInvalidArgonHashString           = errors.New("invalid argon hash string")
 	ErrUnSupportedArgon2Version         = errors.New("unsupported Argon2 version")
 	ErrUserIDNotFoundInContext          = errors.New("user id not found in context")
+	ErrRoleNotFoundInContext            = errors.New("role not found in context")
 	ErrFailedToParseTokenClaims         = errors.New("failed to parse token claims")
 	ErrNoTokenFoundInContext            = errors.New("token not found in context")
 	ErrFailedToParseTokenWithClaims     = errors.New("failed to parse token with claims")

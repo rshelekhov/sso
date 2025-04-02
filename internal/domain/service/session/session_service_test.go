@@ -21,6 +21,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 
 	userID := "test-user-id"
 	appID := "test-app-id"
+	role := "test-role"
 	userAgent := "test-user-agent"
 	ip := "127.0.0.1"
 	issuer := "test-issuer"
@@ -36,6 +37,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 	sessionReqData := entity.SessionRequestData{
 		UserID: userID,
 		AppID:  appID,
+		Role:   role,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: userAgent,
 			IP:        ip,

@@ -53,8 +53,6 @@ func NewService(ts JWTManager, sessionStorage SessionStorage, deviceStorage Devi
 	}
 }
 
-// TODO: Move sessions from Postgres to Redis
-
 func (s *Session) CreateSession(ctx context.Context, sessionReqData entity.SessionRequestData) (entity.SessionTokens, error) {
 	const method = "service.session.CreateSession"
 
@@ -209,6 +207,7 @@ func (s *Session) createTokens(
 		domain.IssuerKey:       issuer,
 		domain.UserIDKey:       session.UserID,
 		domain.AppIDKey:        session.AppID,
+		domain.RoleKey:         session.Role,
 		domain.ExpirationAtKey: currentTime.Add(accessTokenTTL).Unix(),
 	}
 

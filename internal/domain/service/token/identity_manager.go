@@ -9,8 +9,8 @@ import (
 	"github.com/rshelekhov/sso/internal/domain"
 )
 
-func (s *Service) ExtractUserIDFromContext(ctx context.Context, appID string) (string, error) {
-	const method = "service.token.ExtractUserIDFromContext"
+func (s *Service) ExtractUserIDFromTokenInContext(ctx context.Context, appID string) (string, error) {
+	const method = "service.token.ExtractUserIDFromTokenInContext"
 
 	claims, err := s.getClaimsFromToken(ctx, appID)
 	if err != nil {
@@ -23,6 +23,22 @@ func (s *Service) ExtractUserIDFromContext(ctx context.Context, appID string) (s
 	}
 
 	return userID.(string), nil
+}
+
+func (s *Service) ExtractUserRoleFromTokenInContext(ctx context.Context, appID string) (string, error) {
+	const method = "service.token.ExtractUserRoleFromTokenInContext"
+
+	claims, err := s.getClaimsFromToken(ctx, appID)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", method, err)
+	}
+
+	role, ok := claims[domain.RoleKey]
+	if !ok {
+		return "", fmt.Errorf("%s: %w", method, domain.ErrRoleNotFoundInContext)
+	}
+
+	return role.(string), nil
 }
 
 func (s *Service) getClaimsFromToken(ctx context.Context, appID string) (map[string]interface{}, error) {

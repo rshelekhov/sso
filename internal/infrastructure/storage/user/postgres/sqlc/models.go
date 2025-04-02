@@ -45,6 +45,7 @@ type User struct {
 	ID           string             `db:"id"`
 	Email        string             `db:"email"`
 	PasswordHash string             `db:"password_hash"`
+	Role         string             `db:"role"`
 	AppID        string             `db:"app_id"`
 	Verified     pgtype.Bool        `db:"verified"`
 	CreatedAt    time.Time          `db:"created_at"`

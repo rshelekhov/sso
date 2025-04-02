@@ -15,7 +15,7 @@ require (
 	github.com/mailgun/mailgun-go/v4 v4.12.0
 	github.com/redis/go-redis/v9 v9.7.1
 	github.com/rshelekhov/jwtauth v0.1.14
-	github.com/rshelekhov/sso-protos v0.1.8
+	github.com/rshelekhov/sso-protos v0.1.10
 	github.com/segmentio/ksuid v1.0.4
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.10.0
@@ -73,10 +73,10 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250227231956-55c901821b1e // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
