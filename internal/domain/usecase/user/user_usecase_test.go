@@ -1210,3 +1210,119 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 	}
 }
 
+func TestUserUsecase_GetUserRole(t *testing.T) {
+	ctx := context.Background()
+	appID := "test-app-id"
+	userID := "test-user-id"
+
+	tests := []struct {
+		name          string
+		mockBehavior  func(rbacMgr *mocks.RBACManager)
+		expectedError error
+		expectedRole  string
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(rbacMgr *mocks.RBACManager) {
+				rbacMgr.EXPECT().GetUserRole(ctx, appID, userID).
+					Once().
+					Return(rbac.Role("admin"), nil)
+			},
+			expectedError: nil,
+			expectedRole:  "admin",
+		},
+		{
+			name: "Failed to get user role",
+			mockBehavior: func(rbacMgr *mocks.RBACManager) {
+				rbacMgr.EXPECT().GetUserRole(ctx, appID, userID).
+					Once().
+					Return(rbac.Role(""), fmt.Errorf("rbac manager error"))
+			},
+			expectedError: domain.ErrFailedToGetUserRole,
+			expectedRole:  "",
+		},
+		{
+			name: "Role received but cache update failed",
+			mockBehavior: func(rbacMgr *mocks.RBACManager) {
+				rbacMgr.EXPECT().GetUserRole(ctx, appID, userID).
+					Once().
+					Return(rbac.Role("admin"), fmt.Errorf("cache update error"))
+			},
+			expectedError: nil,
+			expectedRole:  "admin",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rbacMgr := mocks.NewRBACManager(t)
+
+			tt.mockBehavior(rbacMgr)
+
+			log := slogdiscard.NewDiscardLogger()
+
+			user := NewUsecase(log, nil, rbacMgr, nil, nil, nil, nil, nil, nil)
+
+			role, err := user.GetUserRole(ctx, appID, userID)
+
+			if tt.expectedError != nil {
+				assert.Contains(t, err.Error(), tt.expectedError.Error())
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.expectedRole, role)
+			}
+		})
+	}
+}
+
+func TestUserUsecase_ChangeUserRole(t *testing.T) {
+	ctx := context.Background()
+	appID := "test-app-id"
+	userID := "test-user-id"
+	newRole := "admin"
+
+	tests := []struct {
+		name          string
+		mockBehavior  func(rbacMgr *mocks.RBACManager)
+		expectedError error
+	}{
+		{
+			name: "Success",
+			mockBehavior: func(rbacMgr *mocks.RBACManager) {
+				rbacMgr.EXPECT().SetUserRole(ctx, appID, userID, rbac.Role(newRole)).
+					Once().
+					Return(nil)
+			},
+			expectedError: nil,
+		},
+		{
+			name: "Failed to set user role",
+			mockBehavior: func(rbacMgr *mocks.RBACManager) {
+				rbacMgr.EXPECT().SetUserRole(ctx, appID, userID, rbac.Role(newRole)).
+					Once().
+					Return(fmt.Errorf("rbac manager error"))
+			},
+			expectedError: domain.ErrFailedToSetUserRole,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rbacMgr := mocks.NewRBACManager(t)
+
+			tt.mockBehavior(rbacMgr)
+
+			log := slogdiscard.NewDiscardLogger()
+
+			user := NewUsecase(log, nil, rbacMgr, nil, nil, nil, nil, nil, nil)
+
+			err := user.ChangeUserRole(ctx, appID, userID, newRole)
+
+			if tt.expectedError != nil {
+				assert.Contains(t, err.Error(), tt.expectedError.Error())
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

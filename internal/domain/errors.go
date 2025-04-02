@@ -125,4 +125,7 @@ var (
 	ErrFailedToDeleteAllUserSessions  = errors.New("failed to delete all user sessions")
 	ErrFailedToDeleteUserDevices      = errors.New("failed to delete user devices")
 	ErrFailedToDeleteUserTokens       = errors.New("failed to delete tokens")
+	ErrFailedToUpdateRoleCache        = errors.New("failed to update role cache")
+	ErrFailedToGetUserRole            = errors.New("failed to get user role")
+	ErrFailedToSetUserRole            = errors.New("failed to set user role")
 )
