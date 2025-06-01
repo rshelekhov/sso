@@ -106,7 +106,7 @@ func TestLogin_HappyPath(t *testing.T) {
 
 	assert.Equal(t, cfg.Issuer, claims[domain.IssuerKey].(string))
 	assert.Equal(t, cfg.AppID, claims[domain.AppIDKey].(string))
-	assert.Equal(t, rbac.RoleUser, claims[domain.RoleKey].(string))
+	assert.Equal(t, rbac.RoleUser.String(), claims[domain.RoleKey].(string))
 
 	const deltaSeconds = 1
 
