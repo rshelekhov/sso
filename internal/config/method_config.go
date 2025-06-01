@@ -101,7 +101,7 @@ func initGRPCMethodSettings() map[string]GRPCMethodSettings {
 		},
 		"/auth.Auth/RegisterApp": {
 			RequireJWT:   false,
-			RequireAppID: true,
+			RequireAppID: false,
 			Permission:   rbac.Permission(""),
 			SkipUserID:   true,
 		},
