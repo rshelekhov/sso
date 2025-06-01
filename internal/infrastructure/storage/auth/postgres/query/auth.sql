@@ -13,7 +13,7 @@ SET
     created_at = $6,
     updated_at = $7,
     deleted_at = NULL
-WHERE email = $7
+WHERE email = $8
   AND deleted_at IS NOT NULL;
 
 -- name: MarkEmailVerified :exec

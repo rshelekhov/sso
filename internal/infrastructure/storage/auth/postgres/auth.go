@@ -48,6 +48,7 @@ func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.Us
 		},
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
+		Email:     user.Email,
 	}
 
 	// Save user within transaction

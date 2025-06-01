@@ -71,7 +71,7 @@ SET
     created_at = $6,
     updated_at = $7,
     deleted_at = NULL
-WHERE email = $7
+WHERE email = $8
   AND deleted_at IS NOT NULL
 `
 
@@ -83,6 +83,7 @@ type ReplaceSoftDeletedUserParams struct {
 	Verified     pgtype.Bool `db:"verified"`
 	CreatedAt    time.Time   `db:"created_at"`
 	UpdatedAt    time.Time   `db:"updated_at"`
+	Email        string      `db:"email"`
 }
 
 func (q *Queries) ReplaceSoftDeletedUser(ctx context.Context, arg ReplaceSoftDeletedUserParams) error {
@@ -94,6 +95,7 @@ func (q *Queries) ReplaceSoftDeletedUser(ctx context.Context, arg ReplaceSoftDel
 		arg.Verified,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.Email,
 	)
 	return err
 }
