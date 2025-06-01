@@ -21,6 +21,7 @@ type (
 		UserID     string
 		AppID      string
 		DeviceID   string
+		Role       string
 		UserDevice UserDeviceRequestData
 	}
 )

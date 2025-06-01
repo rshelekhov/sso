@@ -32,7 +32,7 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, app_id, updated_at
+SELECT id, email, role, app_id, updated_at
 FROM users
 WHERE email = $1
   AND app_id = $2
@@ -47,6 +47,7 @@ type GetUserByEmailParams struct {
 type GetUserByEmailRow struct {
 	ID        string    `db:"id"`
 	Email     string    `db:"email"`
+	Role      string    `db:"role"`
 	AppID     string    `db:"app_id"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
@@ -57,6 +58,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) 
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Role,
 		&i.AppID,
 		&i.UpdatedAt,
 	)
@@ -64,7 +66,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) 
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, app_id, verified, updated_at
+SELECT id, email, role, app_id, verified, updated_at
 FROM users
 WHERE id = $1
   AND app_id = $2
@@ -79,6 +81,7 @@ type GetUserByIDParams struct {
 type GetUserByIDRow struct {
 	ID        string      `db:"id"`
 	Email     string      `db:"email"`
+	Role      string      `db:"role"`
 	AppID     string      `db:"app_id"`
 	Verified  pgtype.Bool `db:"verified"`
 	UpdatedAt time.Time   `db:"updated_at"`
@@ -90,6 +93,7 @@ func (q *Queries) GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUs
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Role,
 		&i.AppID,
 		&i.Verified,
 		&i.UpdatedAt,
@@ -98,7 +102,7 @@ func (q *Queries) GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUs
 }
 
 const getUserData = `-- name: GetUserData :one
-SELECT id, email, password_hash, app_id, updated_at
+SELECT id, email, role, password_hash, app_id, updated_at
 FROM users
 WHERE id = $1
   AND app_id = $2
@@ -113,6 +117,7 @@ type GetUserDataParams struct {
 type GetUserDataRow struct {
 	ID           string    `db:"id"`
 	Email        string    `db:"email"`
+	Role         string    `db:"role"`
 	PasswordHash string    `db:"password_hash"`
 	AppID        string    `db:"app_id"`
 	UpdatedAt    time.Time `db:"updated_at"`
@@ -124,6 +129,7 @@ func (q *Queries) GetUserData(ctx context.Context, arg GetUserDataParams) (GetUs
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Role,
 		&i.PasswordHash,
 		&i.AppID,
 		&i.UpdatedAt,

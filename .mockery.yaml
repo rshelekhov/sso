@@ -8,6 +8,11 @@ packages:
       dir: internal/domain/service/appvalidator/mocks
     interfaces:
       Storage:
+  github.com/rshelekhov/sso/internal/domain/service/rbac:
+    config:
+      dir: internal/domain/service/rbac/mocks
+    interfaces:
+      Storage:
   github.com/rshelekhov/sso/internal/domain/service/session:
     config:
       dir: internal/domain/service/session/mocks
@@ -53,6 +58,7 @@ packages:
     interfaces:
       ContextManager:
       AppValidator:
+      RBACManager:
       SessionManager:
       UserdataManager:
       PasswordManager:

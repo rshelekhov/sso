@@ -4,20 +4,15 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/rshelekhov/sso/internal/domain/entity"
-
-	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
-	"github.com/rshelekhov/sso/pkg/middleware"
-
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
 	"google.golang.org/grpc"
 )
 
 type gRPCController struct {
 	ssov1.UnimplementedAuthServer
 	log          *slog.Logger
-	requestIDMgr middleware.ContextManager
-	appIDMgr     middleware.ContextManager
 	appValidator appvalidator.Validator
 	appUsecase   AppUsecase
 	authUsecase  AuthUsecase
@@ -42,17 +37,19 @@ type (
 	}
 
 	UserUsecase interface {
-		GetUserByID(ctx context.Context, appID string) (entity.User, error)
+		GetUser(ctx context.Context, appID string) (entity.User, error)
+		GetUserByID(ctx context.Context, appID, userID string) (entity.User, error)
 		UpdateUser(ctx context.Context, appID string, data entity.UserRequestData) (entity.User, error)
+		GetUserRole(ctx context.Context, appID, userID string) (string, error)
+		ChangeUserRole(ctx context.Context, appID, userID, role string) error
 		DeleteUser(ctx context.Context, appID string) error
+		DeleteUserByID(ctx context.Context, appID, userID string) error
 	}
 )
 
 func RegisterController(
 	gRPC *grpc.Server,
 	log *slog.Logger,
-	requestIDMgr middleware.ContextManager,
-	appIDMgr middleware.ContextManager,
 	appValidator appvalidator.Validator,
 	appUsecase AppUsecase,
 	authUsecase AuthUsecase,
@@ -60,8 +57,6 @@ func RegisterController(
 ) {
 	ssov1.RegisterAuthServer(gRPC, &gRPCController{
 		log:          log,
-		requestIDMgr: requestIDMgr,
-		appIDMgr:     appIDMgr,
 		appValidator: appValidator,
 		appUsecase:   appUsecase,
 		authUsecase:  authUsecase,

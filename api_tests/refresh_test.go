@@ -8,7 +8,7 @@ import (
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain"
-	"github.com/rshelekhov/sso/pkg/middleware/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"

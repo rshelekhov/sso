@@ -15,7 +15,8 @@ import (
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain"
-	"github.com/rshelekhov/sso/pkg/middleware/appid"
+	"github.com/rshelekhov/sso/internal/domain/service/rbac"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
@@ -93,8 +94,8 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	require.True(t, ok)
 
 	assert.Equal(t, cfg.Issuer, claims[domain.IssuerKey].(string))
-
 	assert.Equal(t, cfg.AppID, claims[domain.AppIDKey].(string))
+	assert.Equal(t, rbac.RoleUser.String(), claims[domain.RoleKey].(string))
 
 	const deltaSeconds = 1
 

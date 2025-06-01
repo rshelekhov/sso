@@ -128,7 +128,7 @@ func (s *SessionStorage) DeleteSession(ctx context.Context, session entity.Sessi
 func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID, appID string) error {
 	const method = "storage.redis.DeleteAllSessions"
 
-	pattern := fmt.Sprintf("%s%s:%s:*", sessionKeyPrefix, userID, appID)
+	pattern := fmt.Sprintf("%s:%s:%s:*", sessionKeyPrefix, userID, appID)
 	iter := s.client.Scan(ctx, 0, pattern, 0).Iterator()
 
 	var keysToDelete []string
@@ -193,13 +193,13 @@ func (s *SessionStorage) IsAccessTokenRevoked(ctx context.Context, token string)
 }
 
 func (s *SessionStorage) sessionKey(userID, appID, deviceID string) string {
-	return fmt.Sprintf("%s%s:%s:%s", sessionKeyPrefix, userID, appID, deviceID)
+	return fmt.Sprintf("%s:%s:%s:%s", sessionKeyPrefix, userID, appID, deviceID)
 }
 
 func (s *SessionStorage) refreshIndexKey(refreshToken string) string {
-	return fmt.Sprintf("%s%s", refreshIndexPrefix, refreshToken)
+	return fmt.Sprintf("%s:%s", refreshIndexPrefix, refreshToken)
 }
 
 func (s *SessionStorage) revokedTokenKey(token string) string {
-	return fmt.Sprintf("%s%s", revokedTokenKeyPrefix, token)
+	return fmt.Sprintf("%s:%s", revokedTokenKeyPrefix, token)
 }
