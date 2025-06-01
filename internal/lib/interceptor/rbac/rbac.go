@@ -44,7 +44,19 @@ func NewInterceptor(
 }
 
 func (i *Interceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		methodConfigs := i.cfg.GetMethodConfigs()
+		methodConfig, exists := methodConfigs[info.FullMethod]
+		if !exists {
+			i.log.Error("method not found in config", slog.String("method", info.FullMethod))
+			return nil, status.Error(codes.PermissionDenied, "method not configured")
+		}
+
+		// Skip RBAC check for methods that don't require AppID
+		if !methodConfig.RequireAppID {
+			return handler(ctx, req)
+		}
+
 		appID, err := i.getAndValidateAppID(ctx)
 		if err != nil {
 			i.log.Error("failed to get and validate appID", slog.String("error", err.Error()))
@@ -52,13 +64,6 @@ func (i *Interceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 		}
 
 		log := i.log.With(slog.String("appID", appID))
-
-		methodConfigs := i.cfg.GetMethodConfigs()
-		methodConfig, exists := methodConfigs[info.FullMethod]
-		if !exists {
-			log.Error("method not found in config", slog.String("method", info.FullMethod))
-			return nil, status.Error(codes.PermissionDenied, "method not configured")
-		}
 
 		// Skip role check for methods that don't require JWT
 		if !methodConfig.RequireJWT {
