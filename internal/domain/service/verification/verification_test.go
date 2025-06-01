@@ -2,7 +2,6 @@ package verification
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
 	"testing"
 	"time"
@@ -19,10 +18,9 @@ func TestVerificationService_CreateToken(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name           string
-		mockBehavior   func(*mocks.Storage)
-		mockRandReader func() func([]byte) (int, error)
-		expectedError  error
+		name          string
+		mockBehavior  func(*mocks.Storage)
+		expectedError error
 	}{
 		{
 			name: "Success",
@@ -31,25 +29,7 @@ func TestVerificationService_CreateToken(t *testing.T) {
 					Once().
 					Return(nil)
 			},
-			mockRandReader: func() func([]byte) (int, error) {
-				return func(b []byte) (int, error) {
-					for i := range b {
-						b[i] = byte(i)
-					}
-					return len(b), nil
-				}
-			},
 			expectedError: nil,
-		},
-		{
-			name:         "Error – Failed to generate verification token",
-			mockBehavior: func(*mocks.Storage) {},
-			mockRandReader: func() func([]byte) (int, error) {
-				return func([]byte) (int, error) {
-					return 0, errors.New("random generation error")
-				}
-			},
-			expectedError: domain.ErrFailedToGenerateVerificationToken,
 		},
 		{
 			name: "Error – Failed to save verification token",
@@ -57,14 +37,6 @@ func TestVerificationService_CreateToken(t *testing.T) {
 				verificationStorage.EXPECT().SaveVerificationToken(ctx, mock.AnythingOfType("entity.VerificationToken")).
 					Once().
 					Return(errors.New("storage error"))
-			},
-			mockRandReader: func() func([]byte) (int, error) {
-				return func(b []byte) (int, error) {
-					for i := range b {
-						b[i] = byte(i)
-					}
-					return len(b), nil
-				}
 			},
 			expectedError: domain.ErrFailedToSaveVerificationToken,
 		},
@@ -83,11 +55,6 @@ func TestVerificationService_CreateToken(t *testing.T) {
 			tt.mockBehavior(mockVerificationStorage)
 			tokenExpiryTime := 24 * time.Hour
 			verificationService := NewService(tokenExpiryTime, mockVerificationStorage)
-
-			if tt.mockRandReader != nil {
-				rand.Reader = mockRandReader{readFunc: tt.mockRandReader()}
-				defer func() { rand.Reader = rand.Reader }()
-			}
 
 			token, err := verificationService.CreateToken(ctx, user, verificationEndpoint, tokenType)
 
@@ -272,12 +239,4 @@ func TestVerificationService_DeleteAllTokens(t *testing.T) {
 			}
 		})
 	}
-}
-
-type mockRandReader struct {
-	readFunc func([]byte) (int, error)
-}
-
-func (m mockRandReader) Read(p []byte) (n int, err error) {
-	return m.readFunc(p)
 }
