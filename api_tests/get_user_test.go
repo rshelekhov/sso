@@ -232,17 +232,7 @@ func TestGetUserByID_UserNotFound(t *testing.T) {
 	respGet, err := st.AuthClient.GetUserByID(ctx, &ssov1.GetUserByIDRequest{
 		UserId: regularUserID,
 	})
-	require.NoError(t, err)
-	require.NotEmpty(t, respGet.User.GetEmail())
-	require.Equal(t, regularEmail, respGet.User.GetEmail())
-	require.NotEmpty(t, respGet.User.GetUpdatedAt())
-
-	// Cleanup database after test
-	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: regularToken,
-	}
-	cleanup(params, cfg.AppID)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), domain.ErrUserNotFound.Error())
+	require.Empty(t, respGet)
 }
