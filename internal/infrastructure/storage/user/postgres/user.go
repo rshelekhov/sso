@@ -48,7 +48,9 @@ func (s *UserStorage) GetUserByID(ctx context.Context, appID, userID string) (en
 	}
 
 	return entity.User{
+		ID:        user.ID,
 		Email:     user.Email,
+		Role:      user.Role,
 		AppID:     user.AppID,
 		Verified:  user.Verified.Bool,
 		UpdatedAt: user.UpdatedAt,
@@ -72,6 +74,7 @@ func (s *UserStorage) GetUserByEmail(ctx context.Context, appID, email string) (
 	return entity.User{
 		ID:        user.ID,
 		Email:     user.Email,
+		Role:      user.Role,
 		AppID:     user.AppID,
 		UpdatedAt: user.UpdatedAt,
 	}, nil
@@ -94,6 +97,7 @@ func (s *UserStorage) GetUserData(ctx context.Context, appID, userID string) (en
 	return entity.User{
 		ID:           user.ID,
 		Email:        user.Email,
+		Role:         user.Role,
 		PasswordHash: user.PasswordHash,
 		AppID:        user.AppID,
 		UpdatedAt:    user.UpdatedAt,

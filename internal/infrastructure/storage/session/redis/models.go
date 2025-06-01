@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	deviceKeyPrefix       = "device:"
-	sessionKeyPrefix      = "session:"
-	revokedTokenKeyPrefix = "revoked_token:"
-	refreshIndexPrefix    = "refresh_index:"
+	deviceKeyPrefix       = "device"
+	sessionKeyPrefix      = "session"
+	revokedTokenKeyPrefix = "revoked_token"
+	refreshIndexPrefix    = "refresh_index"
 	userIDKeyPrefix       = "user_id"
 	appIDKeyPrefix        = "app_id"
 	deviceIDKeyPrefix     = "device_id"

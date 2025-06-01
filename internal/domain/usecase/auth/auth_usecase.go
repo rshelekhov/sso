@@ -13,6 +13,7 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/domain/service/rbac"
 	"github.com/rshelekhov/sso/internal/infrastructure/service/mail"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/rshelekhov/sso/internal/lib/e"
@@ -52,7 +53,7 @@ type (
 	TokenManager interface {
 		HashPassword(password string) (string, error)
 		PasswordMatch(hash, password string) (bool, error)
-		ExtractUserIDFromContext(ctx context.Context, appID string) (string, error)
+		ExtractUserIDFromTokenInContext(ctx context.Context, appID string) (string, error)
 		PublicKey(appID string) (interface{}, error)
 		Kid(appID string) (string, error)
 		JWKSTTL() time.Duration
@@ -131,6 +132,7 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 	sessionReqData := entity.SessionRequestData{
 		UserID: userData.ID,
 		AppID:  userData.AppID,
+		Role:   userData.Role,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: reqData.UserDevice.UserAgent,
 			IP:        reqData.UserDevice.IP,
@@ -173,7 +175,7 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 		return entity.SessionTokens{}, domain.ErrFailedToGeneratePasswordHash
 	}
 
-	newUser := entity.NewUser(reqData.Email, hash, appID)
+	newUser := entity.NewUser(appID, reqData.Email, hash, rbac.RoleUser.String())
 
 	authTokenData := entity.SessionTokens{}
 
@@ -201,6 +203,7 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 		sessionReqData := entity.SessionRequestData{
 			UserID: newUser.ID,
 			AppID:  newUser.AppID,
+			Role:   newUser.Role,
 			UserDevice: entity.UserDeviceRequestData{
 				UserAgent: reqData.UserDevice.UserAgent,
 				IP:        reqData.UserDevice.IP,
@@ -355,7 +358,7 @@ func (u *Auth) LogoutUser(ctx context.Context, appID string, reqData *entity.Use
 		slog.String("method", method),
 	)
 
-	userID, err := u.tokenMgr.ExtractUserIDFromContext(ctx, appID)
+	userID, err := u.tokenMgr.ExtractUserIDFromTokenInContext(ctx, appID)
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return domain.ErrFailedToExtractUserIDFromContext

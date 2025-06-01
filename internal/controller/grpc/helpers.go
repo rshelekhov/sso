@@ -7,10 +7,12 @@ import (
 
 	"github.com/rshelekhov/sso/internal/controller"
 	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/requestid"
 )
 
 func (c *gRPCController) getRequestID(ctx context.Context) (string, error) {
-	requestID, ok := c.requestIDMgr.FromContext(ctx)
+	requestID, ok := requestid.FromContext(ctx)
 	if !ok {
 		return "", controller.ErrRequestIDNotFoundInContext
 	}
@@ -32,7 +34,7 @@ func (c *gRPCController) getAndValidateAppID(ctx context.Context) (string, error
 }
 
 func (c *gRPCController) getAppID(ctx context.Context) (string, error) {
-	appID, ok := c.appIDMgr.FromContext(ctx)
+	appID, ok := appid.FromContext(ctx)
 	if !ok {
 		return "", controller.ErrAppIDNotFoundInContext
 	}

@@ -1,19 +1,19 @@
 -- name: GetUserByID :one
-SELECT id, email, app_id, verified, updated_at
+SELECT id, email, role, app_id, verified, updated_at
 FROM users
 WHERE id = $1
   AND app_id = $2
   AND deleted_at IS NULL;
 
 -- name: GetUserByEmail :one
-SELECT id, email, app_id, updated_at
+SELECT id, email, role, app_id, updated_at
 FROM users
 WHERE email = $1
   AND app_id = $2
   AND deleted_at IS NULL;
 
 -- name: GetUserData :one
-SELECT id, email, password_hash, app_id, updated_at
+SELECT id, email, role, password_hash, app_id, updated_at
 FROM users
 WHERE id = $1
   AND app_id = $2

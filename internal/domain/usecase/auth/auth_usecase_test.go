@@ -1740,7 +1740,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 		{
 			name: "Success",
 			mockBehavior: func(tokenMgr *mocks.TokenManager, sessionMgr *mocks.SessionManager) {
-				tokenMgr.EXPECT().ExtractUserIDFromContext(ctx, appID).
+				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
 					Once().
 					Return(userID, nil)
 
@@ -1762,7 +1762,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 		{
 			name: "Failed to extract user ID from context",
 			mockBehavior: func(tokenMgr *mocks.TokenManager, sessionMgr *mocks.SessionManager) {
-				tokenMgr.EXPECT().ExtractUserIDFromContext(ctx, appID).
+				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
 					Once().
 					Return("", domain.ErrFailedToExtractUserIDFromContext)
 			},
@@ -1771,7 +1771,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 		{
 			name: "User device not found",
 			mockBehavior: func(tokenMgr *mocks.TokenManager, sessionMgr *mocks.SessionManager) {
-				tokenMgr.EXPECT().ExtractUserIDFromContext(ctx, appID).
+				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
 					Once().
 					Return(userID, nil)
 
@@ -1784,7 +1784,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 		{
 			name: "Failed to get user device ID",
 			mockBehavior: func(tokenMgr *mocks.TokenManager, sessionMgr *mocks.SessionManager) {
-				tokenMgr.EXPECT().ExtractUserIDFromContext(ctx, appID).
+				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
 					Once().
 					Return(userID, nil)
 
@@ -1797,7 +1797,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 		{
 			name: "Failed to delete session",
 			mockBehavior: func(tokenMgr *mocks.TokenManager, sessionMgr *mocks.SessionManager) {
-				tokenMgr.EXPECT().ExtractUserIDFromContext(ctx, appID).
+				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
 					Once().
 					Return(userID, nil)
 

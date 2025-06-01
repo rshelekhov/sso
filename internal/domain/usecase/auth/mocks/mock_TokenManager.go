@@ -22,12 +22,12 @@ func (_m *TokenManager) EXPECT() *TokenManager_Expecter {
 	return &TokenManager_Expecter{mock: &_m.Mock}
 }
 
-// ExtractUserIDFromContext provides a mock function with given fields: ctx, appID
-func (_m *TokenManager) ExtractUserIDFromContext(ctx context.Context, appID string) (string, error) {
+// ExtractUserIDFromTokenInContext provides a mock function with given fields: ctx, appID
+func (_m *TokenManager) ExtractUserIDFromTokenInContext(ctx context.Context, appID string) (string, error) {
 	ret := _m.Called(ctx, appID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for ExtractUserIDFromContext")
+		panic("no return value specified for ExtractUserIDFromTokenInContext")
 	}
 
 	var r0 string
@@ -50,31 +50,31 @@ func (_m *TokenManager) ExtractUserIDFromContext(ctx context.Context, appID stri
 	return r0, r1
 }
 
-// TokenManager_ExtractUserIDFromContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExtractUserIDFromContext'
-type TokenManager_ExtractUserIDFromContext_Call struct {
+// TokenManager_ExtractUserIDFromTokenInContext_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExtractUserIDFromTokenInContext'
+type TokenManager_ExtractUserIDFromTokenInContext_Call struct {
 	*mock.Call
 }
 
-// ExtractUserIDFromContext is a helper method to define mock.On call
+// ExtractUserIDFromTokenInContext is a helper method to define mock.On call
 //   - ctx context.Context
 //   - appID string
-func (_e *TokenManager_Expecter) ExtractUserIDFromContext(ctx interface{}, appID interface{}) *TokenManager_ExtractUserIDFromContext_Call {
-	return &TokenManager_ExtractUserIDFromContext_Call{Call: _e.mock.On("ExtractUserIDFromContext", ctx, appID)}
+func (_e *TokenManager_Expecter) ExtractUserIDFromTokenInContext(ctx interface{}, appID interface{}) *TokenManager_ExtractUserIDFromTokenInContext_Call {
+	return &TokenManager_ExtractUserIDFromTokenInContext_Call{Call: _e.mock.On("ExtractUserIDFromTokenInContext", ctx, appID)}
 }
 
-func (_c *TokenManager_ExtractUserIDFromContext_Call) Run(run func(ctx context.Context, appID string)) *TokenManager_ExtractUserIDFromContext_Call {
+func (_c *TokenManager_ExtractUserIDFromTokenInContext_Call) Run(run func(ctx context.Context, appID string)) *TokenManager_ExtractUserIDFromTokenInContext_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
 
-func (_c *TokenManager_ExtractUserIDFromContext_Call) Return(_a0 string, _a1 error) *TokenManager_ExtractUserIDFromContext_Call {
+func (_c *TokenManager_ExtractUserIDFromTokenInContext_Call) Return(_a0 string, _a1 error) *TokenManager_ExtractUserIDFromTokenInContext_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *TokenManager_ExtractUserIDFromContext_Call) RunAndReturn(run func(context.Context, string) (string, error)) *TokenManager_ExtractUserIDFromContext_Call {
+func (_c *TokenManager_ExtractUserIDFromTokenInContext_Call) RunAndReturn(run func(context.Context, string) (string, error)) *TokenManager_ExtractUserIDFromTokenInContext_Call {
 	_c.Call.Return(run)
 	return _c
 }
