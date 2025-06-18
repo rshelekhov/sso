@@ -24,7 +24,7 @@ type Suite struct {
 }
 
 const (
-	//nolint:revive
+	//nolint:staticcheck
 	CONFIG_PATH       = "CONFIG_PATH"
 	defaultConfigPath = "../config/.env"
 	grpcHost          = "localhost"
