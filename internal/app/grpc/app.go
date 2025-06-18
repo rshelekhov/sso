@@ -15,7 +15,6 @@ import (
 	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
 	authenticate "github.com/rshelekhov/sso/internal/lib/interceptor/auth"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/rbac"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/requestid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -33,7 +32,6 @@ func New(
 	log *slog.Logger,
 	jwtMiddleware jwtauth.Middleware,
 	appValidator appvalidator.Validator,
-	roleExtractor rbac.RoleExtractor,
 	appUsecase ssogrpc.AppUsecase,
 	authUsecase ssogrpc.AuthUsecase,
 	userUsecase ssogrpc.UserUsecase,
@@ -56,8 +54,6 @@ func New(
 	requestIDInterceptor := requestid.NewInterceptor()
 	appIDInterceptor := appid.NewInterceptor(methodsConfig)
 
-	rbacInterceptor := rbac.NewInterceptor(log, methodsConfig, appValidator, roleExtractor)
-
 	gRPCServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			recovery.UnaryServerInterceptor(recoveryOpts...),
@@ -65,7 +61,6 @@ func New(
 			requestIDInterceptor.UnaryServerInterceptor(),
 			appIDInterceptor.UnaryServerInterceptor(),
 			authenticate.UnaryServerInterceptor(methodsConfig, jwtMiddleware.UnaryServerInterceptor()),
-			rbacInterceptor.UnaryServerInterceptor(),
 		),
 	)
 
