@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-//nolint:revive
+//nolint:staticcheck
 const CONFIG_PATH = "CONFIG_PATH"
 
 func MustLoad() *ServerSettings {

@@ -9,7 +9,6 @@ import (
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
-	"github.com/rshelekhov/sso/internal/domain/service/rbac"
 	"github.com/rshelekhov/sso/internal/domain/service/session"
 	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/domain/service/userdata"
@@ -23,7 +22,6 @@ import (
 	authDB "github.com/rshelekhov/sso/internal/infrastructure/storage/auth"
 	deviceDB "github.com/rshelekhov/sso/internal/infrastructure/storage/device"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
-	rbacDB "github.com/rshelekhov/sso/internal/infrastructure/storage/rbac"
 	sessionDB "github.com/rshelekhov/sso/internal/infrastructure/storage/session"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
 	userDB "github.com/rshelekhov/sso/internal/infrastructure/storage/user"
@@ -48,7 +46,6 @@ type Storages struct {
 	redisConn    *storage.RedisConnection
 	trMgr        transaction.Manager
 	app          appDB.Storage
-	rbac         rbac.Storage
 	auth         auth.Storage
 	session      session.SessionStorage
 	device       session.DeviceStorage
@@ -63,7 +60,6 @@ type Managers struct {
 
 type Services struct {
 	appValidator *appvalidator.AppValidator
-	rbac         *rbac.Service
 	token        *token.Service
 	session      *session.Session
 	user         *userdata.UserData
@@ -114,11 +110,6 @@ func (b *Builder) BuildStorages() error {
 		return fmt.Errorf("failed to init app storage: %w", err)
 	}
 
-	b.storages.rbac, err = rbacDB.NewStorage(b.storages.dbConn)
-	if err != nil {
-		return fmt.Errorf("failed to init rbac storage: %w", err)
-	}
-
 	b.storages.auth, err = authDB.NewStorage(b.storages.dbConn, b.storages.trMgr)
 	if err != nil {
 		return fmt.Errorf("failed to init auth storage: %w", err)
@@ -165,7 +156,6 @@ func (b *Builder) BuildServices() error {
 
 	b.services.session = session.NewService(b.services.token, b.storages.session, b.storages.device)
 	b.services.user = userdata.NewService(b.storages.user)
-	b.services.rbac = rbac.NewService(b.storages.rbac)
 	b.services.verification = verification.NewService(b.cfg.VerificationService.TokenExpiryTime, b.storages.verification)
 
 	b.services.mail, err = newMailService(b.cfg.MailService)
@@ -199,7 +189,6 @@ func (b *Builder) BuildUsecases() {
 	b.usecases.user = user.NewUsecase(
 		b.logger,
 		b.services.appValidator,
-		b.services.rbac,
 		b.services.session,
 		b.services.user,
 		b.services.token,
@@ -218,7 +207,6 @@ func (b *Builder) BuildGRPCServer() error {
 		b.logger,
 		b.managers.jwt,
 		b.services.appValidator,
-		b.services.token,
 		b.usecases.app,
 		b.usecases.auth,
 		b.usecases.user,

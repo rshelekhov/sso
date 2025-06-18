@@ -8,7 +8,6 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/domain/service/rbac"
 	"github.com/rshelekhov/sso/internal/domain/usecase/user/mocks"
 	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogdiscard"
 	"github.com/stretchr/testify/assert"
@@ -98,9 +97,9 @@ func TestUserUsecase_GetUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, nil, userMgr, nil, identityMgr, nil, nil)
+			userUsecase := NewUsecase(log, nil, nil, userMgr, nil, identityMgr, nil, nil)
 
-			userData, err := user.GetUser(ctx, appID)
+			userData, err := userUsecase.GetUser(ctx, appID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -171,9 +170,9 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, nil, userMgr, nil, nil, nil, nil)
+			userUsecase := NewUsecase(log, nil, nil, userMgr, nil, nil, nil, nil)
 
-			userData, err := user.GetUserByID(ctx, appID, userID)
+			userData, err := userUsecase.GetUserByID(ctx, appID, userID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -606,9 +605,9 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, nil, userMgr, passwordMgr, identityMgr, nil, nil)
+			userUsecase := NewUsecase(log, nil, nil, userMgr, passwordMgr, identityMgr, nil, nil)
 
-			updatedUser, err := user.UpdateUser(ctx, appID, tt.reqData)
+			updatedUser, err := userUsecase.UpdateUser(ctx, appID, tt.reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -933,9 +932,9 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, sessionMgr, userMgr, nil, identityMgr, verificationMgr, txMgr)
+			userUsecase := NewUsecase(log, nil, sessionMgr, userMgr, nil, identityMgr, verificationMgr, txMgr)
 
-			err := user.DeleteUser(ctx, appID)
+			err := userUsecase.DeleteUser(ctx, appID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1197,126 +1196,9 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, sessionMgr, userMgr, nil, nil, verificationMgr, txMgr)
+			userUsecase := NewUsecase(log, nil, sessionMgr, userMgr, nil, nil, verificationMgr, txMgr)
 
-			err := user.DeleteUserByID(ctx, appID, userID)
-
-			if tt.expectedError != nil {
-				assert.Contains(t, err.Error(), tt.expectedError.Error())
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestUserUsecase_GetUserRole(t *testing.T) {
-	ctx := context.Background()
-	appID := "test-app-id"
-	userID := "test-user-id"
-
-	tests := []struct {
-		name          string
-		mockBehavior  func(rbacMgr *mocks.RBACManager)
-		expectedError error
-		expectedRole  string
-	}{
-		{
-			name: "Success",
-			mockBehavior: func(rbacMgr *mocks.RBACManager) {
-				rbacMgr.EXPECT().GetUserRole(ctx, appID, userID).
-					Once().
-					Return(rbac.Role("admin"), nil)
-			},
-			expectedError: nil,
-			expectedRole:  "admin",
-		},
-		{
-			name: "Failed to get user role",
-			mockBehavior: func(rbacMgr *mocks.RBACManager) {
-				rbacMgr.EXPECT().GetUserRole(ctx, appID, userID).
-					Once().
-					Return(rbac.Role(""), fmt.Errorf("rbac manager error"))
-			},
-			expectedError: domain.ErrFailedToGetUserRole,
-			expectedRole:  "",
-		},
-		{
-			name: "Role received but cache update failed",
-			mockBehavior: func(rbacMgr *mocks.RBACManager) {
-				rbacMgr.EXPECT().GetUserRole(ctx, appID, userID).
-					Once().
-					Return(rbac.Role("admin"), fmt.Errorf("cache update error"))
-			},
-			expectedError: nil,
-			expectedRole:  "admin",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rbacMgr := mocks.NewRBACManager(t)
-
-			tt.mockBehavior(rbacMgr)
-
-			log := slogdiscard.NewDiscardLogger()
-
-			user := NewUsecase(log, nil, rbacMgr, nil, nil, nil, nil, nil, nil)
-
-			role, err := user.GetUserRole(ctx, appID, userID)
-
-			if tt.expectedError != nil {
-				assert.Contains(t, err.Error(), tt.expectedError.Error())
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.expectedRole, role)
-			}
-		})
-	}
-}
-
-func TestUserUsecase_ChangeUserRole(t *testing.T) {
-	ctx := context.Background()
-	appID := "test-app-id"
-	userID := "test-user-id"
-	newRole := "admin"
-
-	tests := []struct {
-		name          string
-		mockBehavior  func(rbacMgr *mocks.RBACManager)
-		expectedError error
-	}{
-		{
-			name: "Success",
-			mockBehavior: func(rbacMgr *mocks.RBACManager) {
-				rbacMgr.EXPECT().SetUserRole(ctx, appID, userID, rbac.Role(newRole)).
-					Once().
-					Return(nil)
-			},
-			expectedError: nil,
-		},
-		{
-			name: "Failed to set user role",
-			mockBehavior: func(rbacMgr *mocks.RBACManager) {
-				rbacMgr.EXPECT().SetUserRole(ctx, appID, userID, rbac.Role(newRole)).
-					Once().
-					Return(fmt.Errorf("rbac manager error"))
-			},
-			expectedError: domain.ErrFailedToSetUserRole,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rbacMgr := mocks.NewRBACManager(t)
-
-			tt.mockBehavior(rbacMgr)
-
-			log := slogdiscard.NewDiscardLogger()
-
-			user := NewUsecase(log, nil, rbacMgr, nil, nil, nil, nil, nil, nil)
-
-			err := user.ChangeUserRole(ctx, appID, userID, newRole)
+			err := userUsecase.DeleteUserByID(ctx, appID, userID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())

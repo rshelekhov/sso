@@ -56,7 +56,7 @@ func (s *TestVerificationStorage) SetTokenExpired(ctx context.Context, email str
 
 	expiresAt := time.Now().Add(-24 * time.Hour)
 
-	if _, err := s.Pool.Exec(ctx, query, expiresAt, email, int32(tokenType)); err != nil {
+	if _, err := s.Exec(ctx, query, expiresAt, email, int32(tokenType)); err != nil {
 		return fmt.Errorf("%s: failed to set verification token expired: %w", method, err)
 	}
 

@@ -119,7 +119,6 @@ func (s *UserStorage) GetUserData(ctx context.Context, appID, userID string) (en
 		common.FieldID:           1,
 		common.FieldEmail:        1,
 		common.FieldPasswordHash: 1,
-		common.FieldRole:         1,
 		common.FieldAppID:        1,
 		common.FieldUpdatedAt:    1,
 	})

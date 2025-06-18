@@ -207,7 +207,6 @@ func (s *Session) createTokens(
 		domain.IssuerKey:       issuer,
 		domain.UserIDKey:       session.UserID,
 		domain.AppIDKey:        session.AppID,
-		domain.RoleKey:         session.Role,
 		domain.ExpirationAtKey: currentTime.Add(accessTokenTTL).Unix(),
 	}
 

@@ -33,7 +33,7 @@ const UniqueViolationErrorCode = "23505"
 func (s *AppStorage) RegisterApp(ctx context.Context, data entity.AppData) error {
 	const method = "storage.app.postgres.RegisterApp"
 
-	if err := s.Queries.InsertApp(ctx, sqlc.InsertAppParams{
+	if err := s.InsertApp(ctx, sqlc.InsertAppParams{
 		ID:        data.ID,
 		Name:      data.Name,
 		Secret:    data.Secret,

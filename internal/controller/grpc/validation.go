@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
-	"github.com/rshelekhov/sso/internal/domain/service/rbac"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,8 +26,6 @@ var (
 	ErrCurrentPasswordIsRequired                   = errors.New("current password is required")
 	ErrAppNameIsRequired                           = errors.New("app name is required")
 	ErrAppNameCannotContainSpaces                  = errors.New("app name cannot contain spaces")
-	ErrRoleIsRequired                              = errors.New("role is required")
-	ErrInvalidRoleProvided                         = errors.New("invalid role provided")
 )
 
 func validateUserCredentials(email, password string) error {
@@ -204,36 +201,6 @@ func validateUpdateUserRequest(req *ssov1.UpdateUserRequest) error {
 	// If UpdatedPassword is not empty, ensure Password is not empty
 	if updatedPassword != emptyValue && password == emptyValue {
 		errMessages = append(errMessages, ErrCurrentPasswordIsRequired.Error())
-	}
-
-	if len(errMessages) > 0 {
-		return fmt.Errorf("%s", strings.Join(errMessages, "; "))
-	}
-
-	return nil
-}
-
-func validateGetUserRoleRequest(req *ssov1.GetUserRoleRequest) error {
-	if req.UserId == "" {
-		return status.Error(codes.InvalidArgument, ErrUserIDIsRequired.Error())
-	}
-	return nil
-}
-
-func validateChangeUserRoleRequest(req *ssov1.ChangeUserRoleRequest) error {
-	var errMessages []string
-
-	if req.UserId == "" {
-		errMessages = append(errMessages, ErrUserIDIsRequired.Error())
-	}
-
-	if req.Role == "" {
-		errMessages = append(errMessages, ErrRoleIsRequired.Error())
-	}
-
-	role := rbac.Role(req.Role)
-	if !rbac.IsValidRole(role) {
-		errMessages = append(errMessages, fmt.Sprintf("%s: %s", ErrInvalidRoleProvided.Error(), req.Role))
 	}
 
 	if len(errMessages) > 0 {

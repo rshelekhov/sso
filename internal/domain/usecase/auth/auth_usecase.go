@@ -13,7 +13,6 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/domain/service/rbac"
 	"github.com/rshelekhov/sso/internal/infrastructure/service/mail"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/rshelekhov/sso/internal/lib/e"
@@ -132,7 +131,6 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 	sessionReqData := entity.SessionRequestData{
 		UserID: userData.ID,
 		AppID:  userData.AppID,
-		Role:   userData.Role,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: reqData.UserDevice.UserAgent,
 			IP:        reqData.UserDevice.IP,
@@ -175,7 +173,7 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 		return entity.SessionTokens{}, domain.ErrFailedToGeneratePasswordHash
 	}
 
-	newUser := entity.NewUser(appID, reqData.Email, hash, rbac.RoleUser.String())
+	newUser := entity.NewUser(appID, reqData.Email, hash)
 
 	authTokenData := entity.SessionTokens{}
 
@@ -203,7 +201,6 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 		sessionReqData := entity.SessionRequestData{
 			UserID: newUser.ID,
 			AppID:  newUser.AppID,
-			Role:   newUser.Role,
 			UserDevice: entity.UserDeviceRequestData{
 				UserAgent: reqData.UserDevice.UserAgent,
 				IP:        reqData.UserDevice.IP,
@@ -486,7 +483,7 @@ func (u *Auth) GetJWKS(ctx context.Context, appID string) (entity.JWKS, error) {
 		jwk.N = base64.RawURLEncoding.EncodeToString(pub.N.Bytes())
 		jwk.E = base64.RawURLEncoding.EncodeToString(big.NewInt(int64(pub.E)).Bytes())
 	case *ecdsa.PublicKey:
-		p := pub.Curve.Params()
+		p := pub.Params()
 		jwk.Kty = "EC"
 		jwk.Crv = p.Name
 		jwk.X = base64.RawURLEncoding.EncodeToString(pub.X.Bytes())

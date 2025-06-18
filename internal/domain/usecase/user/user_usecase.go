@@ -9,14 +9,12 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/domain/service/rbac"
 	"github.com/rshelekhov/sso/internal/lib/e"
 )
 
 type User struct {
 	log             *slog.Logger
 	appValidator    AppValidator
-	rbacService     RBACManager
 	sessionMgr      SessionManager
 	userMgr         UserdataManager
 	passwordMgr     PasswordManager
@@ -33,11 +31,6 @@ type (
 
 	AppValidator interface {
 		ValidateAppID(ctx context.Context, appID string) error
-	}
-
-	RBACManager interface {
-		GetUserRole(ctx context.Context, appID, userID string) (rbac.Role, error)
-		SetUserRole(ctx context.Context, appID, userID string, role rbac.Role) error
 	}
 
 	SessionManager interface {
@@ -75,7 +68,6 @@ type (
 func NewUsecase(
 	log *slog.Logger,
 	av AppValidator,
-	rbac RBACManager,
 	ss SessionManager,
 	um UserdataManager,
 	pm PasswordManager,
@@ -86,7 +78,6 @@ func NewUsecase(
 	return &User{
 		log:             log,
 		appValidator:    av,
-		rbacService:     rbac,
 		sessionMgr:      ss,
 		userMgr:         um,
 		passwordMgr:     pm,
@@ -175,50 +166,6 @@ func (u *User) UpdateUser(ctx context.Context, appID string, data entity.UserReq
 	log.Info("user updated", slog.String("userID", userID))
 
 	return updatedUser, nil
-}
-
-func (u *User) GetUserRole(ctx context.Context, appID, userID string) (string, error) {
-	const method = "usecase.User.GetUserRole"
-
-	log := u.log.With(slog.String("method", method))
-
-	role, err := u.rbacService.GetUserRole(ctx, appID, userID)
-	if err != nil {
-		// If role was received, but there were problems with the cache
-		if role != "" {
-			// Log the error, but return the role
-			e.LogError(ctx, log, domain.ErrFailedToUpdateRoleCache, err, slog.Any("userID", userID))
-			return role.String(), nil
-		}
-
-		e.LogError(ctx, log, domain.ErrFailedToGetUserRole, err, slog.Any("userID", userID))
-		return "", fmt.Errorf("%w: %w", domain.ErrFailedToGetUserRole, err)
-	}
-
-	log.Info("user role received",
-		slog.String("userID", userID),
-		slog.String("role", role.String()),
-	)
-
-	return role.String(), nil
-}
-
-func (u *User) ChangeUserRole(ctx context.Context, appID, userID, role string) error {
-	const method = "usecase.User.ChangeUserRole"
-
-	log := u.log.With(slog.String("method", method))
-
-	if err := u.rbacService.SetUserRole(ctx, appID, userID, rbac.Role(role)); err != nil {
-		e.LogError(ctx, log, domain.ErrFailedToSetUserRole, err, slog.Any("userID", userID))
-		return fmt.Errorf("%w: %w", domain.ErrFailedToSetUserRole, err)
-	}
-
-	log.Info("user role changed",
-		slog.String("userID", userID),
-		slog.String("role", role),
-	)
-
-	return nil
 }
 
 func (u *User) DeleteUser(ctx context.Context, appID string) error {
