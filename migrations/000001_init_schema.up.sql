@@ -3,7 +3,6 @@ CREATE TABLE IF NOT EXISTS users
     id            character varying PRIMARY KEY,
     email         character varying NOT NULL,
     password_hash character varying NOT NULL,
-    role          character varying NOT NULL,
     app_id        character varying NOT NULL,
     verified      boolean DEFAULT false,
     created_at    timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
