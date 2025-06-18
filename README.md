@@ -4,13 +4,12 @@ Typically, the term “Auth” refers to services that are responsible only for 
 
 Of course, there are more precise definitions for these types of services, but in my practical experience, the boundaries have always been blurred or even erased.
 
-To clarify, I use the term SSO to describe a service that combines three important functions:
+To clarify, I use the term SSO to describe a service that combines two important functions:
 
-1. Authorization and authentication
-2. Working with permissions
-3. Providing user information
+1. Aauthentication
+2. Providing user information
 
-Currently, the application implements functions 1 and 3.
+Currently, the application implements both functions.
 
 ## Getting Started
 
@@ -20,23 +19,26 @@ These instructions will get you a copy of the project up and running on your loc
 
 Backend is written in GO, so I suggest you have installed [Golang](https://golang.org).
 
-If you use postgres you need to install [golang-migrate](https://github.com/golang-migrate/migrate) tool for running database migrations for postgres. And you need to have `psql` (PostgreSQL interactive terminal), because this tool  is used in the commands described in the makefile.
+If you use postgres you need to install [golang-migrate](https://github.com/golang-migrate/migrate) tool for running database migrations for postgres. And you need to have `psql` (PostgreSQL interactive terminal), because this tool is used in the commands described in the makefile.
 
 ### Installing
 
 Add config file to `./config/.env` (see an example in the `./config/.env.example`).
 
 Set path to config:
+
 ```bash
 export CONFIG_PATH=./config/.env
 ```
 
 Set database type (supported types – postgres or mongo):
+
 ```bash
 export DB_TYPE=postgres
 ```
 
 Set URL for Database:
+
 ```bash
 export POSTGRESQL_URL='postgres://login:password@host:port/db_name?sslmode=disable'
 # or if you use mongo:
@@ -44,6 +46,7 @@ export MONGO_URL='mongodb+srv://login:password@cluster.mongodb.net/?retryWrites=
 ```
 
 By default, this app use port `44044`. Set `SERVER_PORT` environment variable with this or your value:
+
 ```bash
 export SERVER_PORT=44044
 ```
@@ -77,11 +80,13 @@ To run the linters manually, use the command `make lint`.
 ## Deployment
 
 To deploy the application on your server, you can download the latest image from Docker Hub directly to your server. To do this, you need to connect to the server via SSH and ensure that Docker is installed. Then, execute the following command:
+
 ```
 docker pull rshelekhov/grpc-sso:latest
 ```
 
 To run the container, you need to place a config file in a volume and set values for the `CONFIG_PATH` and `POSTGRESQL_URL` variables. Additionally, you need to specify the port in the docker run command parameters. Here’s an example command to run the container:
+
 ```
 docker run -d \
   -v ${PWD}/config/grpc-sso:/src/config \
@@ -120,7 +125,3 @@ You can also check the settings for GitHub Actions in the `.github/workflows` fo
 - [log/slog](https://pkg.go.dev/log/slog) as the centralized Syslog logger
 - [ksuid](https://github.com/segmentio/ksuid) as the unique identifier
 - [golangci-lint](https://github.com/golangci/golangci-lint) as a Go linters runner
-
-## Documentation
-
-You can see more details about API in [the documentation](https://www.postman.com/warped-crater-962061/workspace/grpc-sso) in Postman.
