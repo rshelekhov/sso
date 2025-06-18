@@ -40,8 +40,6 @@ type (
 		GetUser(ctx context.Context, appID string) (entity.User, error)
 		GetUserByID(ctx context.Context, appID, userID string) (entity.User, error)
 		UpdateUser(ctx context.Context, appID string, data entity.UserRequestData) (entity.User, error)
-		GetUserRole(ctx context.Context, appID, userID string) (string, error)
-		ChangeUserRole(ctx context.Context, appID, userID, role string) error
 		DeleteUser(ctx context.Context, appID string) error
 		DeleteUserByID(ctx context.Context, appID, userID string) error
 	}

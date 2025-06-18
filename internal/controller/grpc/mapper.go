@@ -134,7 +134,6 @@ func toGetUserResponse(user entity.User) *ssov1.GetUserResponse {
 			Id:        user.ID,
 			Email:     user.Email,
 			Verified:  user.Verified,
-			Role:      user.Role,
 			UpdatedAt: timestamppb.New(user.UpdatedAt),
 		},
 	}
@@ -162,7 +161,6 @@ func toGetUserByIDResponse(user entity.User) *ssov1.GetUserByIDResponse {
 			Email:     user.Email,
 			Verified:  user.Verified,
 			UpdatedAt: timestamppb.New(user.UpdatedAt),
-			Role:      user.Role,
 		},
 	}
 }
