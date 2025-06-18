@@ -23,7 +23,6 @@ type (
 		ID           string
 		Email        string
 		PasswordHash string
-		Role         string
 		AppID        string
 		Verified     bool
 		Status       userStatusType
@@ -40,12 +39,11 @@ type (
 	}
 )
 
-func NewUser(appID, email, hash, role string) User {
+func NewUser(appID, email, hash string) User {
 	return User{
 		ID:           ksuid.New().String(),
 		Email:        email,
 		PasswordHash: hash,
-		Role:         role,
 		AppID:        appID,
 		Verified:     false,
 		CreatedAt:    time.Now(),
