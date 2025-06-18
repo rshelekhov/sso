@@ -13,7 +13,7 @@ type TokenResponse struct {
 	Domain           string            `json:"domain"`            // Cookie domain (optional)
 	Path             string            `json:"path"`              // Cookie path (optional)
 	ExpiresAt        time.Time         `json:"expires_at"`        // Token expiration time
-	HttpOnly         bool              `json:"http_only"`         // HttpOnly flag for cookies
+	HTTPOnly         bool              `json:"http_only"`         // HTTPOnly flag for cookies
 	AdditionalFields map[string]string `json:"additional_fields"` // Additional data to be included in response
 }
 
@@ -70,6 +70,6 @@ func (m *manager) setRefreshTokenCookie(w http.ResponseWriter, resp *TokenRespon
 		Domain:   resp.Domain,
 		Path:     resp.Path,
 		Expires:  resp.ExpiresAt,
-		HttpOnly: resp.HttpOnly,
+		HttpOnly: resp.HTTPOnly,
 	})
 }
