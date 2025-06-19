@@ -5,7 +5,7 @@ const (
 	AuthorizationHeader = "authorization"
 	KIDKey              = "kid"
 	IssuerKey           = "issuer"
-	ClientIDKey            = "client_id"
+	ClientIDKey         = "client_id"
 	ExpirationAtKey     = "expiration_at"
 	RoleKey             = "role"
 )
