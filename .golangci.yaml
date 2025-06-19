@@ -2,7 +2,6 @@ version: "2"
 run:
   tests: false
 linters:
-  default: none
   enable:
     - dogsled
     - errcheck
@@ -32,7 +31,7 @@ linters:
     goconst:
       min-occurrences: 4
     lll:
-      line-length: 155
+      line-length: 160
       tab-width: 1
     nestif:
       min-complexity: 4
@@ -54,7 +53,6 @@ linters:
       allow-cuddle-declarations: true
       force-err-cuddling: true
   exclusions:
-    generated: lax
     presets:
       - comments
       - common-false-positives
@@ -84,20 +82,7 @@ linters:
         text: return statements should not be cuddled if block has more than two lines
       - linters:
           - revive
-        text: 'unused-parameter: parameter ''info'' seems to be unused, consider removing or renaming it as _'
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
-formatters:
-  enable:
-    - gofmt
-    - gofumpt
-  settings:
-    gofumpt:
-      extra-rules: true
-  exclusions:
-    generated: lax
+        text: "unused-parameter: parameter 'info' seems to be unused, consider removing or renaming it as _"
     paths:
       - third_party$
       - builtin$
