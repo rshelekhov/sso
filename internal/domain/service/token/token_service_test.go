@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const appID = "test-app-id"
+const clientID = "test-app-id"
 
 func setup(t *testing.T) (*mocks.KeyStorage, *Service, *rsa.PrivateKey, []byte) {
 	mockKeyStorage := new(mocks.KeyStorage)

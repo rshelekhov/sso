@@ -11,7 +11,7 @@ const (
 	FieldID           = "_id"
 	FieldEmail        = "email"
 	FieldPasswordHash = "password_hash"
-	FieldAppID        = "app_id"
+	FieldClientID     = "client_id"
 	FieldStatus       = "status"
 	FieldVerified     = "verified"
 	FieldCreatedAt    = "created_at"
@@ -23,7 +23,7 @@ type UserDocument struct {
 	ID           string     `bson:"_id"`
 	Email        string     `bson:"email"`
 	PasswordHash string     `bson:"password_hash"`
-	AppID        string     `bson:"app_id"`
+	ClientID     string     `bson:"client_id"`
 	Verified     bool       `bson:"verified"`
 	CreatedAt    time.Time  `bson:"created_at"`
 	UpdatedAt    time.Time  `bson:"updated_at"`
@@ -40,7 +40,7 @@ func ToUserDoc(user entity.User) UserDocument {
 		ID:           user.ID,
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
-		AppID:        user.AppID,
+		ClientID:     user.ClientID,
 		Verified:     user.Verified,
 		CreatedAt:    user.CreatedAt,
 		UpdatedAt:    user.UpdatedAt,
@@ -53,7 +53,7 @@ func ToUserEntity(doc UserDocument) entity.User {
 		ID:           doc.ID,
 		Email:        doc.Email,
 		PasswordHash: doc.PasswordHash,
-		AppID:        doc.AppID,
+		ClientID:     doc.ClientID,
 		Verified:     doc.Verified,
 		CreatedAt:    doc.CreatedAt,
 		UpdatedAt:    doc.UpdatedAt,

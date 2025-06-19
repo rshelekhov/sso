@@ -9,7 +9,7 @@ import (
 
 type Config struct {
 	Issuer                   string `mapstructure:"TEST_ISSUER" envDefault:"sso.reframedapp.com"`
-	AppID                    string `mapstructure:"TEST_APP_ID" envDefault:"test-app-id"`
+	ClientID                 string `mapstructure:"TEST_CLIENT_ID" envDefault:"test-client-id"`
 	VerificationURL          string `mapstructure:"TEST_VERIFICATION_URL" envDefault:"reframedapp.com/confirm?token="`
 	ConfirmChangePasswordURL string `mapstructure:"TEST_CONFIRM_CHANGE_PASSWORD_URL" envDefault:"reframedapp.com/password/change?token="`
 

@@ -22,8 +22,8 @@ type (
 	}
 
 	TokenParser interface {
-		ParseToken(appID, token string) (*jwt.Token, error)
-		ExtractUserID(ctx context.Context, appID string) (string, error)
+		ParseToken(clientID, token string) (*jwt.Token, error)
+		ExtractUserID(ctx context.Context, clientID string) (string, error)
 	}
 
 	TokenSender interface {

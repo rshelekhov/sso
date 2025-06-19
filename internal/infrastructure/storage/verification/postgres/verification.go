@@ -37,7 +37,7 @@ func (s *VerificationStorage) SaveVerificationToken(ctx context.Context, data en
 	params := sqlc.SaveVerificationTokenParams{
 		Token:       data.Token,
 		UserID:      data.UserID,
-		AppID:       data.AppID,
+		ClientID:    data.ClientID,
 		Endpoint:    data.Endpoint,
 		Recipient:   data.Email,
 		TokenTypeID: int32(data.Type),
@@ -76,7 +76,7 @@ func (s *VerificationStorage) GetVerificationTokenData(ctx context.Context, toke
 	return entity.VerificationToken{
 		Token:     tokenData.Token,
 		UserID:    tokenData.UserID,
-		AppID:     tokenData.AppID,
+		ClientID:  tokenData.ClientID,
 		Endpoint:  tokenData.Endpoint,
 		Email:     tokenData.Recipient,
 		Type:      entity.VerificationTokenType(tokenData.TokenTypeID),
@@ -104,12 +104,12 @@ func (s *VerificationStorage) DeleteVerificationToken(ctx context.Context, token
 	return nil
 }
 
-func (s *VerificationStorage) DeleteAllTokens(ctx context.Context, appID, userID string) error {
+func (s *VerificationStorage) DeleteAllTokens(ctx context.Context, clientID, userID string) error {
 	const method = "storage.verification.postgres.DeleteAllTokens"
 
 	params := sqlc.DeleteAllVerificationTokensParams{
-		UserID: userID,
-		AppID:  appID,
+		UserID:   userID,
+		ClientID: clientID,
 	}
 
 	// Delete verification tokens within transaction

@@ -6,10 +6,10 @@ var (
 	ErrFailedToCommitTransaction = errors.New("failed to commit transaction")
 
 	// ===========================================================================
-	// App validator service errors
+	// Client validator service errors
 	// ===========================================================================
 
-	ErrAppNotFound = errors.New("app not found")
+	ErrClientNotFound = errors.New("client not found")
 
 	// ===========================================================================
 	// Session service errors
@@ -26,7 +26,7 @@ var (
 	ErrUserDeviceNotFound               = errors.New("user device not found")
 	ErrFailedToDeleteRefreshToken       = errors.New("failed to delete refresh token")
 	ErrFailedToDeleteSession            = errors.New("failed to delete session")
-	ErrFailedToValidateAppID            = errors.New("failed to validate app ID")
+	ErrFailedToValidateClientID         = errors.New("failed to validate client ID")
 	ErrFailedToRegisterDevice           = errors.New("failed to register device")
 
 	// ===========================================================================
@@ -40,7 +40,7 @@ var (
 	// Token service errors
 	// ===========================================================================
 
-	ErrAppIDIsNotAllowed                = errors.New("appID is not allowed")
+	ErrClientIDIsNotAllowed             = errors.New("clientID is not allowed")
 	ErrEmptyKidIsNotAllowed             = errors.New("kid is not allowed")
 	ErrFailedToGetPrivateKey            = errors.New("failed to get private key")
 	ErrFailedToParsePrivateKey          = errors.New("failed to parse private key")
@@ -74,15 +74,15 @@ var (
 	ErrFailedToDeleteAllVerificationTokens = errors.New("failed to delete all verification tokens")
 
 	// ===========================================================================
-	// App usecase errors
+	// Client usecase errors
 	// ===========================================================================
 
-	ErrAppNameIsEmpty                    = errors.New("app name is empty")
-	ErrAppAlreadyExists                  = errors.New("app already exists")
+	ErrClientNameIsEmpty                 = errors.New("client name is empty")
+	ErrClientAlreadyExists               = errors.New("client already exists")
 	ErrFailedToGenerateSecretHash        = errors.New("failed to generate secret hash")
-	ErrFailedToRegisterApp               = errors.New("failed to register app")
+	ErrFailedToRegisterClient            = errors.New("failed to register client")
 	ErrFailedToGenerateAndSavePrivateKey = errors.New("failed to generate and save private key")
-	ErrFailedToDeleteApp                 = errors.New("failed to delete app")
+	ErrFailedToDeleteClient              = errors.New("failed to delete client")
 
 	// ===========================================================================
 	// Auth usecase errors

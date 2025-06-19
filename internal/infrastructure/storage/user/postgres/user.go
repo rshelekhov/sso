@@ -33,12 +33,12 @@ func NewUserStorage(pool *pgxpool.Pool, txMgr TransactionManager) *UserStorage {
 	}
 }
 
-func (s *UserStorage) GetUserByID(ctx context.Context, appID, userID string) (entity.User, error) {
+func (s *UserStorage) GetUserByID(ctx context.Context, clientID, userID string) (entity.User, error) {
 	const method = "storage.user.postgres.GetUserByID"
 
 	user, err := s.queries.GetUserByID(ctx, sqlc.GetUserByIDParams{
-		ID:    userID,
-		AppID: appID,
+		ID:       userID,
+		ClientID: clientID,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -50,18 +50,18 @@ func (s *UserStorage) GetUserByID(ctx context.Context, appID, userID string) (en
 	return entity.User{
 		ID:        user.ID,
 		Email:     user.Email,
-		AppID:     user.AppID,
+		ClientID:  user.ClientID,
 		Verified:  user.Verified.Bool,
 		UpdatedAt: user.UpdatedAt,
 	}, nil
 }
 
-func (s *UserStorage) GetUserByEmail(ctx context.Context, appID, email string) (entity.User, error) {
+func (s *UserStorage) GetUserByEmail(ctx context.Context, clientID, email string) (entity.User, error) {
 	const method = "storage.user.postgres.GetUserByEmail"
 
 	user, err := s.queries.GetUserByEmail(ctx, sqlc.GetUserByEmailParams{
-		Email: email,
-		AppID: appID,
+		Email:    email,
+		ClientID: clientID,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -73,17 +73,17 @@ func (s *UserStorage) GetUserByEmail(ctx context.Context, appID, email string) (
 	return entity.User{
 		ID:        user.ID,
 		Email:     user.Email,
-		AppID:     user.AppID,
+		ClientID:  user.ClientID,
 		UpdatedAt: user.UpdatedAt,
 	}, nil
 }
 
-func (s *UserStorage) GetUserData(ctx context.Context, appID, userID string) (entity.User, error) {
+func (s *UserStorage) GetUserData(ctx context.Context, clientID, userID string) (entity.User, error) {
 	const method = "storage.user.postgres.GetUserData"
 
 	user, err := s.queries.GetUserData(ctx, sqlc.GetUserDataParams{
-		ID:    userID,
-		AppID: appID,
+		ID:       userID,
+		ClientID: clientID,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -96,7 +96,7 @@ func (s *UserStorage) GetUserData(ctx context.Context, appID, userID string) (en
 		ID:           user.ID,
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
-		AppID:        user.AppID,
+		ClientID:     user.ClientID,
 		UpdatedAt:    user.UpdatedAt,
 	}, nil
 }
@@ -135,8 +135,8 @@ func (s *UserStorage) buildUpdateUserQuery(user entity.User) (string, []interfac
 	queryUpdate += " WHERE id = $" + strconv.Itoa(len(queryParams)+1)
 	queryParams = append(queryParams, user.ID)
 
-	queryUpdate += " AND app_id = $" + strconv.Itoa(len(queryParams)+1)
-	queryParams = append(queryParams, user.AppID)
+	queryUpdate += " AND client_id = $" + strconv.Itoa(len(queryParams)+1)
+	queryParams = append(queryParams, user.ClientID)
 
 	return queryUpdate, queryParams
 }
@@ -158,8 +158,8 @@ func (s *UserStorage) DeleteUser(ctx context.Context, user entity.User) error {
 	const method = "storage.user.postgres.DeleteUser"
 
 	params := sqlc.DeleteUserParams{
-		ID:    user.ID,
-		AppID: user.AppID,
+		ID:       user.ID,
+		ClientID: user.ClientID,
 		DeletedAt: pgtype.Timestamptz{
 			Time:  user.DeletedAt,
 			Valid: true,
@@ -190,12 +190,12 @@ func (s *UserStorage) executeDeleteUser(ctx context.Context, params sqlc.DeleteU
 }
 
 // GetUserStatusByEmail returns the status of the user with the given email
-func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, appID, email string) (string, error) {
+func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, clientID, email string) (string, error) {
 	const method = "storage.user.postgres.GetUserStatusByEmail"
 
 	params := sqlc.GetUserStatusByEmailParams{
-		Email: email,
-		AppID: appID,
+		Email:    email,
+		ClientID: clientID,
 	}
 
 	status, err := s.queries.GetUserStatusByEmail(ctx, params)
@@ -210,12 +210,12 @@ func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, appID, email str
 }
 
 // GetUserStatusByID returns the status of the user with the given userID
-func (s *UserStorage) GetUserStatusByID(ctx context.Context, appID, userID string) (string, error) {
+func (s *UserStorage) GetUserStatusByID(ctx context.Context, clientID, userID string) (string, error) {
 	const method = "storage.user.postgres.GetUserStatusByID"
 
 	params := sqlc.GetUserStatusByIDParams{
-		ID:    userID,
-		AppID: appID,
+		ID:       userID,
+		ClientID: clientID,
 	}
 
 	status, err := s.queries.GetUserStatusByID(ctx, params)

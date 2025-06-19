@@ -69,9 +69,9 @@ func (_c *SessionStorage_CreateSession_Call) RunAndReturn(run func(context.Conte
 	return _c
 }
 
-// DeleteAllSessions provides a mock function with given fields: ctx, userID, appID
-func (_m *SessionStorage) DeleteAllSessions(ctx context.Context, userID string, appID string) error {
-	ret := _m.Called(ctx, userID, appID)
+// DeleteAllSessions provides a mock function with given fields: ctx, userID, clientID
+func (_m *SessionStorage) DeleteAllSessions(ctx context.Context, userID string, clientID string) error {
+	ret := _m.Called(ctx, userID, clientID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteAllSessions")
@@ -79,7 +79,7 @@ func (_m *SessionStorage) DeleteAllSessions(ctx context.Context, userID string, 
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, userID, appID)
+		r0 = rf(ctx, userID, clientID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -95,12 +95,12 @@ type SessionStorage_DeleteAllSessions_Call struct {
 // DeleteAllSessions is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID string
-//   - appID string
-func (_e *SessionStorage_Expecter) DeleteAllSessions(ctx interface{}, userID interface{}, appID interface{}) *SessionStorage_DeleteAllSessions_Call {
-	return &SessionStorage_DeleteAllSessions_Call{Call: _e.mock.On("DeleteAllSessions", ctx, userID, appID)}
+//   - clientID string
+func (_e *SessionStorage_Expecter) DeleteAllSessions(ctx interface{}, userID interface{}, clientID interface{}) *SessionStorage_DeleteAllSessions_Call {
+	return &SessionStorage_DeleteAllSessions_Call{Call: _e.mock.On("DeleteAllSessions", ctx, userID, clientID)}
 }
 
-func (_c *SessionStorage_DeleteAllSessions_Call) Run(run func(ctx context.Context, userID string, appID string)) *SessionStorage_DeleteAllSessions_Call {
+func (_c *SessionStorage_DeleteAllSessions_Call) Run(run func(ctx context.Context, userID string, clientID string)) *SessionStorage_DeleteAllSessions_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})

@@ -28,7 +28,7 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 				}))
 			},
 			mockBehavior: func() {
-				mockKeyStorage.EXPECT().GetPrivateKey(appID).
+				mockKeyStorage.EXPECT().GetPrivateKey(clientID).
 					Once().
 					Return(privateKeyPEM, nil)
 			},
@@ -41,7 +41,7 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 				return context.WithValue(context.Background(), domain.AuthorizationHeader, createSignedToken(t, privateKey, jwt.MapClaims{}))
 			},
 			mockBehavior: func() {
-				mockKeyStorage.EXPECT().GetPrivateKey(appID).
+				mockKeyStorage.EXPECT().GetPrivateKey(clientID).
 					Once().
 					Return(privateKeyPEM, nil)
 			},
@@ -73,7 +73,7 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 			tt.mockBehavior()
 			ctx := tt.setupContext()
 
-			userID, err := tokenService.ExtractUserIDFromTokenInContext(ctx, appID)
+			userID, err := tokenService.ExtractUserIDFromTokenInContext(ctx, clientID)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -107,7 +107,7 @@ func TestTokenService_ExtractUserRoleFromContext(t *testing.T) {
 				}))
 			},
 			mockBehavior: func() {
-				mockKeyStorage.EXPECT().GetPrivateKey(appID).
+				mockKeyStorage.EXPECT().GetPrivateKey(clientID).
 					Once().
 					Return(privateKeyPEM, nil)
 			},
@@ -120,7 +120,7 @@ func TestTokenService_ExtractUserRoleFromContext(t *testing.T) {
 				return context.WithValue(context.Background(), domain.AuthorizationHeader, createSignedToken(t, privateKey, jwt.MapClaims{}))
 			},
 			mockBehavior: func() {
-				mockKeyStorage.EXPECT().GetPrivateKey(appID).
+				mockKeyStorage.EXPECT().GetPrivateKey(clientID).
 					Once().
 					Return(privateKeyPEM, nil)
 			},
@@ -152,7 +152,7 @@ func TestTokenService_ExtractUserRoleFromContext(t *testing.T) {
 			tt.mockBehavior()
 			ctx := tt.setupContext()
 
-			role, err := tokenService.ExtractUserRoleFromTokenInContext(ctx, appID)
+			role, err := tokenService.ExtractUserRoleFromTokenInContext(ctx, clientID)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)

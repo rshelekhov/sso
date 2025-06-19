@@ -42,8 +42,8 @@ func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.Us
 	defer cancel()
 
 	filter := bson.M{
-		common.FieldEmail: user.Email,
-		common.FieldAppID: user.AppID,
+		common.FieldEmail:    user.Email,
+		common.FieldClientID: user.ClientID,
 		common.FieldDeletedAt: bson.M{
 			"$ne": nil,
 		},
@@ -83,15 +83,15 @@ func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error 
 	return nil
 }
 
-func (s *AuthStorage) MarkEmailVerified(ctx context.Context, userID, appID string) error {
+func (s *AuthStorage) MarkEmailVerified(ctx context.Context, userID, clientID string) error {
 	const method = "storage.auth.mongo.MarkEmailVerified"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	filter := bson.M{
-		common.FieldID:    userID,
-		common.FieldAppID: appID,
+		common.FieldID:       userID,
+		common.FieldClientID: clientID,
 		common.FieldDeletedAt: bson.M{
 			"$exists": false,
 		},

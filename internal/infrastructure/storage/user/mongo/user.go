@@ -39,15 +39,15 @@ func NewUserStorage(db *mongo.Database, timeout time.Duration) (*UserStorage, er
 	}, nil
 }
 
-func (s *UserStorage) GetUserByID(ctx context.Context, appID, userID string) (entity.User, error) {
+func (s *UserStorage) GetUserByID(ctx context.Context, clientID, userID string) (entity.User, error) {
 	const method = "storage.user.mongo.GetUserByID"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	filter := bson.M{
-		common.FieldAppID: appID,
-		common.FieldID:    userID,
+		common.FieldClientID: clientID,
+		common.FieldID:       userID,
 		common.FieldDeletedAt: bson.M{
 			"$exists": false,
 		},
@@ -70,15 +70,15 @@ func (s *UserStorage) GetUserByID(ctx context.Context, appID, userID string) (en
 	return common.ToUserEntity(doc), nil
 }
 
-func (s *UserStorage) GetUserByEmail(ctx context.Context, appID, email string) (entity.User, error) {
+func (s *UserStorage) GetUserByEmail(ctx context.Context, clientID, email string) (entity.User, error) {
 	const method = "storage.user.mongo.GetUserByEmail"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	filter := bson.M{
-		common.FieldAppID: appID,
-		common.FieldEmail: email,
+		common.FieldClientID: clientID,
+		common.FieldEmail:    email,
 		common.FieldDeletedAt: bson.M{
 			"$exists": false,
 		},
@@ -101,15 +101,15 @@ func (s *UserStorage) GetUserByEmail(ctx context.Context, appID, email string) (
 	return common.ToUserEntity(doc), nil
 }
 
-func (s *UserStorage) GetUserData(ctx context.Context, appID, userID string) (entity.User, error) {
+func (s *UserStorage) GetUserData(ctx context.Context, clientID, userID string) (entity.User, error) {
 	const method = "storage.user.mongo.GetUserData"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	filter := bson.M{
-		common.FieldAppID: appID,
-		common.FieldID:    userID,
+		common.FieldClientID: clientID,
+		common.FieldID:       userID,
 		common.FieldDeletedAt: bson.M{
 			"$exists": false,
 		},
@@ -119,7 +119,7 @@ func (s *UserStorage) GetUserData(ctx context.Context, appID, userID string) (en
 		common.FieldID:           1,
 		common.FieldEmail:        1,
 		common.FieldPasswordHash: 1,
-		common.FieldAppID:        1,
+		common.FieldClientID:     1,
 		common.FieldUpdatedAt:    1,
 	})
 
@@ -147,8 +147,8 @@ func (s *UserStorage) UpdateUser(ctx context.Context, user entity.User) error {
 	defer cancel()
 
 	filter := bson.M{
-		common.FieldAppID: user.AppID,
-		common.FieldID:    user.ID,
+		common.FieldClientID: user.ClientID,
+		common.FieldID:       user.ID,
 		common.FieldDeletedAt: bson.M{
 			"$exists": false,
 		},
@@ -185,7 +185,7 @@ func buildUpdateFields(user entity.User) bson.M {
 	return update
 }
 
-func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, appID, email string) (string, error) {
+func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, clientID, email string) (string, error) {
 	const method = "storage.user.mongo.GetUserStatusByEmail"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
@@ -193,8 +193,8 @@ func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, appID, email str
 
 	// Check active user
 	filter := bson.M{
-		common.FieldAppID: appID,
-		common.FieldEmail: email,
+		common.FieldClientID: clientID,
+		common.FieldEmail:    email,
 		common.FieldDeletedAt: bson.M{
 			"$exists": false,
 		},
@@ -210,8 +210,8 @@ func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, appID, email str
 
 	// Check soft deleted user
 	filter = bson.M{
-		common.FieldAppID: appID,
-		common.FieldEmail: email,
+		common.FieldClientID: clientID,
+		common.FieldEmail:    email,
 		common.FieldDeletedAt: bson.M{
 			"$ne": nil,
 		},
@@ -228,7 +228,7 @@ func (s *UserStorage) GetUserStatusByEmail(ctx context.Context, appID, email str
 	return entity.UserStatusNotFound.String(), nil
 }
 
-func (s *UserStorage) GetUserStatusByID(ctx context.Context, appID, userID string) (string, error) {
+func (s *UserStorage) GetUserStatusByID(ctx context.Context, clientID, userID string) (string, error) {
 	const method = "storage.user.mongo.GetUserStatusByID"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
@@ -236,8 +236,8 @@ func (s *UserStorage) GetUserStatusByID(ctx context.Context, appID, userID strin
 
 	// Check active user
 	filter := bson.M{
-		common.FieldAppID: appID,
-		common.FieldID:    userID,
+		common.FieldClientID: clientID,
+		common.FieldID:       userID,
 		common.FieldDeletedAt: bson.M{
 			"$exists": false,
 		},
@@ -253,8 +253,8 @@ func (s *UserStorage) GetUserStatusByID(ctx context.Context, appID, userID strin
 
 	// Check soft deleted user
 	filter = bson.M{
-		common.FieldAppID: appID,
-		common.FieldID:    userID,
+		common.FieldClientID: clientID,
+		common.FieldID:       userID,
 		common.FieldDeletedAt: bson.M{
 			"$ne": nil,
 		},
@@ -278,8 +278,8 @@ func (s *UserStorage) DeleteUser(ctx context.Context, user entity.User) error {
 	defer cancel()
 
 	filter := bson.M{
-		common.FieldID:    user.ID,
-		common.FieldAppID: user.AppID,
+		common.FieldID:       user.ID,
+		common.FieldClientID: user.ClientID,
 		common.FieldDeletedAt: bson.M{
 			"$exists": false,
 		},

@@ -17,8 +17,8 @@ type Service struct {
 }
 
 type KeyStorage interface {
-	SavePrivateKey(appID string, privateKeyPEM []byte) error
-	GetPrivateKey(appID string) ([]byte, error)
+	SavePrivateKey(clientID string, privateKeyPEM []byte) error
+	GetPrivateKey(clientID string) ([]byte, error)
 }
 
 func NewService(cfg Config, storage KeyStorage) *Service {

@@ -17,27 +17,27 @@ func TestToken_NewAccessToken(t *testing.T) {
 
 	claimKey := "user_id"
 	claimValue := "test-user-id"
-	additionalClaims := map[string]interface{}{
+	additionalClaims := map[string]any{
 		claimKey: claimValue,
 	}
 
 	tests := []struct {
 		name          string
-		appID         string
+		clientID      string
 		kid           string
-		claims        map[string]interface{}
+		claims        map[string]any
 		mockBehavior  func(mockKeyStorage *mocks.KeyStorage)
 		validateToken bool
 		expectedError error
 	}{
 		{
-			name:   "Success",
-			appID:  appID,
-			kid:    "test-kid",
-			claims: additionalClaims,
+			name:     "Success",
+			clientID: clientID,
+			kid:      "test-kid",
+			claims:   additionalClaims,
 			mockBehavior: func(mockKeyStorage *mocks.KeyStorage) {
 				mockKeyStorage.EXPECT().
-					GetPrivateKey(appID).
+					GetPrivateKey(clientID).
 					Once().
 					Return(privateKeyPEM, nil)
 			},
@@ -45,16 +45,16 @@ func TestToken_NewAccessToken(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name:          "Empty appID",
-			appID:         "",
+			name:          "Empty clientID",
+			clientID:      "",
 			kid:           "test-kid",
 			claims:        additionalClaims,
 			mockBehavior:  func(mockKeyStorage *mocks.KeyStorage) {},
-			expectedError: domain.ErrAppIDIsNotAllowed,
+			expectedError: domain.ErrClientIDIsNotAllowed,
 		},
 		{
 			name:          "Empty kid",
-			appID:         appID,
+			clientID:      clientID,
 			kid:           "",
 			claims:        additionalClaims,
 			mockBehavior:  func(mockKeyStorage *mocks.KeyStorage) {},
@@ -66,7 +66,7 @@ func TestToken_NewAccessToken(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockBehavior(mockKeyStorage)
 
-			tokenString, err := tokenService.NewAccessToken(tt.appID, tt.kid, tt.claims)
+			tokenString, err := tokenService.NewAccessToken(tt.clientID, tt.kid, tt.claims)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -98,17 +98,17 @@ func TestToken_GetKeyID(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		appID         string
+		clientID      string
 		mockBehavior  func(mockKeyStorage *mocks.KeyStorage)
 		expectedKID   string
 		expectedError error
 	}{
 		{
-			name:  "Success",
-			appID: appID,
+			name:     "Success",
+			clientID: clientID,
 			mockBehavior: func(mockKeyStorage *mocks.KeyStorage) {
 				mockKeyStorage.EXPECT().
-					GetPrivateKey(appID).
+					GetPrivateKey(clientID).
 					Once().
 					Return(privateKeyPEM, nil)
 			},
@@ -124,11 +124,11 @@ func TestToken_GetKeyID(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name:          "Empty appID",
-			appID:         "",
+			name:          "Empty clientID",
+			clientID:      "",
 			mockBehavior:  func(mockKeyStorage *mocks.KeyStorage) {},
 			expectedKID:   "",
-			expectedError: domain.ErrAppIDIsNotAllowed,
+			expectedError: domain.ErrClientIDIsNotAllowed,
 		},
 	}
 
@@ -136,7 +136,7 @@ func TestToken_GetKeyID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockBehavior(mockKeyStorage)
 
-			keyID, err := tokenService.Kid(tt.appID)
+			keyID, err := tokenService.Kid(tt.clientID)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)

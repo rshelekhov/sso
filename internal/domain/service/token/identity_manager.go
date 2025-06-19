@@ -9,10 +9,10 @@ import (
 	"github.com/rshelekhov/sso/internal/domain"
 )
 
-func (s *Service) ExtractUserIDFromTokenInContext(ctx context.Context, appID string) (string, error) {
+func (s *Service) ExtractUserIDFromTokenInContext(ctx context.Context, clientID string) (string, error) {
 	const method = "service.token.ExtractUserIDFromTokenInContext"
 
-	claims, err := s.getClaimsFromToken(ctx, appID)
+	claims, err := s.getClaimsFromToken(ctx, clientID)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", method, err)
 	}
@@ -25,10 +25,10 @@ func (s *Service) ExtractUserIDFromTokenInContext(ctx context.Context, appID str
 	return userID.(string), nil
 }
 
-func (s *Service) ExtractUserRoleFromTokenInContext(ctx context.Context, appID string) (string, error) {
+func (s *Service) ExtractUserRoleFromTokenInContext(ctx context.Context, clientID string) (string, error) {
 	const method = "service.token.ExtractUserRoleFromTokenInContext"
 
-	claims, err := s.getClaimsFromToken(ctx, appID)
+	claims, err := s.getClaimsFromToken(ctx, clientID)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", method, err)
 	}
@@ -41,10 +41,10 @@ func (s *Service) ExtractUserRoleFromTokenInContext(ctx context.Context, appID s
 	return role.(string), nil
 }
 
-func (s *Service) getClaimsFromToken(ctx context.Context, appID string) (map[string]interface{}, error) {
+func (s *Service) getClaimsFromToken(ctx context.Context, clientID string) (map[string]interface{}, error) {
 	const method = "service.token.getClaimsFromToken"
 
-	token, err := s.getTokenFromContext(ctx, appID)
+	token, err := s.getTokenFromContext(ctx, clientID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", method, err)
 	}
@@ -57,7 +57,7 @@ func (s *Service) getClaimsFromToken(ctx context.Context, appID string) (map[str
 	return claims, nil
 }
 
-func (s *Service) getTokenFromContext(ctx context.Context, appID string) (*jwt.Token, error) {
+func (s *Service) getTokenFromContext(ctx context.Context, clientID string) (*jwt.Token, error) {
 	const method = "service.token.getTokenFromContext"
 
 	token, ok := ctx.Value(domain.AuthorizationHeader).(string)
@@ -65,17 +65,17 @@ func (s *Service) getTokenFromContext(ctx context.Context, appID string) (*jwt.T
 		return nil, fmt.Errorf("%s: %w", method, domain.ErrNoTokenFoundInContext)
 	}
 
-	return s.parseToken(token, appID)
+	return s.parseToken(token, clientID)
 }
 
-func (s *Service) parseToken(tokenRaw, appID string) (*jwt.Token, error) {
+func (s *Service) parseToken(tokenRaw, clientID string) (*jwt.Token, error) {
 	const method = "service.token.parseToken"
 
 	tokenString := strings.TrimSpace(tokenRaw)
 
 	//nolint:revive
 	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return s.PublicKey(appID)
+		return s.PublicKey(clientID)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToParseTokenWithClaims, err)

@@ -31,21 +31,21 @@ const JWKSCacheKey = "jwks"
 
 // getJWK retrieves a JWK by its key ID (kid) from the cache or fetches new JWKS if needed
 // Returns the matching JWK or an error if not found
-func (m *manager) getJWK(ctx context.Context, appID, kid string) (*JWK, error) {
+func (m *manager) getJWK(ctx context.Context, clientID, kid string) (*JWK, error) {
 	const op = "jwt.manager.getJWK"
 
-	// Construct cache key using appID
-	cacheKey := createCacheKey(appID)
+	// Construct cache key using clientID
+	cacheKey := createCacheKey(clientID)
 
 	cachedJWKS, found := m.getCachedJWKS(cacheKey)
 	if !found || len(cachedJWKS) == 0 {
-		jwks, err := m.jwksProvider.GetJWKS(ctx, appID)
+		jwks, err := m.jwksProvider.GetJWKS(ctx, clientID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: failed to get JWKS: %w", op, err)
 		}
 
 		if len(jwks) == 0 {
-			return nil, fmt.Errorf("%s: no JWKS found for appID %s", op, appID)
+			return nil, fmt.Errorf("%s: no JWKS found for clientID %s", op, clientID)
 		}
 
 		m.mu.Lock()
@@ -79,7 +79,7 @@ func (m *manager) getCachedJWKS(cacheKey string) ([]JWK, bool) {
 	return nil, false
 }
 
-// createCacheKey creates a cache key based on the appID
-func createCacheKey(appID string) string {
-	return fmt.Sprintf("%s:%s", JWKSCacheKey, appID)
+// createCacheKey creates a cache key based on the clientID
+func createCacheKey(clientID string) string {
+	return fmt.Sprintf("%s:%s", JWKSCacheKey, clientID)
 }

@@ -11,11 +11,11 @@ import (
 
 type (
 	JWKSProvider interface {
-		GetJWKS(ctx context.Context, appID string) ([]JWK, error)
+		GetJWKS(ctx context.Context, clientID string) ([]JWK, error)
 	}
 
 	JWKSService interface {
-		GetJWKS(ctx context.Context, appID string) ([]JWK, error)
+		GetJWKS(ctx context.Context, clientID string) ([]JWK, error)
 	}
 )
 
@@ -29,8 +29,8 @@ func NewLocalJWKSProvider(jwksService JWKSService) *LocalJWKSProvider {
 	}
 }
 
-func (p *LocalJWKSProvider) GetJWKS(ctx context.Context, appID string) ([]JWK, error) {
-	return p.JWKSService.GetJWKS(ctx, appID)
+func (p *LocalJWKSProvider) GetJWKS(ctx context.Context, clientID string) ([]JWK, error) {
+	return p.JWKSService.GetJWKS(ctx, clientID)
 }
 
 type RemoteJWKSProvider struct {
@@ -56,7 +56,7 @@ func NewRemoteJWKSProvider(target string, opts ...grpc.DialOption) (*RemoteJWKSP
 	}, nil
 }
 
-func (p *RemoteJWKSProvider) GetJWKS(ctx context.Context, appID string) ([]JWK, error) {
+func (p *RemoteJWKSProvider) GetJWKS(ctx context.Context, clientID string) ([]JWK, error) {
 	resp, err := p.client.GetJWKS(ctx, &ssov1.GetJWKSRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get jwks: %w", err)
