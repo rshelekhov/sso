@@ -21,9 +21,9 @@ func (_m *IdentityManager) EXPECT() *IdentityManager_Expecter {
 	return &IdentityManager_Expecter{mock: &_m.Mock}
 }
 
-// ExtractUserIDFromTokenInContext provides a mock function with given fields: ctx, appID
-func (_m *IdentityManager) ExtractUserIDFromTokenInContext(ctx context.Context, appID string) (string, error) {
-	ret := _m.Called(ctx, appID)
+// ExtractUserIDFromTokenInContext provides a mock function with given fields: ctx, clientID
+func (_m *IdentityManager) ExtractUserIDFromTokenInContext(ctx context.Context, clientID string) (string, error) {
+	ret := _m.Called(ctx, clientID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ExtractUserIDFromTokenInContext")
@@ -32,16 +32,16 @@ func (_m *IdentityManager) ExtractUserIDFromTokenInContext(ctx context.Context, 
 	var r0 string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) (string, error)); ok {
-		return rf(ctx, appID)
+		return rf(ctx, clientID)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string) string); ok {
-		r0 = rf(ctx, appID)
+		r0 = rf(ctx, clientID)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, appID)
+		r1 = rf(ctx, clientID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -56,12 +56,12 @@ type IdentityManager_ExtractUserIDFromTokenInContext_Call struct {
 
 // ExtractUserIDFromTokenInContext is a helper method to define mock.On call
 //   - ctx context.Context
-//   - appID string
-func (_e *IdentityManager_Expecter) ExtractUserIDFromTokenInContext(ctx interface{}, appID interface{}) *IdentityManager_ExtractUserIDFromTokenInContext_Call {
-	return &IdentityManager_ExtractUserIDFromTokenInContext_Call{Call: _e.mock.On("ExtractUserIDFromTokenInContext", ctx, appID)}
+//   - clientID string
+func (_e *IdentityManager_Expecter) ExtractUserIDFromTokenInContext(ctx interface{}, clientID interface{}) *IdentityManager_ExtractUserIDFromTokenInContext_Call {
+	return &IdentityManager_ExtractUserIDFromTokenInContext_Call{Call: _e.mock.On("ExtractUserIDFromTokenInContext", ctx, clientID)}
 }
 
-func (_c *IdentityManager_ExtractUserIDFromTokenInContext_Call) Run(run func(ctx context.Context, appID string)) *IdentityManager_ExtractUserIDFromTokenInContext_Call {
+func (_c *IdentityManager_ExtractUserIDFromTokenInContext_Call) Run(run func(ctx context.Context, clientID string)) *IdentityManager_ExtractUserIDFromTokenInContext_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string))
 	})

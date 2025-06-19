@@ -8,7 +8,7 @@ import (
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
@@ -23,8 +23,8 @@ func TestRefresh_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -59,12 +59,12 @@ func TestRefresh_HappyPath(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestRefresh_FailCases(t *testing.T) {
@@ -76,8 +76,8 @@ func TestRefresh_FailCases(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -100,7 +100,7 @@ func TestRefresh_FailCases(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		appID        string
+		clientID     string
 		userAgent    string
 		ip           string
 		refreshToken string
@@ -108,7 +108,7 @@ func TestRefresh_FailCases(t *testing.T) {
 	}{
 		{
 			name:         "Refresh with empty user agent",
-			appID:        cfg.AppID,
+			clientID:     cfg.ClientID,
 			userAgent:    emptyValue,
 			ip:           ip,
 			refreshToken: refreshToken,
@@ -116,7 +116,7 @@ func TestRefresh_FailCases(t *testing.T) {
 		},
 		{
 			name:         "Refresh with empty IP",
-			appID:        cfg.AppID,
+			clientID:     cfg.ClientID,
 			userAgent:    userAgent,
 			ip:           emptyValue,
 			refreshToken: refreshToken,
@@ -124,7 +124,7 @@ func TestRefresh_FailCases(t *testing.T) {
 		},
 		{
 			name:         "Refresh with empty refresh jwtoken",
-			appID:        cfg.AppID,
+			clientID:     cfg.ClientID,
 			userAgent:    userAgent,
 			ip:           ip,
 			refreshToken: emptyValue,
@@ -132,7 +132,7 @@ func TestRefresh_FailCases(t *testing.T) {
 		},
 		{
 			name:         "Refresh when session not found",
-			appID:        cfg.AppID,
+			clientID:     cfg.ClientID,
 			userAgent:    userAgent,
 			ip:           ip,
 			refreshToken: ksuid.New().String(),
@@ -156,12 +156,12 @@ func TestRefresh_FailCases(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestRefresh_DeviceNotFound(t *testing.T) {
@@ -173,8 +173,8 @@ func TestRefresh_DeviceNotFound(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -209,10 +209,10 @@ func TestRefresh_DeviceNotFound(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }

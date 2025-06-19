@@ -28,7 +28,7 @@ type manager struct {
 
 	// App ID for verification tokens
 	// This is optional field is using in a services, authenticated by SSO
-	appID string
+	clientID string
 }
 
 func NewManager(jwksProvider JWKSProvider, opts ...Option) Manager {
@@ -46,9 +46,9 @@ func NewManager(jwksProvider JWKSProvider, opts ...Option) Manager {
 
 type Option func(m *manager)
 
-func WithAppID(appID string) Option {
+func WithAppID(clientID string) Option {
 	return func(m *manager) {
-		m.appID = appID
+		m.clientID = clientID
 	}
 }
 
@@ -128,7 +128,7 @@ func (m *manager) ToContext(ctx context.Context, value string) context.Context {
 
 // ParseToken parses the given access token string and validates it using the public keys (JWKS).
 // It checks the "kid" (key ID) in the token header to select the appropriate public key.
-func (m *manager) ParseToken(appID, token string) (*jwt.Token, error) {
+func (m *manager) ParseToken(clientID, token string) (*jwt.Token, error) {
 	return jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		kidRaw, ok := token.Header[KidTokenHeader]
 		if !ok {
@@ -140,7 +140,7 @@ func (m *manager) ParseToken(appID, token string) (*jwt.Token, error) {
 			return nil, ErrKidIsNotAString
 		}
 
-		jwk, err := m.getJWK(context.Background(), appID, kid)
+		jwk, err := m.getJWK(context.Background(), clientID, kid)
 		if err != nil {
 			return nil, err
 		}
@@ -172,8 +172,8 @@ func (m *manager) ParseToken(appID, token string) (*jwt.Token, error) {
 }
 
 // ExtractUserID retrieves the user ID from the token claims.
-func (m *manager) ExtractUserID(ctx context.Context, appID string) (string, error) {
-	claims, err := m.getClaimsFromToken(ctx, appID)
+func (m *manager) ExtractUserID(ctx context.Context, clientID string) (string, error) {
+	claims, err := m.getClaimsFromToken(ctx, clientID)
 	if err != nil {
 		return "", err
 	}
@@ -187,13 +187,13 @@ func (m *manager) ExtractUserID(ctx context.Context, appID string) (string, erro
 }
 
 // getClaimsFromToken returns the claims of the provided access token.
-func (m *manager) getClaimsFromToken(ctx context.Context, appID string) (map[string]interface{}, error) {
+func (m *manager) getClaimsFromToken(ctx context.Context, clientID string) (map[string]interface{}, error) {
 	tokenString, ok := m.FromContext(ctx)
 	if !ok {
 		return nil, ErrTokenNotFoundInContext
 	}
 
-	token, err := m.ParseToken(appID, tokenString)
+	token, err := m.ParseToken(clientID, tokenString)
 	if err != nil {
 		return nil, Errors(err)
 	}
@@ -208,8 +208,8 @@ func (m *manager) getClaimsFromToken(ctx context.Context, appID string) (map[str
 
 // verifyToken checks the validity of the provided access token.
 // It parses the token, verifies the signature, and ensures it is not expired.
-func (m *manager) verifyToken(appID, token string) error {
-	parsedToken, err := m.ParseToken(appID, token)
+func (m *manager) verifyToken(clientID, token string) error {
+	parsedToken, err := m.ParseToken(clientID, token)
 	if err != nil {
 		return Errors(err)
 	}

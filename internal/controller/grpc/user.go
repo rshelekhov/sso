@@ -24,13 +24,13 @@ func (c *gRPCController) GetUser(ctx context.Context, req *ssov1.GetUserRequest)
 
 	log = log.With(slog.String("requestID", reqID))
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
-	user, err := c.userUsecase.GetUser(ctx, appID)
+	user, err := c.userUsecase.GetUser(ctx, clientID)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToGetUser, err)
 		return nil, mapErrorToGRPCStatus(err)
@@ -57,13 +57,13 @@ func (c *gRPCController) GetUserByID(ctx context.Context, req *ssov1.GetUserByID
 		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
 	}
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
-	user, err := c.userUsecase.GetUserByID(ctx, appID, req.GetUserId())
+	user, err := c.userUsecase.GetUserByID(ctx, clientID, req.GetUserId())
 	if err != nil {
 		return nil, mapErrorToGRPCStatus(err)
 	}
@@ -89,15 +89,15 @@ func (c *gRPCController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRe
 		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
 	}
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
 	userData := fromUpdateUserRequest(req)
 
-	updatedUser, err := c.userUsecase.UpdateUser(ctx, appID, userData)
+	updatedUser, err := c.userUsecase.UpdateUser(ctx, clientID, userData)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToUpdateUser, err)
 		return nil, mapErrorToGRPCStatus(err)
@@ -119,13 +119,13 @@ func (c *gRPCController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRe
 
 	log = log.With(slog.String("requestID", reqID))
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
-	err = c.userUsecase.DeleteUser(ctx, appID)
+	err = c.userUsecase.DeleteUser(ctx, clientID)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToDeleteUser, err)
 		return nil, mapErrorToGRPCStatus(err)
@@ -152,13 +152,13 @@ func (c *gRPCController) DeleteUserByID(ctx context.Context, req *ssov1.DeleteUs
 		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
 	}
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
-	err = c.userUsecase.DeleteUserByID(ctx, appID, req.GetUserId())
+	err = c.userUsecase.DeleteUserByID(ctx, clientID, req.GetUserId())
 	if err != nil {
 		return nil, mapErrorToGRPCStatus(err)
 	}

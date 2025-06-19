@@ -10,7 +10,7 @@ import (
 	"github.com/rshelekhov/sso/internal/domain"
 )
 
-func (s *Service) GenerateAndSavePrivateKey(appID string) error {
+func (s *Service) GenerateAndSavePrivateKey(clientID string) error {
 	const method = "service.token.GenerateAndSavePrivateKey"
 
 	privateKeyPEM, err := generatePrivateKeyPEM()
@@ -18,17 +18,17 @@ func (s *Service) GenerateAndSavePrivateKey(appID string) error {
 		return fmt.Errorf("%s: %w", method, err)
 	}
 
-	if err = s.keyStorage.SavePrivateKey(appID, privateKeyPEM); err != nil {
+	if err = s.keyStorage.SavePrivateKey(clientID, privateKeyPEM); err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
 
 	return nil
 }
 
-func (s *Service) PublicKey(appID string) (interface{}, error) {
+func (s *Service) PublicKey(clientID string) (interface{}, error) {
 	const method = "service.token.PublicKey"
 
-	privateKey, err := s.getPrivateKeyFromPEM(appID)
+	privateKey, err := s.getPrivateKeyFromPEM(clientID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", method, err)
 	}
@@ -63,8 +63,8 @@ func generatePrivateKeyPEM() ([]byte, error) {
 	return pemBytes, nil
 }
 
-func (s *Service) getPrivateKeyFromPEM(appID string) (interface{}, error) {
-	privateKeyPEM, err := s.keyStorage.GetPrivateKey(appID)
+func (s *Service) getPrivateKeyFromPEM(clientID string) (interface{}, error) {
+	privateKeyPEM, err := s.keyStorage.GetPrivateKey(clientID)
 	if err != nil {
 		return nil, err
 	}

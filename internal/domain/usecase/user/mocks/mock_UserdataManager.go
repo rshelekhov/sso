@@ -69,9 +69,9 @@ func (_c *UserdataManager_DeleteUser_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
-// GetUserByID provides a mock function with given fields: ctx, appID, userID
-func (_m *UserdataManager) GetUserByID(ctx context.Context, appID string, userID string) (entity.User, error) {
-	ret := _m.Called(ctx, appID, userID)
+// GetUserByID provides a mock function with given fields: ctx, clientID, userID
+func (_m *UserdataManager) GetUserByID(ctx context.Context, clientID string, userID string) (entity.User, error) {
+	ret := _m.Called(ctx, clientID, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserByID")
@@ -80,16 +80,16 @@ func (_m *UserdataManager) GetUserByID(ctx context.Context, appID string, userID
 	var r0 entity.User
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) (entity.User, error)); ok {
-		return rf(ctx, appID, userID)
+		return rf(ctx, clientID, userID)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) entity.User); ok {
-		r0 = rf(ctx, appID, userID)
+		r0 = rf(ctx, clientID, userID)
 	} else {
 		r0 = ret.Get(0).(entity.User)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, appID, userID)
+		r1 = rf(ctx, clientID, userID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -104,13 +104,13 @@ type UserdataManager_GetUserByID_Call struct {
 
 // GetUserByID is a helper method to define mock.On call
 //   - ctx context.Context
-//   - appID string
+//   - clientID string
 //   - userID string
-func (_e *UserdataManager_Expecter) GetUserByID(ctx interface{}, appID interface{}, userID interface{}) *UserdataManager_GetUserByID_Call {
-	return &UserdataManager_GetUserByID_Call{Call: _e.mock.On("GetUserByID", ctx, appID, userID)}
+func (_e *UserdataManager_Expecter) GetUserByID(ctx interface{}, clientID interface{}, userID interface{}) *UserdataManager_GetUserByID_Call {
+	return &UserdataManager_GetUserByID_Call{Call: _e.mock.On("GetUserByID", ctx, clientID, userID)}
 }
 
-func (_c *UserdataManager_GetUserByID_Call) Run(run func(ctx context.Context, appID string, userID string)) *UserdataManager_GetUserByID_Call {
+func (_c *UserdataManager_GetUserByID_Call) Run(run func(ctx context.Context, clientID string, userID string)) *UserdataManager_GetUserByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
@@ -127,9 +127,9 @@ func (_c *UserdataManager_GetUserByID_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
-// GetUserData provides a mock function with given fields: ctx, appID, userID
-func (_m *UserdataManager) GetUserData(ctx context.Context, appID string, userID string) (entity.User, error) {
-	ret := _m.Called(ctx, appID, userID)
+// GetUserData provides a mock function with given fields: ctx, clientID, userID
+func (_m *UserdataManager) GetUserData(ctx context.Context, clientID string, userID string) (entity.User, error) {
+	ret := _m.Called(ctx, clientID, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserData")
@@ -138,16 +138,16 @@ func (_m *UserdataManager) GetUserData(ctx context.Context, appID string, userID
 	var r0 entity.User
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) (entity.User, error)); ok {
-		return rf(ctx, appID, userID)
+		return rf(ctx, clientID, userID)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) entity.User); ok {
-		r0 = rf(ctx, appID, userID)
+		r0 = rf(ctx, clientID, userID)
 	} else {
 		r0 = ret.Get(0).(entity.User)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, appID, userID)
+		r1 = rf(ctx, clientID, userID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -162,13 +162,13 @@ type UserdataManager_GetUserData_Call struct {
 
 // GetUserData is a helper method to define mock.On call
 //   - ctx context.Context
-//   - appID string
+//   - clientID string
 //   - userID string
-func (_e *UserdataManager_Expecter) GetUserData(ctx interface{}, appID interface{}, userID interface{}) *UserdataManager_GetUserData_Call {
-	return &UserdataManager_GetUserData_Call{Call: _e.mock.On("GetUserData", ctx, appID, userID)}
+func (_e *UserdataManager_Expecter) GetUserData(ctx interface{}, clientID interface{}, userID interface{}) *UserdataManager_GetUserData_Call {
+	return &UserdataManager_GetUserData_Call{Call: _e.mock.On("GetUserData", ctx, clientID, userID)}
 }
 
-func (_c *UserdataManager_GetUserData_Call) Run(run func(ctx context.Context, appID string, userID string)) *UserdataManager_GetUserData_Call {
+func (_c *UserdataManager_GetUserData_Call) Run(run func(ctx context.Context, clientID string, userID string)) *UserdataManager_GetUserData_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
@@ -185,9 +185,9 @@ func (_c *UserdataManager_GetUserData_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
-// GetUserStatusByEmail provides a mock function with given fields: ctx, appID, email
-func (_m *UserdataManager) GetUserStatusByEmail(ctx context.Context, appID string, email string) (string, error) {
-	ret := _m.Called(ctx, appID, email)
+// GetUserStatusByEmail provides a mock function with given fields: ctx, clientID, email
+func (_m *UserdataManager) GetUserStatusByEmail(ctx context.Context, clientID string, email string) (string, error) {
+	ret := _m.Called(ctx, clientID, email)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserStatusByEmail")
@@ -196,16 +196,16 @@ func (_m *UserdataManager) GetUserStatusByEmail(ctx context.Context, appID strin
 	var r0 string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) (string, error)); ok {
-		return rf(ctx, appID, email)
+		return rf(ctx, clientID, email)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) string); ok {
-		r0 = rf(ctx, appID, email)
+		r0 = rf(ctx, clientID, email)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, appID, email)
+		r1 = rf(ctx, clientID, email)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -220,13 +220,13 @@ type UserdataManager_GetUserStatusByEmail_Call struct {
 
 // GetUserStatusByEmail is a helper method to define mock.On call
 //   - ctx context.Context
-//   - appID string
+//   - clientID string
 //   - email string
-func (_e *UserdataManager_Expecter) GetUserStatusByEmail(ctx interface{}, appID interface{}, email interface{}) *UserdataManager_GetUserStatusByEmail_Call {
-	return &UserdataManager_GetUserStatusByEmail_Call{Call: _e.mock.On("GetUserStatusByEmail", ctx, appID, email)}
+func (_e *UserdataManager_Expecter) GetUserStatusByEmail(ctx interface{}, clientID interface{}, email interface{}) *UserdataManager_GetUserStatusByEmail_Call {
+	return &UserdataManager_GetUserStatusByEmail_Call{Call: _e.mock.On("GetUserStatusByEmail", ctx, clientID, email)}
 }
 
-func (_c *UserdataManager_GetUserStatusByEmail_Call) Run(run func(ctx context.Context, appID string, email string)) *UserdataManager_GetUserStatusByEmail_Call {
+func (_c *UserdataManager_GetUserStatusByEmail_Call) Run(run func(ctx context.Context, clientID string, email string)) *UserdataManager_GetUserStatusByEmail_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
@@ -243,9 +243,9 @@ func (_c *UserdataManager_GetUserStatusByEmail_Call) RunAndReturn(run func(conte
 	return _c
 }
 
-// GetUserStatusByID provides a mock function with given fields: ctx, appID, userID
-func (_m *UserdataManager) GetUserStatusByID(ctx context.Context, appID string, userID string) (string, error) {
-	ret := _m.Called(ctx, appID, userID)
+// GetUserStatusByID provides a mock function with given fields: ctx, clientID, userID
+func (_m *UserdataManager) GetUserStatusByID(ctx context.Context, clientID string, userID string) (string, error) {
+	ret := _m.Called(ctx, clientID, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserStatusByID")
@@ -254,16 +254,16 @@ func (_m *UserdataManager) GetUserStatusByID(ctx context.Context, appID string, 
 	var r0 string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) (string, error)); ok {
-		return rf(ctx, appID, userID)
+		return rf(ctx, clientID, userID)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) string); ok {
-		r0 = rf(ctx, appID, userID)
+		r0 = rf(ctx, clientID, userID)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, appID, userID)
+		r1 = rf(ctx, clientID, userID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -278,13 +278,13 @@ type UserdataManager_GetUserStatusByID_Call struct {
 
 // GetUserStatusByID is a helper method to define mock.On call
 //   - ctx context.Context
-//   - appID string
+//   - clientID string
 //   - userID string
-func (_e *UserdataManager_Expecter) GetUserStatusByID(ctx interface{}, appID interface{}, userID interface{}) *UserdataManager_GetUserStatusByID_Call {
-	return &UserdataManager_GetUserStatusByID_Call{Call: _e.mock.On("GetUserStatusByID", ctx, appID, userID)}
+func (_e *UserdataManager_Expecter) GetUserStatusByID(ctx interface{}, clientID interface{}, userID interface{}) *UserdataManager_GetUserStatusByID_Call {
+	return &UserdataManager_GetUserStatusByID_Call{Call: _e.mock.On("GetUserStatusByID", ctx, clientID, userID)}
 }
 
-func (_c *UserdataManager_GetUserStatusByID_Call) Run(run func(ctx context.Context, appID string, userID string)) *UserdataManager_GetUserStatusByID_Call {
+func (_c *UserdataManager_GetUserStatusByID_Call) Run(run func(ctx context.Context, clientID string, userID string)) *UserdataManager_GetUserStatusByID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})

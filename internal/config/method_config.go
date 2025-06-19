@@ -4,7 +4,7 @@ package config
 type GRPCMethodSettings struct {
 	FullMethod   string // Full path of the method (e.g. "/auth.Auth/GetUserByID")
 	RequireJWT   bool   // Requires a JWT authentication
-	RequireAppID bool   // Requires an AppID
+	RequireClientID bool   // Requires an AppID
 	SkipUserID   bool   // Skip userID check (for unauthenticated methods)
 }
 
@@ -38,7 +38,7 @@ func (mc *GRPCMethodsConfig) GetAppIDRequiredMethods() []string {
 	var methods []string
 
 	for method, config := range mc.settings {
-		if config.RequireAppID {
+		if config.RequireClientID {
 			methods = append(methods, method)
 		}
 	}
@@ -52,86 +52,86 @@ func initGRPCMethodSettings() map[string]GRPCMethodSettings {
 		// Auth methods
 		"/auth.Auth/RegisterUser": {
 			RequireJWT:   false,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   true,
 		},
 		"/auth.Auth/Login": {
 			RequireJWT:   false,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   true,
 		},
 		"/auth.Auth/VerifyEmail": {
 			RequireJWT:   false,
-			RequireAppID: false,
+			RequireClientID: false,
 			SkipUserID:   true,
 		},
 		"/auth.Auth/ResetPassword": {
 			RequireJWT:   false,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   true,
 		},
 		"/auth.Auth/ChangePassword": {
 			RequireJWT:   false,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   true,
 		},
 		"/auth.Auth/RegisterApp": {
 			RequireJWT:   false,
-			RequireAppID: false,
+			RequireClientID: false,
 			SkipUserID:   true,
 		},
 		"/auth.Auth/GetJWKS": {
 			RequireJWT:   false,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   true,
 		},
 		"/auth.Auth/Refresh": {
 			RequireJWT:   false,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   true,
 		},
 
 		// User methods
 		"/auth.Auth/GetUser": {
 			RequireJWT:   true,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   false,
 		},
 		"/auth.Auth/UpdateUser": {
 			RequireJWT:   true,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   false,
 		},
 		"/auth.Auth/DeleteUser": {
 			RequireJWT:   true,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   false,
 		},
 		"/auth.Auth/Logout": {
 			RequireJWT:   true,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   false,
 		},
 
 		// Admin methods
 		"/auth.Auth/GetUserByID": {
 			RequireJWT:   true,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   false,
 		},
 		"/auth.Auth/DeleteUserByID": {
 			RequireJWT:   true,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   false,
 		},
 		"/auth.Auth/ChangeUserRole": {
 			RequireJWT:   true,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   false,
 		},
 		"/auth.Auth/GetUserRole": {
 			RequireJWT:   true,
-			RequireAppID: true,
+			RequireClientID: true,
 			SkipUserID:   false,
 		},
 	}

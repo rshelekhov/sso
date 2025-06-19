@@ -9,7 +9,7 @@ import (
 	"github.com/rshelekhov/jwtauth"
 	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 )
@@ -23,8 +23,8 @@ func TestGetUser_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -46,7 +46,7 @@ func TestGetUser_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 
 	// Create context for the request
@@ -60,12 +60,12 @@ func TestGetUser_HappyPath(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestGetUserByID_HappyPath(t *testing.T) {
@@ -77,7 +77,7 @@ func TestGetUserByID_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
@@ -96,7 +96,7 @@ func TestGetUserByID_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 
 	// Get user's ID
-	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
@@ -115,12 +115,12 @@ func TestGetUserByID_HappyPath(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestGetUser_UserNotFound(t *testing.T) {
@@ -132,8 +132,8 @@ func TestGetUser_UserNotFound(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -155,7 +155,7 @@ func TestGetUser_UserNotFound(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 
 	// Create context for the request
@@ -181,7 +181,7 @@ func TestGetUserByID_UserNotFound(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
@@ -200,7 +200,7 @@ func TestGetUserByID_UserNotFound(t *testing.T) {
 	accessToken := token.GetAccessToken()
 
 	// Get user's ID
-	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 

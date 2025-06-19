@@ -63,7 +63,7 @@ For testing the functionality of the application, both unit tests for individual
 
 End-to-end tests are conducted using the black-box method. During the test run, a client is created that connects to the gRPC service and sends real requests to it.
 
-If you use S3 for key storage you need to copy `app_test-app-id_private.pem` from the `certs` folder and upload to your S3 bucket.
+If you use S3 for key storage you need to copy `app_test-client-id_private.pem` from the `certs` folder and upload to your S3 bucket.
 
 Run tests — `make test-all-app` or `make test-api`. You'll run database migrations (or check if you did it before), insert test-app into database, run the server and then run tests.
 
@@ -97,7 +97,7 @@ docker run -d \
   grpc-sso:latest
 ```
 
-Then you need to register your app. It’s easier to do this now through a manual query to add a record in PostgreSQL. Additionally, there is a small CLI utility in the project for registering applications (see cmd/register_app). Since this is a pet project, a web interface for managing your instance has not been implemented yet.
+Then you need to register your client app. It’s easier to do this now through a manual query to add a record in PostgreSQL. Additionally, there is a small CLI utility in the project for registering clients (see cmd/register_client). Since this is a pet project, a web interface for managing your instance has not been implemented yet.
 
 You can also check the settings for GitHub Actions in the `.github/workflows` folder to see how the application is deployed on dev server.
 

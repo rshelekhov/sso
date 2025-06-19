@@ -111,9 +111,9 @@ func (_c *JWTManager_Issuer_Call) RunAndReturn(run func() string) *JWTManager_Is
 	return _c
 }
 
-// Kid provides a mock function with given fields: appID
-func (_m *JWTManager) Kid(appID string) (string, error) {
-	ret := _m.Called(appID)
+// Kid provides a mock function with given fields: clientID
+func (_m *JWTManager) Kid(clientID string) (string, error) {
+	ret := _m.Called(clientID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Kid")
@@ -122,16 +122,16 @@ func (_m *JWTManager) Kid(appID string) (string, error) {
 	var r0 string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(string) (string, error)); ok {
-		return rf(appID)
+		return rf(clientID)
 	}
 	if rf, ok := ret.Get(0).(func(string) string); ok {
-		r0 = rf(appID)
+		r0 = rf(clientID)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(appID)
+		r1 = rf(clientID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -145,12 +145,12 @@ type JWTManager_Kid_Call struct {
 }
 
 // Kid is a helper method to define mock.On call
-//   - appID string
-func (_e *JWTManager_Expecter) Kid(appID interface{}) *JWTManager_Kid_Call {
-	return &JWTManager_Kid_Call{Call: _e.mock.On("Kid", appID)}
+//   - clientID string
+func (_e *JWTManager_Expecter) Kid(clientID interface{}) *JWTManager_Kid_Call {
+	return &JWTManager_Kid_Call{Call: _e.mock.On("Kid", clientID)}
 }
 
-func (_c *JWTManager_Kid_Call) Run(run func(appID string)) *JWTManager_Kid_Call {
+func (_c *JWTManager_Kid_Call) Run(run func(clientID string)) *JWTManager_Kid_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(string))
 	})
@@ -167,9 +167,9 @@ func (_c *JWTManager_Kid_Call) RunAndReturn(run func(string) (string, error)) *J
 	return _c
 }
 
-// NewAccessToken provides a mock function with given fields: appID, kid, additionalClaims
-func (_m *JWTManager) NewAccessToken(appID string, kid string, additionalClaims map[string]interface{}) (string, error) {
-	ret := _m.Called(appID, kid, additionalClaims)
+// NewAccessToken provides a mock function with given fields: clientID, kid, additionalClaims
+func (_m *JWTManager) NewAccessToken(clientID string, kid string, additionalClaims map[string]interface{}) (string, error) {
+	ret := _m.Called(clientID, kid, additionalClaims)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NewAccessToken")
@@ -178,16 +178,16 @@ func (_m *JWTManager) NewAccessToken(appID string, kid string, additionalClaims 
 	var r0 string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(string, string, map[string]interface{}) (string, error)); ok {
-		return rf(appID, kid, additionalClaims)
+		return rf(clientID, kid, additionalClaims)
 	}
 	if rf, ok := ret.Get(0).(func(string, string, map[string]interface{}) string); ok {
-		r0 = rf(appID, kid, additionalClaims)
+		r0 = rf(clientID, kid, additionalClaims)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(string, string, map[string]interface{}) error); ok {
-		r1 = rf(appID, kid, additionalClaims)
+		r1 = rf(clientID, kid, additionalClaims)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -201,14 +201,14 @@ type JWTManager_NewAccessToken_Call struct {
 }
 
 // NewAccessToken is a helper method to define mock.On call
-//   - appID string
+//   - clientID string
 //   - kid string
 //   - additionalClaims map[string]interface{}
-func (_e *JWTManager_Expecter) NewAccessToken(appID interface{}, kid interface{}, additionalClaims interface{}) *JWTManager_NewAccessToken_Call {
-	return &JWTManager_NewAccessToken_Call{Call: _e.mock.On("NewAccessToken", appID, kid, additionalClaims)}
+func (_e *JWTManager_Expecter) NewAccessToken(clientID interface{}, kid interface{}, additionalClaims interface{}) *JWTManager_NewAccessToken_Call {
+	return &JWTManager_NewAccessToken_Call{Call: _e.mock.On("NewAccessToken", clientID, kid, additionalClaims)}
 }
 
-func (_c *JWTManager_NewAccessToken_Call) Run(run func(appID string, kid string, additionalClaims map[string]interface{})) *JWTManager_NewAccessToken_Call {
+func (_c *JWTManager_NewAccessToken_Call) Run(run func(clientID string, kid string, additionalClaims map[string]interface{})) *JWTManager_NewAccessToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(string), args[1].(string), args[2].(map[string]interface{}))
 	})

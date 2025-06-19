@@ -14,7 +14,7 @@ import (
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
@@ -29,8 +29,8 @@ func TestLogin_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -104,7 +104,7 @@ func TestLogin_HappyPath(t *testing.T) {
 	require.True(t, ok)
 
 	assert.Equal(t, cfg.Issuer, claims[domain.IssuerKey].(string))
-	assert.Equal(t, cfg.AppID, claims[domain.AppIDKey].(string))
+	assert.Equal(t, cfg.ClientID, claims[domain.ClientIDKey].(string))
 
 	const deltaSeconds = 1
 
@@ -113,12 +113,12 @@ func TestLogin_HappyPath(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func getJWKByKid(jwks []*ssov1.JWK, kid string) (*ssov1.JWK, error) {
@@ -139,8 +139,8 @@ func TestLogin_FailCases(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -162,7 +162,7 @@ func TestLogin_FailCases(t *testing.T) {
 		name        string
 		email       string
 		password    string
-		appID       string
+		clientID    string
 		userAgent   string
 		ip          string
 		expectedErr error
@@ -171,7 +171,7 @@ func TestLogin_FailCases(t *testing.T) {
 			name:        "Login with empty email",
 			email:       emptyValue,
 			password:    pass,
-			appID:       cfg.AppID,
+			clientID:    cfg.ClientID,
 			userAgent:   userAgent,
 			ip:          ip,
 			expectedErr: grpc.ErrEmailIsRequired,
@@ -180,7 +180,7 @@ func TestLogin_FailCases(t *testing.T) {
 			name:        "Login with empty password",
 			email:       email,
 			password:    emptyValue,
-			appID:       cfg.AppID,
+			clientID:    cfg.ClientID,
 			userAgent:   userAgent,
 			ip:          ip,
 			expectedErr: grpc.ErrPasswordIsRequired,
@@ -189,7 +189,7 @@ func TestLogin_FailCases(t *testing.T) {
 			name:        "Login with empty userAgent",
 			email:       email,
 			password:    pass,
-			appID:       cfg.AppID,
+			clientID:    cfg.ClientID,
 			userAgent:   emptyValue,
 			ip:          ip,
 			expectedErr: grpc.ErrUserAgentIsRequired,
@@ -198,7 +198,7 @@ func TestLogin_FailCases(t *testing.T) {
 			name:        "Login with empty IP",
 			email:       email,
 			password:    pass,
-			appID:       cfg.AppID,
+			clientID:    cfg.ClientID,
 			userAgent:   userAgent,
 			ip:          emptyValue,
 			expectedErr: grpc.ErrIPIsRequired,
@@ -207,7 +207,7 @@ func TestLogin_FailCases(t *testing.T) {
 			name:        "Login with both empty email and password",
 			email:       emptyValue,
 			password:    emptyValue,
-			appID:       cfg.AppID,
+			clientID:    cfg.ClientID,
 			userAgent:   userAgent,
 			ip:          ip,
 			expectedErr: grpc.ErrEmailIsRequired,
@@ -216,7 +216,7 @@ func TestLogin_FailCases(t *testing.T) {
 			name:        "User not found",
 			email:       gofakeit.Email(),
 			password:    pass,
-			appID:       cfg.AppID,
+			clientID:    cfg.ClientID,
 			userAgent:   userAgent,
 			ip:          ip,
 			expectedErr: domain.ErrUserNotFound,
@@ -225,7 +225,7 @@ func TestLogin_FailCases(t *testing.T) {
 			name:        "Login with non-matching password",
 			email:       email,
 			password:    randomFakePassword(),
-			appID:       cfg.AppID,
+			clientID:    cfg.ClientID,
 			userAgent:   userAgent,
 			ip:          ip,
 			expectedErr: domain.ErrInvalidCredentials,
@@ -250,10 +250,10 @@ func TestLogin_FailCases(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }

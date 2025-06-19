@@ -30,15 +30,15 @@ func (c *gRPCController) Login(ctx context.Context, req *ssov1.LoginRequest) (*s
 		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
 	}
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
 	userData := fromLoginRequest(req)
 
-	tokenData, err := c.authUsecase.Login(ctx, appID, userData)
+	tokenData, err := c.authUsecase.Login(ctx, clientID, userData)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToLoginUser, err)
 		return nil, mapErrorToGRPCStatus(err)
@@ -65,16 +65,16 @@ func (c *gRPCController) RegisterUser(ctx context.Context, req *ssov1.RegisterUs
 		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
 	}
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
 	userData := fromRegisterUserRequest(req)
 	endpoint := req.GetVerificationUrl()
 
-	tokenData, err := c.authUsecase.RegisterUser(ctx, appID, userData, endpoint)
+	tokenData, err := c.authUsecase.RegisterUser(ctx, clientID, userData, endpoint)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToRegisterUser, err)
 		return nil, mapErrorToGRPCStatus(err)
@@ -134,16 +134,16 @@ func (c *gRPCController) ResetPassword(ctx context.Context, req *ssov1.ResetPass
 		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
 	}
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
 	reqData := fromResetPasswordRequest(req)
 	endpoint := req.GetConfirmUrl()
 
-	err = c.authUsecase.ResetPassword(ctx, appID, reqData, endpoint)
+	err = c.authUsecase.ResetPassword(ctx, clientID, reqData, endpoint)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToResetPassword, err)
 		return nil, mapErrorToGRPCStatus(err)
@@ -170,15 +170,15 @@ func (c *gRPCController) ChangePassword(ctx context.Context, req *ssov1.ChangePa
 		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
 	}
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
 	reqData := fromChangePasswordRequest(req)
 
-	res, err := c.authUsecase.ChangePassword(ctx, appID, reqData)
+	res, err := c.authUsecase.ChangePassword(ctx, clientID, reqData)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToChangePassword, err)
 		return nil, mapErrorToGRPCStatus(err)
@@ -209,15 +209,15 @@ func (c *gRPCController) Logout(ctx context.Context, req *ssov1.LogoutRequest) (
 		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
 	}
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
 	reqData := fromLogoutRequest(req)
 
-	err = c.authUsecase.LogoutUser(ctx, appID, reqData)
+	err = c.authUsecase.LogoutUser(ctx, clientID, reqData)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToLogoutUser, err)
 		return nil, mapErrorToGRPCStatus(err)
@@ -244,15 +244,15 @@ func (c *gRPCController) Refresh(ctx context.Context, req *ssov1.RefreshRequest)
 		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
 	}
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
 	reqData := fromRefreshRequest(req)
 
-	tokenData, err := c.authUsecase.RefreshTokens(ctx, appID, reqData)
+	tokenData, err := c.authUsecase.RefreshTokens(ctx, clientID, reqData)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToRefreshTokens, err)
 		return nil, mapErrorToGRPCStatus(err)
@@ -273,13 +273,13 @@ func (c *gRPCController) GetJWKS(ctx context.Context, req *ssov1.GetJWKSRequest)
 
 	log = log.With(slog.String("requestID", reqID))
 
-	appID, err := c.getAndValidateAppID(ctx)
+	clientID, err := c.getAndValidateClientID(ctx)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateAppID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateAppID, err))
+		e.LogError(ctx, log, controller.ErrFailedToGetAndValidateClientID, err)
+		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetAndValidateClientID, err))
 	}
 
-	jwks, err := c.authUsecase.GetJWKS(ctx, appID)
+	jwks, err := c.authUsecase.GetJWKS(ctx, clientID)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToGetJWKS, err)
 		return nil, mapErrorToGRPCStatus(err)

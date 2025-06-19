@@ -3,14 +3,14 @@ package controller
 import "errors"
 
 var (
-	ErrValidationError             = errors.New("validation error")
-	ErrRequestIDNotFoundInContext  = errors.New("request ID not found in context")
-	ErrAppIDNotFoundInContext      = errors.New("app ID not found in context")
-	ErrFailedToGetRequestID        = errors.New("failed to get requestID")
-	ErrFailedToGetAppID            = errors.New("failed to get appID")
-	ErrFailedToValidateAppID       = errors.New("failed to validate appID")
-	ErrFailedToGetAndValidateAppID = errors.New("failed to get and validate appID")
-	ErrAppNotFound                 = errors.New("app not found")
+	ErrValidationError                = errors.New("validation error")
+	ErrRequestIDNotFoundInContext     = errors.New("request ID not found in context")
+	ErrClientIDNotFoundInContext      = errors.New("client ID not found in context")
+	ErrFailedToGetRequestID           = errors.New("failed to get requestID")
+	ErrFailedToGetClientID            = errors.New("failed to get clientID")
+	ErrFailedToValidateClientID       = errors.New("failed to validate clientID")
+	ErrFailedToGetAndValidateClientID = errors.New("failed to get and validate clientID")
+	ErrClientNotFound                 = errors.New("client not found")
 
 	ErrFailedToLoginUser      = errors.New("failed to login user")
 	ErrFailedToRegisterUser   = errors.New("failed to register user")

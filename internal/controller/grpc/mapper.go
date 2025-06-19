@@ -179,7 +179,7 @@ var errorToStatus = map[error]codes.Code{
 	domain.ErrNoEmailChangesDetected:      codes.InvalidArgument,
 	domain.ErrNoPasswordChangesDetected:   codes.InvalidArgument,
 	domain.ErrTokenExpiredWithEmailResent: codes.FailedPrecondition,
-	domain.ErrAppAlreadyExists:            codes.AlreadyExists,
+	domain.ErrClientIDIsNotAllowed:        codes.InvalidArgument,
 }
 
 func mapErrorToGRPCStatus(err error) error {

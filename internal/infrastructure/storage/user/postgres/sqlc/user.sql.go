@@ -16,81 +16,81 @@ const deleteUser = `-- name: DeleteUser :exec
 UPDATE users
 SET deleted_at = $1
 WHERE id = $2
-  AND app_id = $3
+  AND client_id = $3
   AND deleted_at IS NULL
 `
 
 type DeleteUserParams struct {
 	DeletedAt pgtype.Timestamptz `db:"deleted_at"`
 	ID        string             `db:"id"`
-	AppID     string             `db:"app_id"`
+	ClientID  string             `db:"client_id"`
 }
 
 func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
-	_, err := q.db.Exec(ctx, deleteUser, arg.DeletedAt, arg.ID, arg.AppID)
+	_, err := q.db.Exec(ctx, deleteUser, arg.DeletedAt, arg.ID, arg.ClientID)
 	return err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, app_id, updated_at
+SELECT id, email, client_id, updated_at
 FROM users
 WHERE email = $1
-  AND app_id = $2
+  AND client_id = $2
   AND deleted_at IS NULL
 `
 
 type GetUserByEmailParams struct {
-	Email string `db:"email"`
-	AppID string `db:"app_id"`
+	Email    string `db:"email"`
+	ClientID string `db:"client_id"`
 }
 
 type GetUserByEmailRow struct {
 	ID        string    `db:"id"`
 	Email     string    `db:"email"`
-	AppID     string    `db:"app_id"`
+	ClientID  string    `db:"client_id"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, arg.Email, arg.AppID)
+	row := q.db.QueryRow(ctx, getUserByEmail, arg.Email, arg.ClientID)
 	var i GetUserByEmailRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
-		&i.AppID,
+		&i.ClientID,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, app_id, verified, updated_at
+SELECT id, email, client_id, verified, updated_at
 FROM users
 WHERE id = $1
-  AND app_id = $2
+  AND client_id = $2
   AND deleted_at IS NULL
 `
 
 type GetUserByIDParams struct {
-	ID    string `db:"id"`
-	AppID string `db:"app_id"`
+	ID       string `db:"id"`
+	ClientID string `db:"client_id"`
 }
 
 type GetUserByIDRow struct {
 	ID        string      `db:"id"`
 	Email     string      `db:"email"`
-	AppID     string      `db:"app_id"`
+	ClientID  string      `db:"client_id"`
 	Verified  pgtype.Bool `db:"verified"`
 	UpdatedAt time.Time   `db:"updated_at"`
 }
 
 func (q *Queries) GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUserByIDRow, error) {
-	row := q.db.QueryRow(ctx, getUserByID, arg.ID, arg.AppID)
+	row := q.db.QueryRow(ctx, getUserByID, arg.ID, arg.ClientID)
 	var i GetUserByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
-		&i.AppID,
+		&i.ClientID,
 		&i.Verified,
 		&i.UpdatedAt,
 	)
@@ -98,34 +98,34 @@ func (q *Queries) GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUs
 }
 
 const getUserData = `-- name: GetUserData :one
-SELECT id, email, password_hash, app_id, updated_at
+SELECT id, email, password_hash, client_id, updated_at
 FROM users
 WHERE id = $1
-  AND app_id = $2
+  AND client_id = $2
   AND deleted_at IS NULL
 `
 
 type GetUserDataParams struct {
-	ID    string `db:"id"`
-	AppID string `db:"app_id"`
+	ID       string `db:"id"`
+	ClientID string `db:"client_id"`
 }
 
 type GetUserDataRow struct {
 	ID           string    `db:"id"`
 	Email        string    `db:"email"`
 	PasswordHash string    `db:"password_hash"`
-	AppID        string    `db:"app_id"`
+	ClientID     string    `db:"client_id"`
 	UpdatedAt    time.Time `db:"updated_at"`
 }
 
 func (q *Queries) GetUserData(ctx context.Context, arg GetUserDataParams) (GetUserDataRow, error) {
-	row := q.db.QueryRow(ctx, getUserData, arg.ID, arg.AppID)
+	row := q.db.QueryRow(ctx, getUserData, arg.ID, arg.ClientID)
 	var i GetUserDataRow
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.PasswordHash,
-		&i.AppID,
+		&i.ClientID,
 		&i.UpdatedAt,
 	)
 	return i, err
@@ -137,26 +137,26 @@ SELECT CASE
                SELECT 1
                FROM users
                WHERE users.email = $1
-                 AND users.app_id = $2
+                 AND users.client_id = $2
                  AND deleted_at IS NULL
            ) THEN 'active'
            WHEN EXISTS(
                SELECT 1
                FROM users
                WHERE users.email = $1
-                 AND users.app_id = $2
+                 AND users.client_id = $2
                  AND deleted_at IS NOT NULL
            ) THEN 'soft_deleted'
            ELSE 'not_found' END AS status
 `
 
 type GetUserStatusByEmailParams struct {
-	Email string `db:"email"`
-	AppID string `db:"app_id"`
+	Email    string `db:"email"`
+	ClientID string `db:"client_id"`
 }
 
 func (q *Queries) GetUserStatusByEmail(ctx context.Context, arg GetUserStatusByEmailParams) (string, error) {
-	row := q.db.QueryRow(ctx, getUserStatusByEmail, arg.Email, arg.AppID)
+	row := q.db.QueryRow(ctx, getUserStatusByEmail, arg.Email, arg.ClientID)
 	var status string
 	err := row.Scan(&status)
 	return status, err
@@ -168,26 +168,26 @@ SELECT CASE
                SELECT 1
                FROM users
                WHERE users.id = $1
-                 AND users.app_id = $2
+                 AND users.client_id = $2
                  AND deleted_at IS NULL
            ) THEN 'active'
            WHEN EXISTS(
                SELECT 1
                FROM users
                WHERE users.id = $1
-                 AND users.app_id = $2
+                 AND users.client_id = $2
                  AND deleted_at IS NOT NULL
            ) THEN 'soft_deleted'
            ELSE 'not_found' END AS status
 `
 
 type GetUserStatusByIDParams struct {
-	ID    string `db:"id"`
-	AppID string `db:"app_id"`
+	ID       string `db:"id"`
+	ClientID string `db:"client_id"`
 }
 
 func (q *Queries) GetUserStatusByID(ctx context.Context, arg GetUserStatusByIDParams) (string, error) {
-	row := q.db.QueryRow(ctx, getUserStatusByID, arg.ID, arg.AppID)
+	row := q.db.QueryRow(ctx, getUserStatusByID, arg.ID, arg.ClientID)
 	var status string
 	err := row.Scan(&status)
 	return status, err

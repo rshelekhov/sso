@@ -37,7 +37,7 @@ const (
 type VerificationToken struct {
 	Token     string
 	UserID    string
-	AppID     string
+	ClientID  string
 	Endpoint  string
 	Email     string
 	Type      VerificationTokenType
@@ -56,7 +56,7 @@ func NewVerificationToken(
 	return VerificationToken{
 		Token:     token,
 		UserID:    user.ID,
-		AppID:     user.AppID,
+		ClientID:  user.ClientID,
 		Endpoint:  endpoint,
 		Email:     user.Email,
 		Type:      tokenType,

@@ -22,9 +22,9 @@ func (_m *DeviceStorage) EXPECT() *DeviceStorage_Expecter {
 	return &DeviceStorage_Expecter{mock: &_m.Mock}
 }
 
-// DeleteAllUserDevices provides a mock function with given fields: ctx, userID, appID
-func (_m *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID string, appID string) error {
-	ret := _m.Called(ctx, userID, appID)
+// DeleteAllUserDevices provides a mock function with given fields: ctx, userID, clientID
+func (_m *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID string, clientID string) error {
+	ret := _m.Called(ctx, userID, clientID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteAllUserDevices")
@@ -32,7 +32,7 @@ func (_m *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID string
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, userID, appID)
+		r0 = rf(ctx, userID, clientID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -48,12 +48,12 @@ type DeviceStorage_DeleteAllUserDevices_Call struct {
 // DeleteAllUserDevices is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID string
-//   - appID string
-func (_e *DeviceStorage_Expecter) DeleteAllUserDevices(ctx interface{}, userID interface{}, appID interface{}) *DeviceStorage_DeleteAllUserDevices_Call {
-	return &DeviceStorage_DeleteAllUserDevices_Call{Call: _e.mock.On("DeleteAllUserDevices", ctx, userID, appID)}
+//   - clientID string
+func (_e *DeviceStorage_Expecter) DeleteAllUserDevices(ctx interface{}, userID interface{}, clientID interface{}) *DeviceStorage_DeleteAllUserDevices_Call {
+	return &DeviceStorage_DeleteAllUserDevices_Call{Call: _e.mock.On("DeleteAllUserDevices", ctx, userID, clientID)}
 }
 
-func (_c *DeviceStorage_DeleteAllUserDevices_Call) Run(run func(ctx context.Context, userID string, appID string)) *DeviceStorage_DeleteAllUserDevices_Call {
+func (_c *DeviceStorage_DeleteAllUserDevices_Call) Run(run func(ctx context.Context, userID string, clientID string)) *DeviceStorage_DeleteAllUserDevices_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
@@ -70,9 +70,9 @@ func (_c *DeviceStorage_DeleteAllUserDevices_Call) RunAndReturn(run func(context
 	return _c
 }
 
-// GetUserDeviceID provides a mock function with given fields: ctx, userID, appID, userAgent
-func (_m *DeviceStorage) GetUserDeviceID(ctx context.Context, userID string, appID string, userAgent string) (string, error) {
-	ret := _m.Called(ctx, userID, appID, userAgent)
+// GetUserDeviceID provides a mock function with given fields: ctx, userID, clientID, userAgent
+func (_m *DeviceStorage) GetUserDeviceID(ctx context.Context, userID string, clientID string, userAgent string) (string, error) {
+	ret := _m.Called(ctx, userID, clientID, userAgent)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetUserDeviceID")
@@ -81,16 +81,16 @@ func (_m *DeviceStorage) GetUserDeviceID(ctx context.Context, userID string, app
 	var r0 string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) (string, error)); ok {
-		return rf(ctx, userID, appID, userAgent)
+		return rf(ctx, userID, clientID, userAgent)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) string); ok {
-		r0 = rf(ctx, userID, appID, userAgent)
+		r0 = rf(ctx, userID, clientID, userAgent)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
-		r1 = rf(ctx, userID, appID, userAgent)
+		r1 = rf(ctx, userID, clientID, userAgent)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -106,13 +106,13 @@ type DeviceStorage_GetUserDeviceID_Call struct {
 // GetUserDeviceID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID string
-//   - appID string
+//   - clientID string
 //   - userAgent string
-func (_e *DeviceStorage_Expecter) GetUserDeviceID(ctx interface{}, userID interface{}, appID interface{}, userAgent interface{}) *DeviceStorage_GetUserDeviceID_Call {
-	return &DeviceStorage_GetUserDeviceID_Call{Call: _e.mock.On("GetUserDeviceID", ctx, userID, appID, userAgent)}
+func (_e *DeviceStorage_Expecter) GetUserDeviceID(ctx interface{}, userID interface{}, clientID interface{}, userAgent interface{}) *DeviceStorage_GetUserDeviceID_Call {
+	return &DeviceStorage_GetUserDeviceID_Call{Call: _e.mock.On("GetUserDeviceID", ctx, userID, clientID, userAgent)}
 }
 
-func (_c *DeviceStorage_GetUserDeviceID_Call) Run(run func(ctx context.Context, userID string, appID string, userAgent string)) *DeviceStorage_GetUserDeviceID_Call {
+func (_c *DeviceStorage_GetUserDeviceID_Call) Run(run func(ctx context.Context, userID string, clientID string, userAgent string)) *DeviceStorage_GetUserDeviceID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
 	})

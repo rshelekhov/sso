@@ -10,7 +10,7 @@ type (
 	Session struct {
 		ID            string
 		UserID        string
-		AppID         string
+		ClientID      string
 		DeviceID      string
 		RefreshToken  string
 		LastVisitedAt time.Time
@@ -19,7 +19,7 @@ type (
 
 	SessionRequestData struct {
 		UserID     string
-		AppID      string
+		ClientID   string
 		DeviceID   string
 		UserDevice UserDeviceRequestData
 	}
@@ -34,7 +34,7 @@ func NewSession(
 	return Session{
 		ID:            ksuid.New().String(),
 		UserID:        reqData.UserID,
-		AppID:         reqData.AppID,
+		ClientID:      reqData.ClientID,
 		DeviceID:      reqData.DeviceID,
 		RefreshToken:  refreshToken,
 		LastVisitedAt: currentTime,

@@ -25,11 +25,11 @@ func TestGenerateAndSavePrivateKey(t *testing.T) {
 
 	tokenService := NewService(cfg, mockKeyStorage)
 
-	mockKeyStorage.EXPECT().SavePrivateKey(appID, mock.Anything).
+	mockKeyStorage.EXPECT().SavePrivateKey(clientID, mock.Anything).
 		Once().
 		Return(nil)
 
-	err := tokenService.GenerateAndSavePrivateKey(appID)
+	err := tokenService.GenerateAndSavePrivateKey(clientID)
 	require.NoError(t, err)
 }
 
@@ -37,11 +37,11 @@ func TestPublicKey(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
 		mockKeyStorage, tokenService, privateKey, privateKeyPEM := setup(t)
 
-		mockKeyStorage.EXPECT().GetPrivateKey(appID).
+		mockKeyStorage.EXPECT().GetPrivateKey(clientID).
 			Once().
 			Return(privateKeyPEM, nil)
 
-		publicKey, err := tokenService.PublicKey(appID)
+		publicKey, err := tokenService.PublicKey(clientID)
 		require.NoError(t, err)
 		require.IsType(t, &rsa.PublicKey{}, publicKey)
 		require.Equal(t, &privateKey.PublicKey, publicKey.(*rsa.PublicKey))
@@ -69,9 +69,9 @@ func TestPublicKey(t *testing.T) {
 			Bytes: privateKeyBytes,
 		})
 
-		mockKeyStorage.EXPECT().GetPrivateKey(appID).Return(privateKeyPEM, nil)
+		mockKeyStorage.EXPECT().GetPrivateKey(clientID).Return(privateKeyPEM, nil)
 
-		_, err = tokenService.PublicKey(appID)
+		_, err = tokenService.PublicKey(clientID)
 		require.NotEmpty(t, err)
 	})
 }

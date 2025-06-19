@@ -8,18 +8,18 @@ import (
 	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/settings"
-	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
+	"github.com/rshelekhov/sso/internal/domain/service/clientvalidator"
 	"github.com/rshelekhov/sso/internal/domain/service/session"
 	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/domain/service/userdata"
 	"github.com/rshelekhov/sso/internal/domain/service/verification"
-	"github.com/rshelekhov/sso/internal/domain/usecase/app"
 	"github.com/rshelekhov/sso/internal/domain/usecase/auth"
+	"github.com/rshelekhov/sso/internal/domain/usecase/client"
 	"github.com/rshelekhov/sso/internal/domain/usecase/user"
 	"github.com/rshelekhov/sso/internal/infrastructure/service/mail"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
-	appDB "github.com/rshelekhov/sso/internal/infrastructure/storage/app"
 	authDB "github.com/rshelekhov/sso/internal/infrastructure/storage/auth"
+	clientDB "github.com/rshelekhov/sso/internal/infrastructure/storage/client"
 	deviceDB "github.com/rshelekhov/sso/internal/infrastructure/storage/device"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
 	sessionDB "github.com/rshelekhov/sso/internal/infrastructure/storage/session"
@@ -45,7 +45,7 @@ type Storages struct {
 	dbConn       *storage.DBConnection
 	redisConn    *storage.RedisConnection
 	trMgr        transaction.Manager
-	app          appDB.Storage
+	client       clientDB.Storage
 	auth         auth.Storage
 	session      session.SessionStorage
 	device       session.DeviceStorage
@@ -59,18 +59,18 @@ type Managers struct {
 }
 
 type Services struct {
-	appValidator *appvalidator.AppValidator
-	token        *token.Service
-	session      *session.Session
-	user         *userdata.UserData
-	verification *verification.Service
-	mail         *mail.Service
+	clientValidator *clientvalidator.ClientValidator
+	token           *token.Service
+	session         *session.Session
+	user            *userdata.UserData
+	verification    *verification.Service
+	mail            *mail.Service
 }
 
 type Usecases struct {
-	app  *app.App
-	auth *auth.Auth
-	user *user.User
+	client *client.Client
+	auth   *auth.Auth
+	user   *user.User
 }
 
 type Configs struct {
@@ -105,9 +105,9 @@ func (b *Builder) BuildStorages() error {
 		return fmt.Errorf("failed to init transaction manager: %w", err)
 	}
 
-	b.storages.app, err = appDB.NewStorage(b.storages.dbConn)
+	b.storages.client, err = clientDB.NewStorage(b.storages.dbConn)
 	if err != nil {
-		return fmt.Errorf("failed to init app storage: %w", err)
+		return fmt.Errorf("failed to init client storage: %w", err)
 	}
 
 	b.storages.auth, err = authDB.NewStorage(b.storages.dbConn, b.storages.trMgr)
@@ -147,7 +147,7 @@ func (b *Builder) BuildServices() error {
 	b.services = &Services{}
 	var err error
 
-	b.services.appValidator = appvalidator.NewService(b.storages.app)
+	b.services.clientValidator = clientvalidator.NewService(b.storages.client)
 
 	b.services.token, err = newTokenService(b.cfg.JWT, b.cfg.PasswordHash, b.storages.key)
 	if err != nil {
@@ -169,10 +169,10 @@ func (b *Builder) BuildServices() error {
 func (b *Builder) BuildUsecases() {
 	b.usecases = &Usecases{}
 
-	b.usecases.app = app.NewUsecase(
+	b.usecases.client = client.NewUsecase(
 		b.logger,
 		b.services.token,
-		b.storages.app,
+		b.storages.client,
 	)
 
 	b.usecases.auth = auth.NewUsecase(
@@ -188,7 +188,7 @@ func (b *Builder) BuildUsecases() {
 
 	b.usecases.user = user.NewUsecase(
 		b.logger,
-		b.services.appValidator,
+		b.services.clientValidator,
 		b.services.session,
 		b.services.user,
 		b.services.token,
@@ -206,8 +206,8 @@ func (b *Builder) BuildGRPCServer() error {
 		b.cfg.GRPCServer.Port,
 		b.logger,
 		b.managers.jwt,
-		b.services.appValidator,
-		b.usecases.app,
+		b.services.clientValidator,
+		b.usecases.client,
 		b.usecases.auth,
 		b.usecases.user,
 		b.storages.redisConn.Client,

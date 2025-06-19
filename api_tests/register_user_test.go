@@ -15,7 +15,7 @@ import (
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
@@ -30,8 +30,8 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -93,7 +93,7 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	require.True(t, ok)
 
 	assert.Equal(t, cfg.Issuer, claims[domain.IssuerKey].(string))
-	assert.Equal(t, cfg.AppID, claims[domain.AppIDKey].(string))
+	assert.Equal(t, cfg.ClientID, claims[domain.ClientIDKey].(string))
 
 	const deltaSeconds = 1
 
@@ -102,12 +102,12 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
@@ -119,8 +119,8 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -154,12 +154,12 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestRegisterUser_FailCases(t *testing.T) {
@@ -175,7 +175,7 @@ func TestRegisterUser_FailCases(t *testing.T) {
 		name        string
 		email       string
 		password    string
-		appID       string
+		clientID    string
 		userAgent   string
 		ip          string
 		expectedErr error
@@ -184,7 +184,7 @@ func TestRegisterUser_FailCases(t *testing.T) {
 			name:        "Register with empty email",
 			email:       emptyValue,
 			password:    pass,
-			appID:       cfg.AppID,
+			clientID:    cfg.ClientID,
 			userAgent:   userAgent,
 			ip:          ip,
 			expectedErr: grpc.ErrEmailIsRequired,
@@ -193,7 +193,7 @@ func TestRegisterUser_FailCases(t *testing.T) {
 			name:        "Register with empty password",
 			email:       email,
 			password:    emptyValue,
-			appID:       cfg.AppID,
+			clientID:    cfg.ClientID,
 			userAgent:   userAgent,
 			ip:          ip,
 			expectedErr: grpc.ErrPasswordIsRequired,
@@ -202,7 +202,7 @@ func TestRegisterUser_FailCases(t *testing.T) {
 			name:        "Register with empty userAgent",
 			email:       email,
 			password:    pass,
-			appID:       cfg.AppID,
+			clientID:    cfg.ClientID,
 			userAgent:   emptyValue,
 			ip:          ip,
 			expectedErr: grpc.ErrUserAgentIsRequired,
@@ -211,7 +211,7 @@ func TestRegisterUser_FailCases(t *testing.T) {
 			name:        "Register with empty ip",
 			email:       email,
 			password:    pass,
-			appID:       cfg.AppID,
+			clientID:    cfg.ClientID,
 			userAgent:   userAgent,
 			ip:          emptyValue,
 			expectedErr: grpc.ErrIPIsRequired,
@@ -220,8 +220,8 @@ func TestRegisterUser_FailCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Add appID to gRPC metadata
-			md := metadata.Pairs(appid.Header, cfg.AppID)
+			// Add clientID to gRPC metadata
+			md := metadata.Pairs(clientid.Header, cfg.ClientID)
 			ctx = metadata.NewOutgoingContext(ctx, md)
 
 			// Register user
@@ -249,8 +249,8 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register first user
@@ -284,12 +284,12 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 // Test register new user using email with soft deleted user
@@ -302,8 +302,8 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register first user
@@ -326,7 +326,7 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	require.NotEmpty(t, accessToken)
 
 	// Create context for Delete User request
-	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
@@ -351,10 +351,10 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }

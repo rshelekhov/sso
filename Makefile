@@ -47,7 +47,7 @@ migrate-postgres:
 	fi
 
 	@echo "Checking if migrations are needed..."
-		@if psql $(POSTGRESQL_URL) -c "SELECT 1 FROM pg_tables WHERE tablename = 'apps';" | grep -q 1; then \
+		@if psql $(POSTGRESQL_URL) -c "SELECT 1 FROM pg_tables WHERE tablename = 'clients';" | grep -q 1; then \
 			echo "Migrations are not needed."; \
 		else \
 			echo "Running migrations..."; \
@@ -64,20 +64,20 @@ migrate-postgres-down:
 # Insert test data in postgres only if not already inserted
 db-postgres-insert:
 	@echo "Checking if test data needs to be inserted..."
-		@if psql $(POSTGRESQL_URL) -c "SELECT 1 FROM apps WHERE id = 'test-app-id';" | grep -q 1; then \
+		@if psql $(POSTGRESQL_URL) -c "SELECT 1 FROM clients WHERE id = 'test-client-id';" | grep -q 1; then \
     		echo "Test data already inserted. No need to insert."; \
     	else \
     		echo "Inserting test data into the database..."; \
-    		psql $(POSTGRESQL_URL) -c "INSERT INTO apps (id, name, secret, status, created_at, updated_at) VALUES ('test-app-id', 'test', 'test-secret', 1, NOW(), NOW()) ON CONFLICT DO NOTHING;"; \
+    		psql $(POSTGRESQL_URL) -c "INSERT INTO clients (id, name, secret, status, created_at, updated_at) VALUES ('test-client-id', 'test', 'test-secret', 1, NOW(), NOW()) ON CONFLICT DO NOTHING;"; \
     		echo "Test data inserted."; \
     	fi
 
 # Insert test data in mongo only if not already inserted
 db-mongo-insert:
 	@echo "Checking if test data needs to be inserted into MongoDB..."
-	@if mongo $(MONGO_URL) --quiet --eval 'db.apps.findOne({_id: "test-app-id"})' | grep -q "null"; then \
+	@if mongo $(MONGO_URL) --quiet --eval 'db.clients.findOne({_id: "test-client-id"})' | grep -q "null"; then \
 		echo "Inserting test data into MongoDB..."; \
-		mongo $(MONGO_URL) --eval 'db.apps.insertOne({_id: "test-app-id", name: "test", secret: "test-secret", status: 1, created_at: new Date(), updated_at: new Date()})'; \
+		mongo $(MONGO_URL) --eval 'db.clients.insertOne({_id: "test-client-id", name: "test", secret: "test-secret", status: 1, created_at: new Date(), updated_at: new Date()})'; \
 		echo "Test data inserted."; \
 	else \
 		echo "Test data already exists in MongoDB. No need to insert."; \

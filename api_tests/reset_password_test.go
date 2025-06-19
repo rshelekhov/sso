@@ -10,7 +10,7 @@ import (
 	"github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 )
@@ -24,8 +24,8 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -63,12 +63,12 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	require.NotEmpty(t, token)
 
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestResetPassword_TokenExpired(t *testing.T) {
@@ -80,8 +80,8 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -128,12 +128,12 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	require.NotEmpty(t, token)
 
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestResetPassword_EmptyEmail(t *testing.T) {
@@ -145,8 +145,8 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -173,12 +173,12 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 	require.NotEmpty(t, token)
 
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestResetPassword_FailCasesWithPassword(t *testing.T) {
@@ -190,8 +190,8 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
@@ -250,10 +250,10 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 	require.NotEmpty(t, token)
 
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }

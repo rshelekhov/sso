@@ -26,7 +26,7 @@ import (
 func TestAuthUsecase_Login(t *testing.T) {
 	ctx := context.Background()
 
-	appID := "test-app-id"
+	clientID := "test-client-id"
 	userID := "test-user-id"
 	email := "test@example.com"
 	password := "test-password"
@@ -38,7 +38,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 		ID:           userID,
 		Email:        email,
 		PasswordHash: hashedPassword,
-		AppID:        appID,
+		ClientID:     clientID,
 	}
 
 	validReqData := &entity.UserRequestData{
@@ -76,11 +76,11 @@ func TestAuthUsecase_Login(t *testing.T) {
 				sessionMgr *mocks.SessionManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, email).
 					Once().
 					Return(validUser, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(validUser, nil)
 
@@ -95,7 +95,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 
 				sessionMgr.EXPECT().CreateSession(ctx, mock.MatchedBy(func(data entity.SessionRequestData) bool {
 					return data.UserID == userID &&
-						data.AppID == appID &&
+						data.ClientID == clientID &&
 						data.UserDevice.UserAgent == userAgent &&
 						data.UserDevice.IP == ip
 				})).
@@ -114,7 +114,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 				sessionMgr *mocks.SessionManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, email).
 					Once().
 					Return(entity.User{}, domain.ErrUserNotFound)
 			},
@@ -130,7 +130,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 				sessionMgr *mocks.SessionManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, email).
 					Once().
 					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
@@ -146,11 +146,11 @@ func TestAuthUsecase_Login(t *testing.T) {
 				sessionMgr *mocks.SessionManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, email).
 					Once().
 					Return(validUser, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(validUser, nil)
 
@@ -170,11 +170,11 @@ func TestAuthUsecase_Login(t *testing.T) {
 				sessionMgr *mocks.SessionManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, email).
 					Once().
 					Return(validUser, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
@@ -190,11 +190,11 @@ func TestAuthUsecase_Login(t *testing.T) {
 				sessionMgr *mocks.SessionManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, email).
 					Once().
 					Return(validUser, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(validUser, nil)
 
@@ -214,11 +214,11 @@ func TestAuthUsecase_Login(t *testing.T) {
 				sessionMgr *mocks.SessionManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, email).
 					Once().
 					Return(validUser, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(validUser, nil)
 
@@ -233,7 +233,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 
 				sessionMgr.EXPECT().CreateSession(ctx, mock.MatchedBy(func(data entity.SessionRequestData) bool {
 					return data.UserID == userID &&
-						data.AppID == appID &&
+						data.ClientID == clientID &&
 						data.UserDevice.UserAgent == userAgent &&
 						data.UserDevice.IP == ip
 				})).
@@ -252,11 +252,11 @@ func TestAuthUsecase_Login(t *testing.T) {
 				sessionMgr *mocks.SessionManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, email).
 					Once().
 					Return(validUser, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(validUser, nil)
 
@@ -290,7 +290,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 
 			auth := NewUsecase(log, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, txMgr, db)
 
-			tokens, err := auth.Login(ctx, appID, tt.reqData)
+			tokens, err := auth.Login(ctx, clientID, tt.reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -305,7 +305,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 func TestAuthUsecase_RegisterUser(t *testing.T) {
 	ctx := context.Background()
 
-	appID := "test-app-id"
+	clientID := "test-client-id"
 	email := "test@example.com"
 	password := "password123"
 	hashedPassword := "hashed_password"
@@ -371,13 +371,13 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, email).
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
 				storage.EXPECT().RegisterUser(ctx, mock.MatchedBy(func(user entity.User) bool {
 					return user.Email == email &&
-						user.AppID == appID &&
+						user.ClientID == clientID &&
 						user.PasswordHash == hashedPassword
 				})).
 					Once().
@@ -420,13 +420,13 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, email).
 					Once().
 					Return(entity.UserStatusSoftDeleted.String(), nil)
 
 				storage.EXPECT().ReplaceSoftDeletedUser(ctx, mock.MatchedBy(func(user entity.User) bool {
 					return user.Email == email &&
-						user.AppID == appID &&
+						user.ClientID == clientID &&
 						user.PasswordHash == hashedPassword
 				})).
 					Once().
@@ -469,7 +469,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, email).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 			},
@@ -518,7 +518,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, email).
 					Once().
 					Return("", fmt.Errorf("user manager error"))
 			},
@@ -547,7 +547,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, email).
 					Once().
 					Return(entity.UserStatusSoftDeleted.String(), nil)
 
@@ -580,7 +580,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, email).
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -613,7 +613,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, email).
 					Once().
 					Return("some unknown user status", nil)
 			},
@@ -642,13 +642,13 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, "test@example.com").
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, "test@example.com").
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
 				storage.EXPECT().RegisterUser(ctx, mock.MatchedBy(func(user entity.User) bool {
 					return user.Email == email &&
-						user.AppID == appID &&
+						user.ClientID == clientID &&
 						user.PasswordHash == hashedPassword
 				})).
 					Once().
@@ -683,13 +683,13 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, email).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, email).
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
 				storage.EXPECT().RegisterUser(ctx, mock.MatchedBy(func(user entity.User) bool {
 					return user.Email == email &&
-						user.AppID == appID &&
+						user.ClientID == clientID &&
 						user.PasswordHash == hashedPassword
 				})).
 					Once().
@@ -728,13 +728,13 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, "test@example.com").
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, "test@example.com").
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
 				storage.EXPECT().RegisterUser(ctx, mock.MatchedBy(func(user entity.User) bool {
 					return user.Email == email &&
-						user.AppID == appID &&
+						user.ClientID == clientID &&
 						user.PasswordHash == hashedPassword
 				})).
 					Once().
@@ -798,7 +798,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 
 			auth := NewUsecase(log, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, txMgr, db)
 
-			tokens, err := auth.RegisterUser(ctx, appID, tt.reqData, tt.endpoint)
+			tokens, err := auth.RegisterUser(ctx, clientID, tt.reqData, tt.endpoint)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -814,22 +814,22 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 	ctx := context.Background()
 
 	userID := "test-user-id"
-	appID := "test-app-id"
+	clientID := "test-client-id"
 	endpoint := "https://example.com/verify"
 	email := "test@example.com"
 	tokenStr := "test-verification-token"
 	tokenType := entity.TokenTypeVerifyEmail
 
 	userData := entity.User{
-		ID:    "test-user-id",
-		AppID: "test-app-id",
-		Email: "test@example.com",
+		ID:       "test-user-id",
+		ClientID: "test-client-id",
+		Email:    "test@example.com",
 	}
 
 	expectedTokenData := entity.VerificationToken{
 		Token:     tokenStr,
 		UserID:    userID,
-		AppID:     appID,
+		ClientID:  clientID,
 		Endpoint:  endpoint,
 		Email:     email,
 		Type:      tokenType,
@@ -839,7 +839,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 	expiredTokenData := entity.VerificationToken{
 		Token:     tokenStr,
 		UserID:    userID,
-		AppID:     appID,
+		ClientID:  clientID,
 		Endpoint:  endpoint,
 		Email:     email,
 		Type:      tokenType,
@@ -849,7 +849,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 	newTokenData := entity.VerificationToken{
 		Token:     "new-test-verification-token",
 		UserID:    userID,
-		AppID:     appID,
+		ClientID:  clientID,
 		Endpoint:  endpoint,
 		Email:     email,
 		Type:      tokenType,
@@ -883,7 +883,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 					Once().
 					Return(expectedTokenData, nil)
 
-				storage.EXPECT().MarkEmailVerified(ctx, expectedTokenData.UserID, expectedTokenData.AppID).
+				storage.EXPECT().MarkEmailVerified(ctx, expectedTokenData.UserID, expectedTokenData.ClientID).
 					Once().
 					Return(nil)
 			},
@@ -1056,7 +1056,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 					Once().
 					Return(expectedTokenData, nil)
 
-				storage.EXPECT().MarkEmailVerified(ctx, expectedTokenData.UserID, expectedTokenData.AppID).
+				storage.EXPECT().MarkEmailVerified(ctx, expectedTokenData.UserID, expectedTokenData.ClientID).
 					Once().
 					Return(fmt.Errorf("storage error"))
 			},
@@ -1106,14 +1106,14 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 func TestAuthUsecase_ResetPassword(t *testing.T) {
 	ctx := context.Background()
 
-	appID := "test-app-id"
+	clientID := "test-client-id"
 	endpoint := "https://example.com/change-password"
 	tokenStr := "test-verification-token"
 	tokenType := entity.TokenTypeResetPassword
 
 	userData := entity.User{
 		ID:        "test-user-id",
-		AppID:     appID,
+		ClientID:  clientID,
 		Email:     "test@example.com",
 		UpdatedAt: time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
@@ -1125,7 +1125,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 	expectedTokenData := entity.VerificationToken{
 		Token:     tokenStr,
 		UserID:    userData.ID,
-		AppID:     userData.AppID,
+		ClientID:  userData.ClientID,
 		Endpoint:  endpoint,
 		Email:     userData.Email,
 		Type:      tokenType,
@@ -1148,7 +1148,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				mailService *mocks.MailService,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, reqData.Email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, reqData.Email).
 					Once().
 					Return(userData, nil)
 
@@ -1169,7 +1169,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				mailService *mocks.MailService,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, reqData.Email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, reqData.Email).
 					Once().
 					Return(entity.User{}, storage.ErrUserNotFound)
 			},
@@ -1182,7 +1182,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				mailService *mocks.MailService,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, reqData.Email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, reqData.Email).
 					Once().
 					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
@@ -1195,7 +1195,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				mailService *mocks.MailService,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, reqData.Email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, reqData.Email).
 					Once().
 					Return(userData, nil)
 
@@ -1212,7 +1212,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				mailService *mocks.MailService,
 			) {
-				userMgr.EXPECT().GetUserByEmail(ctx, appID, reqData.Email).
+				userMgr.EXPECT().GetUserByEmail(ctx, clientID, reqData.Email).
 					Once().
 					Return(userData, nil)
 
@@ -1239,7 +1239,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 
 			auth := NewUsecase(log, nil, userMgr, mailService, nil, verificationMgr, nil, nil)
 
-			err := auth.ResetPassword(ctx, appID, reqData, endpoint)
+			err := auth.ResetPassword(ctx, clientID, reqData, endpoint)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1254,11 +1254,11 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 	ctx := context.Background()
 
 	userID := "test-user-id"
-	appID := "test-app-id"
+	clientID := "test-client-id"
 
 	userData := entity.User{
 		ID:        userID,
-		AppID:     appID,
+		ClientID:  clientID,
 		Email:     "email@example.com",
 		UpdatedAt: time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}
@@ -1279,7 +1279,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 	expectedTokenData := entity.VerificationToken{
 		Token:     tokenStr,
 		UserID:    userData.ID,
-		AppID:     userData.AppID,
+		ClientID:  userData.ClientID,
 		Endpoint:  endpoint,
 		Email:     userData.Email,
 		Type:      tokenType,
@@ -1289,7 +1289,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 	expiredTokenData := entity.VerificationToken{
 		Token:     tokenStr,
 		UserID:    userData.ID,
-		AppID:     userData.AppID,
+		ClientID:  userData.ClientID,
 		Endpoint:  endpoint,
 		Email:     userData.Email,
 		Type:      tokenType,
@@ -1299,7 +1299,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 	newTokenData := entity.VerificationToken{
 		Token:     "new-test-verification-token",
 		UserID:    userData.ID,
-		AppID:     userData.AppID,
+		ClientID:  userData.ClientID,
 		Endpoint:  endpoint,
 		Email:     userData.Email,
 		Type:      tokenType,
@@ -1335,13 +1335,13 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 					Once().
 					Return(expectedTokenData, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(entity.User{
 						ID:           userData.ID,
 						Email:        userData.Email,
 						PasswordHash: hashedPassword,
-						AppID:        userData.AppID,
+						ClientID:     userData.ClientID,
 						UpdatedAt:    time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC),
 					}, nil)
 
@@ -1356,7 +1356,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 				userMgr.EXPECT().UpdateUserData(ctx, mock.MatchedBy(func(u entity.User) bool {
 					return u.ID == userData.ID &&
 						u.PasswordHash == newPasswordHash &&
-						u.AppID == userData.AppID
+						u.ClientID == userData.ClientID
 				})).
 					Once().
 					Return(nil)
@@ -1517,7 +1517,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 					Once().
 					Return(expectedTokenData, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
@@ -1541,13 +1541,13 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 					Once().
 					Return(expectedTokenData, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(entity.User{
 						ID:           userData.ID,
 						Email:        userData.Email,
 						PasswordHash: hashedPassword,
-						AppID:        userData.AppID,
+						ClientID:     userData.ClientID,
 						UpdatedAt:    time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC),
 					}, nil)
 
@@ -1575,13 +1575,13 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 					Once().
 					Return(expectedTokenData, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(entity.User{
 						ID:           userData.ID,
 						Email:        userData.Email,
 						PasswordHash: hashedPassword,
-						AppID:        userData.AppID,
+						ClientID:     userData.ClientID,
 						UpdatedAt:    time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC),
 					}, nil)
 
@@ -1609,13 +1609,13 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 					Once().
 					Return(expectedTokenData, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(entity.User{
 						ID:           userData.ID,
 						Email:        userData.Email,
 						PasswordHash: hashedPassword,
-						AppID:        userData.AppID,
+						ClientID:     userData.ClientID,
 						UpdatedAt:    time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC),
 					}, nil)
 
@@ -1647,13 +1647,13 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 					Once().
 					Return(expectedTokenData, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
 					Once().
 					Return(entity.User{
 						ID:           userData.ID,
 						Email:        userData.Email,
 						PasswordHash: hashedPassword,
-						AppID:        userData.AppID,
+						ClientID:     userData.ClientID,
 						UpdatedAt:    time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC),
 					}, nil)
 
@@ -1668,7 +1668,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 				userMgr.EXPECT().UpdateUserData(ctx, mock.MatchedBy(func(u entity.User) bool {
 					return u.ID == userData.ID &&
 						u.PasswordHash == newPasswordHash &&
-						u.AppID == userData.AppID
+						u.ClientID == userData.ClientID
 				})).
 					Once().
 					Return(fmt.Errorf("user manager error"))
@@ -1707,7 +1707,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 
 			auth := NewUsecase(log, nil, userMgr, mailService, tokenMgr, verificationMgr, txMgr, nil)
 
-			_, err := auth.ChangePassword(ctx, userData.AppID, reqData)
+			_, err := auth.ChangePassword(ctx, userData.ClientID, reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1721,7 +1721,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 func TestAuthUsecase_LogoutUser(t *testing.T) {
 	ctx := context.Background()
 
-	appID := "test-app-id"
+	clientID := "test-client-id"
 	userID := "test-user-id"
 	deviceID := "test-device-id"
 	userAgent := "test-agent"
@@ -1740,17 +1740,17 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 		{
 			name: "Success",
 			mockBehavior: func(tokenMgr *mocks.TokenManager, sessionMgr *mocks.SessionManager) {
-				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, clientID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
 				sessionMgr.EXPECT().DeleteSession(ctx, entity.SessionRequestData{
 					UserID:     userID,
-					AppID:      appID,
+					ClientID:   clientID,
 					DeviceID:   deviceID,
 					UserDevice: userDeviceReqData,
 				}).
@@ -1762,7 +1762,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 		{
 			name: "Failed to extract user ID from context",
 			mockBehavior: func(tokenMgr *mocks.TokenManager, sessionMgr *mocks.SessionManager) {
-				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return("", domain.ErrFailedToExtractUserIDFromContext)
 			},
@@ -1771,11 +1771,11 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 		{
 			name: "User device not found",
 			mockBehavior: func(tokenMgr *mocks.TokenManager, sessionMgr *mocks.SessionManager) {
-				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, clientID, userAgent).
 					Once().
 					Return("", domain.ErrUserDeviceNotFound)
 			},
@@ -1784,11 +1784,11 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 		{
 			name: "Failed to get user device ID",
 			mockBehavior: func(tokenMgr *mocks.TokenManager, sessionMgr *mocks.SessionManager) {
-				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, clientID, userAgent).
 					Once().
 					Return("", fmt.Errorf("session manager error"))
 			},
@@ -1797,17 +1797,17 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 		{
 			name: "Failed to delete session",
 			mockBehavior: func(tokenMgr *mocks.TokenManager, sessionMgr *mocks.SessionManager) {
-				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				tokenMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, clientID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
 				sessionMgr.EXPECT().DeleteSession(ctx, entity.SessionRequestData{
 					UserID:     userID,
-					AppID:      appID,
+					ClientID:   clientID,
 					DeviceID:   deviceID,
 					UserDevice: userDeviceReqData,
 				}).
@@ -1829,7 +1829,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 
 			auth := NewUsecase(log, sessionMgr, nil, nil, tokenMgr, nil, nil, nil)
 
-			err := auth.LogoutUser(ctx, appID, &userDeviceReqData)
+			err := auth.LogoutUser(ctx, clientID, &userDeviceReqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1844,7 +1844,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 	ctx := context.Background()
 
 	userID := "test-user-id"
-	appID := "test-app-id"
+	clientID := "test-client-id"
 	deviceID := "test-device-id"
 	refreshTokenStr := "test-refresh-token"
 	userAgent := "test-agent"
@@ -1861,8 +1861,8 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 	}
 
 	sessionReqData := entity.SessionRequestData{
-		UserID: userID,
-		AppID:  appID,
+		UserID:   userID,
+		ClientID: clientID,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: userAgent,
 			IP:        ip,
@@ -1871,7 +1871,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 
 	userSession := entity.Session{
 		UserID:        userID,
-		AppID:         appID,
+		ClientID:      clientID,
 		DeviceID:      deviceID,
 		RefreshToken:  refreshTokenStr,
 		LastVisitedAt: time.Now(),
@@ -1903,7 +1903,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, clientID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -1945,7 +1945,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, clientID, userAgent).
 					Once().
 					Return("", domain.ErrUserDeviceNotFound)
 			},
@@ -1969,7 +1969,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, clientID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -1987,7 +1987,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(userSession, nil)
 
-				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, appID, userAgent).
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, clientID, userAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -2014,7 +2014,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 
 			auth := NewUsecase(log, sessionMgr, nil, nil, nil, nil, nil, nil)
 
-			sessionTokens, err := auth.RefreshTokens(ctx, appID, &reqData)
+			sessionTokens, err := auth.RefreshTokens(ctx, clientID, &reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -2028,7 +2028,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 
 func TestAuthUsecase_GetJWKS(t *testing.T) {
 	ctx := context.Background()
-	appID := "test-app-id"
+	clientID := "test-client-id"
 
 	// Test data
 	rsaKey := &rsa.PublicKey{
@@ -2084,11 +2084,11 @@ func TestAuthUsecase_GetJWKS(t *testing.T) {
 		{
 			name: "Success with RSA key",
 			mockBehavior: func(tokenMgr *mocks.TokenManager) {
-				tokenMgr.EXPECT().PublicKey(appID).
+				tokenMgr.EXPECT().PublicKey(clientID).
 					Once().
 					Return(rsaKey, nil)
 
-				tokenMgr.EXPECT().Kid(appID).
+				tokenMgr.EXPECT().Kid(clientID).
 					Once().
 					Return(kid, nil)
 
@@ -2106,11 +2106,11 @@ func TestAuthUsecase_GetJWKS(t *testing.T) {
 		{
 			name: "Success with ECDSA key",
 			mockBehavior: func(tokenMgr *mocks.TokenManager) {
-				tokenMgr.EXPECT().PublicKey(appID).
+				tokenMgr.EXPECT().PublicKey(clientID).
 					Once().
 					Return(ecdsaKey, nil)
 
-				tokenMgr.EXPECT().Kid(appID).
+				tokenMgr.EXPECT().Kid(clientID).
 					Once().
 					Return(kid, nil)
 
@@ -2128,7 +2128,7 @@ func TestAuthUsecase_GetJWKS(t *testing.T) {
 		{
 			name: "Failed to get public key",
 			mockBehavior: func(tokenMgr *mocks.TokenManager) {
-				tokenMgr.EXPECT().PublicKey(appID).
+				tokenMgr.EXPECT().PublicKey(clientID).
 					Once().
 					Return(nil, domain.ErrFailedToGetPublicKey)
 			},
@@ -2138,11 +2138,11 @@ func TestAuthUsecase_GetJWKS(t *testing.T) {
 		{
 			name: "Failed to get key ID",
 			mockBehavior: func(tokenMgr *mocks.TokenManager) {
-				tokenMgr.EXPECT().PublicKey(appID).
+				tokenMgr.EXPECT().PublicKey(clientID).
 					Once().
 					Return(rsaKey, nil)
 
-				tokenMgr.EXPECT().Kid(appID).
+				tokenMgr.EXPECT().Kid(clientID).
 					Once().
 					Return("", domain.ErrFailedToGetKeyID)
 			},
@@ -2152,11 +2152,11 @@ func TestAuthUsecase_GetJWKS(t *testing.T) {
 		{
 			name: "Unsupported key type",
 			mockBehavior: func(tokenMgr *mocks.TokenManager) {
-				tokenMgr.EXPECT().PublicKey(appID).
+				tokenMgr.EXPECT().PublicKey(clientID).
 					Once().
 					Return("unsupported-key-type", nil)
 
-				tokenMgr.EXPECT().Kid(appID).
+				tokenMgr.EXPECT().Kid(clientID).
 					Once().
 					Return(kid, nil)
 
@@ -2179,7 +2179,7 @@ func TestAuthUsecase_GetJWKS(t *testing.T) {
 
 			auth := NewUsecase(log, nil, nil, nil, tokenMgr, nil, nil, nil)
 
-			jwks, err := auth.GetJWKS(ctx, appID)
+			jwks, err := auth.GetJWKS(ctx, clientID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())

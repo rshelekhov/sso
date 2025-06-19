@@ -101,7 +101,7 @@ func createUserIndexes(db *mongo.Database) error {
 	indexes := []mongo.IndexModel{
 		{
 			Keys: bson.D{
-				{common.FieldAppID, 1},
+				{common.FieldClientID, 1},
 				{common.FieldID, 1},
 			},
 			Options: options.Index().SetUnique(true),
@@ -109,7 +109,7 @@ func createUserIndexes(db *mongo.Database) error {
 		{
 			// Email should be unique for active (not soft-deleted) users
 			Keys: bson.D{
-				{common.FieldAppID, 1},
+				{common.FieldClientID, 1},
 				{common.FieldEmail, 1},
 			},
 			Options: options.Index().
