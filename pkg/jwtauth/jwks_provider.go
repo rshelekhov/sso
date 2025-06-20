@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -34,7 +34,7 @@ func (p *LocalJWKSProvider) GetJWKS(ctx context.Context, clientID string) ([]JWK
 }
 
 type RemoteJWKSProvider struct {
-	client ssov1.AuthClient
+	client authv1.AuthServiceClient
 	conn   *grpc.ClientConn
 }
 
@@ -48,7 +48,7 @@ func NewRemoteJWKSProvider(target string, opts ...grpc.DialOption) (*RemoteJWKSP
 		return nil, fmt.Errorf("failed to dial jwks service: %w", err)
 	}
 
-	client := ssov1.NewAuthClient(conn)
+	client := authv1.NewAuthServiceClient(conn)
 
 	return &RemoteJWKSProvider{
 		client: client,
@@ -57,7 +57,7 @@ func NewRemoteJWKSProvider(target string, opts ...grpc.DialOption) (*RemoteJWKSP
 }
 
 func (p *RemoteJWKSProvider) GetJWKS(ctx context.Context, clientID string) ([]JWK, error) {
-	resp, err := p.client.GetJWKS(ctx, &ssov1.GetJWKSRequest{})
+	resp, err := p.client.GetJWKS(ctx, &authv1.GetJWKSRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get jwks: %w", err)
 	}

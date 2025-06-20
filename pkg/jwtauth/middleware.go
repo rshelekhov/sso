@@ -14,8 +14,8 @@ import (
 //
 // UnaryServerInterceptor will extract a JWT token from gRPC metadata using the authorization key.
 func (m *manager) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		clientID, err := m.getAppIDFromGRPCMetadata(ctx)
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		clientID, err := m.getClientIDFromGRPCMetadata(ctx)
 		if err != nil {
 			return nil, status.Error(codes.Unauthenticated, err.Error())
 		}
@@ -48,7 +48,7 @@ func (m *manager) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 // The HTTPMiddleware always calls the next http handler in sequence.
 func (m *manager) HTTPMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		clientID, err := m.getAppIDFromHTTPRequest(r)
+		clientID, err := m.getClientIDFromHTTPRequest(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
@@ -65,8 +65,8 @@ func (m *manager) HTTPMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// getAppIDFromGRPCMetadata returns the clientID from the manager struct or from gRPC metadata
-func (m *manager) getAppIDFromGRPCMetadata(ctx context.Context) (string, error) {
+// getClientIDFromGRPCMetadata returns the clientID from the manager struct or from gRPC metadata
+func (m *manager) getClientIDFromGRPCMetadata(ctx context.Context) (string, error) {
 	if m.clientID != "" {
 		return m.clientID, nil
 	}
@@ -76,23 +76,23 @@ func (m *manager) getAppIDFromGRPCMetadata(ctx context.Context) (string, error) 
 		return "", ErrNoGRPCMetadata
 	}
 
-	values := md.Get(AppIDHeader)
+	values := md.Get(ClientIDHeader)
 	if len(values) == 0 {
-		return "", ErrAppIDHeaderNotFoundInGRPCMetadata
+		return "", ErrClientIDHeaderNotFoundInGRPCMetadata
 	}
 
 	return values[0], nil
 }
 
-// getAppIDFromHTTPRequest returns the clientID from the manager struct or from the http request
-func (m *manager) getAppIDFromHTTPRequest(r *http.Request) (string, error) {
+// getClientIDFromHTTPRequest returns the clientID from the manager struct or from the http request
+func (m *manager) getClientIDFromHTTPRequest(r *http.Request) (string, error) {
 	if m.clientID != "" {
 		return m.clientID, nil
 	}
 
-	clientID := r.Header.Get(AppIDHeader)
+	clientID := r.Header.Get(ClientIDHeader)
 	if clientID == "" {
-		return "", ErrAppIDHeaderNotFoundInHTTPRequest
+		return "", ErrClientIDHeaderNotFoundInHTTPRequest
 	}
 
 	return clientID, nil

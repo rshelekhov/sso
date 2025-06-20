@@ -81,7 +81,7 @@ func main() {
     // Create JWT manager with remote provider and app ID
     jwtManager := jwtauth.NewManager(
         jwksProvider,
-        jwtauth.WithAppID("my-service"),
+        jwtauth.WithClientID("my-service"),
     )
 
     // Use in your gRPC server

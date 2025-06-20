@@ -11,8 +11,8 @@ var (
 	ErrAuthorizationHeaderNotFoundInGRPCMetadata = errors.New("authorization header not found in gRPC metadata")
 	ErrAuthorizationHeaderNotFoundInHTTPRequest  = errors.New("authorization header not found in HTTP request")
 	ErrBearerTokenNotFound                       = errors.New("bearer token not found")
-	ErrAppIDHeaderNotFoundInGRPCMetadata         = errors.New("app ID header not found in gRPC metadata")
-	ErrAppIDHeaderNotFoundInHTTPRequest          = errors.New("app ID header not found in HTTP request")
+	ErrClientIDHeaderNotFoundInGRPCMetadata      = errors.New("client ID header not found in gRPC metadata")
+	ErrClientIDHeaderNotFoundInHTTPRequest       = errors.New("client ID header not found in HTTP request")
 
 	ErrKidNotFoundInTokenHeader = errors.New("kid not found in token header")
 	ErrKidIsNotAString          = errors.New("kid is not a string")
