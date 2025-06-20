@@ -20,12 +20,12 @@ func NewInterceptor(cfg *config.GRPCMethodsConfig) *Interceptor {
 }
 
 const (
-	Header = "X-App-ID"
-	CtxKey = "AppID"
+	Header = "X-Client-ID"
+	CtxKey = "ClientID"
 )
 
 func (i *Interceptor) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		methodConfigs := i.cfg.GetMethodConfigs()
 		if methodConfig, exists := methodConfigs[info.FullMethod]; exists && methodConfig.RequireClientID {
 			clientID, err := extractFromGRPC(ctx)
