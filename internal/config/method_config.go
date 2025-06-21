@@ -50,89 +50,81 @@ func (mc *GRPCMethodsConfig) GetAppIDRequiredMethods() []string {
 func initGRPCMethodSettings() map[string]GRPCMethodSettings {
 	configs := map[string]GRPCMethodSettings{
 		// Auth methods
-		"/auth.Auth/RegisterUser": {
+		"/api.auth.v1.AuthService/RegisterUser": {
 			RequireJWT:      false,
 			RequireClientID: true,
 			SkipUserID:      true,
 		},
-		"/auth.Auth/Login": {
+		"/api.auth.v1.AuthService/Login": {
 			RequireJWT:      false,
 			RequireClientID: true,
 			SkipUserID:      true,
 		},
-		"/auth.Auth/VerifyEmail": {
+		"/api.auth.v1.AuthService/VerifyEmail": {
 			RequireJWT:      false,
 			RequireClientID: false,
 			SkipUserID:      true,
 		},
-		"/auth.Auth/ResetPassword": {
+		"/api.auth.v1.AuthService/ResetPassword": {
 			RequireJWT:      false,
 			RequireClientID: true,
 			SkipUserID:      true,
 		},
-		"/auth.Auth/ChangePassword": {
+		"/api.auth.v1.AuthService/ChangePassword": {
 			RequireJWT:      false,
 			RequireClientID: true,
 			SkipUserID:      true,
 		},
-		"/auth.Auth/RegisterApp": {
-			RequireJWT:      false,
-			RequireClientID: false,
-			SkipUserID:      true,
-		},
-		"/auth.Auth/GetJWKS": {
+		"/api.auth.v1.AuthService/GetJWKS": {
 			RequireJWT:      false,
 			RequireClientID: true,
 			SkipUserID:      true,
 		},
-		"/auth.Auth/Refresh": {
+		"/api.auth.v1.AuthService/RefreshTokens": {
 			RequireJWT:      false,
 			RequireClientID: true,
 			SkipUserID:      true,
 		},
 
 		// User methods
-		"/auth.Auth/GetUser": {
+		"/api.user.v1.UserService/GetUser": {
 			RequireJWT:      true,
 			RequireClientID: true,
 			SkipUserID:      false,
 		},
-		"/auth.Auth/UpdateUser": {
+		"/api.user.v1.UserService/UpdateUser": {
 			RequireJWT:      true,
 			RequireClientID: true,
 			SkipUserID:      false,
 		},
-		"/auth.Auth/DeleteUser": {
+		"/api.user.v1.UserService/DeleteUser": {
 			RequireJWT:      true,
 			RequireClientID: true,
 			SkipUserID:      false,
 		},
-		"/auth.Auth/Logout": {
+		"/api.auth.v1.AuthService/Logout": {
 			RequireJWT:      true,
 			RequireClientID: true,
 			SkipUserID:      false,
 		},
 
 		// Admin methods
-		"/auth.Auth/GetUserByID": {
+		"/api.user.v1.UserService/GetUserByID": {
 			RequireJWT:      true,
 			RequireClientID: true,
 			SkipUserID:      false,
 		},
-		"/auth.Auth/DeleteUserByID": {
+		"/api.user.v1.UserService/DeleteUserByID": {
 			RequireJWT:      true,
 			RequireClientID: true,
 			SkipUserID:      false,
 		},
-		"/auth.Auth/ChangeUserRole": {
-			RequireJWT:      true,
-			RequireClientID: true,
-			SkipUserID:      false,
-		},
-		"/auth.Auth/GetUserRole": {
-			RequireJWT:      true,
-			RequireClientID: true,
-			SkipUserID:      false,
+
+		// Client methods
+		"/api.client.v1.ClientManagementService/RegisterClient": {
+			RequireJWT:      false,
+			RequireClientID: false,
+			SkipUserID:      true,
 		},
 	}
 
