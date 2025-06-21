@@ -6,7 +6,8 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rshelekhov/jwtauth"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
@@ -28,11 +29,11 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -44,7 +45,7 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify email
-	_, err = st.AuthClient.VerifyEmail(ctx, &ssov1.VerifyEmailRequest{
+	_, err = st.AuthService.VerifyEmail(ctx, &authv1.VerifyEmailRequest{
 		Token: verificationToken,
 	})
 	require.NoError(t, err)
@@ -63,7 +64,7 @@ func TestVerifyEmail_HappyPath(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Get user data to check if email was verified
-	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{})
+	respGet, err := st.UserService.GetUser(ctx, &userv1.GetUserRequest{})
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.User.GetVerified())
 	require.True(t, respGet.User.GetVerified())
@@ -92,11 +93,11 @@ func TestVerifyEmail_TokenExpired(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -112,7 +113,7 @@ func TestVerifyEmail_TokenExpired(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to verify email (a new email with verification token should be sent)
-	_, err = st.AuthClient.VerifyEmail(ctx, &ssov1.VerifyEmailRequest{
+	_, err = st.AuthService.VerifyEmail(ctx, &authv1.VerifyEmailRequest{
 		Token: verificationToken,
 	})
 	require.Error(t, err)

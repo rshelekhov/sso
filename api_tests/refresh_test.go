@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain"
@@ -28,11 +28,11 @@ func TestRefresh_HappyPath(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -47,9 +47,9 @@ func TestRefresh_HappyPath(t *testing.T) {
 	require.NotEmpty(t, refreshToken)
 
 	// Refresh tokens
-	respRefresh, err := st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
+	respRefresh, err := st.AuthService.RefreshTokens(ctx, &authv1.RefreshTokensRequest{
 		RefreshToken: refreshToken,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -81,11 +81,11 @@ func TestRefresh_FailCases(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -142,9 +142,9 @@ func TestRefresh_FailCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Refresh tokens
-			_, err = st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
+			_, err = st.AuthService.RefreshTokens(ctx, &authv1.RefreshTokensRequest{
 				RefreshToken: tt.refreshToken,
-				UserDeviceData: &ssov1.UserDeviceData{
+				UserDeviceData: &authv1.UserDeviceData{
 					UserAgent: tt.userAgent,
 					Ip:        tt.ip,
 				},
@@ -178,11 +178,11 @@ func TestRefresh_DeviceNotFound(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -196,9 +196,9 @@ func TestRefresh_DeviceNotFound(t *testing.T) {
 	require.NotEmpty(t, refreshToken)
 
 	// Refresh tokens
-	_, err = st.AuthClient.Refresh(ctx, &ssov1.RefreshRequest{
+	_, err = st.AuthService.RefreshTokens(ctx, &authv1.RefreshTokensRequest{
 		RefreshToken: refreshToken,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: gofakeit.UserAgent(),
 			Ip:        ip,
 		},

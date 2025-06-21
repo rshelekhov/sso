@@ -10,7 +10,7 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain"
@@ -34,11 +34,11 @@ func TestLogin_HappyPath(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -47,10 +47,10 @@ func TestLogin_HappyPath(t *testing.T) {
 	require.NotEmpty(t, respReg.GetTokenData())
 
 	// Login user
-	respLogin, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
+	respLogin, err := st.AuthService.Login(ctx, &authv1.LoginRequest{
 		Email:    email,
 		Password: pass,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -61,7 +61,7 @@ func TestLogin_HappyPath(t *testing.T) {
 	require.NotEmpty(t, token)
 
 	// Get JWKS
-	jwks, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{})
+	jwks, err := st.AuthService.GetJWKS(ctx, &authv1.GetJWKSRequest{})
 	require.NoError(t, err)
 	require.NotEmpty(t, jwks.GetJwks())
 
@@ -121,7 +121,7 @@ func TestLogin_HappyPath(t *testing.T) {
 	cleanup(params, cfg.ClientID)
 }
 
-func getJWKByKid(jwks []*ssov1.JWK, kid string) (*ssov1.JWK, error) {
+func getJWKByKid(jwks []*authv1.JWK, kid string) (*authv1.JWK, error) {
 	for _, jwk := range jwks {
 		if jwk.GetKid() == kid {
 			return jwk, nil
@@ -144,11 +144,11 @@ func TestLogin_FailCases(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -235,10 +235,10 @@ func TestLogin_FailCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Login user
-			_, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
+			_, err := st.AuthService.Login(ctx, &authv1.LoginRequest{
 				Email:    tt.email,
 				Password: tt.password,
-				UserDeviceData: &ssov1.UserDeviceData{
+				UserDeviceData: &authv1.UserDeviceData{
 					UserAgent: tt.userAgent,
 					Ip:        tt.ip,
 				},

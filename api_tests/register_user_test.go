@@ -11,7 +11,8 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain"
@@ -35,11 +36,11 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -50,12 +51,12 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	require.NotEmpty(t, token)
 
 	// Get JWKS
-	jwks, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{})
+	jwks, err := st.AuthService.GetJWKS(ctx, &authv1.GetJWKSRequest{})
 	require.NoError(t, err)
 	require.NotEmpty(t, jwks.GetJwks())
 
 	// Parse jwtoken
-	tokenParsed, err := jwt.Parse(token.GetAccessToken(), func(token *jwt.Token) (interface{}, error) {
+	tokenParsed, err := jwt.Parse(token.GetAccessToken(), func(token *jwt.Token) (any, error) {
 		kidRaw, ok := token.Header[domain.KIDKey]
 		require.True(t, ok)
 
@@ -124,11 +125,11 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -139,11 +140,11 @@ func TestRegisterUser_DuplicatedRegistration(t *testing.T) {
 	require.NotEmpty(t, token)
 
 	// Try to register again
-	respDoubleReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respDoubleReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -225,11 +226,11 @@ func TestRegisterUser_FailCases(t *testing.T) {
 			ctx = metadata.NewOutgoingContext(ctx, md)
 
 			// Register user
-			_, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+			_, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 				Email:           tt.email,
 				Password:        tt.password,
 				VerificationUrl: cfg.VerificationURL,
-				UserDeviceData: &ssov1.UserDeviceData{
+				UserDeviceData: &authv1.UserDeviceData{
 					UserAgent: tt.userAgent,
 					Ip:        tt.ip,
 				},
@@ -254,11 +255,11 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register first user
-	resp1Reg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	resp1Reg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -269,11 +270,11 @@ func TestRegisterUser_UserAlreadyExists(t *testing.T) {
 	require.NotEmpty(t, token)
 
 	// Register second user
-	resp2Reg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	resp2Reg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -307,11 +308,11 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register first user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -331,15 +332,15 @@ func TestRegisterUser_UserSoftDeleted(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Delete first user
-	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{})
+	_, err = st.UserService.DeleteUser(ctx, &userv1.DeleteUserRequest{})
 	require.NoError(t, err)
 
 	// Register new user with the same email
-	respReg, err = st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err = st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        randomFakePassword(),
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: gofakeit.UserAgent(),
 			Ip:        gofakeit.IPv4Address(),
 		},
