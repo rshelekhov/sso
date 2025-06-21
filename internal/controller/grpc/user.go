@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"log/slog"
 
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"github.com/rshelekhov/sso/internal/controller"
-
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
 	"github.com/rshelekhov/sso/internal/lib/e"
 )
 
-func (c *gRPCController) GetUser(ctx context.Context, req *ssov1.GetUserRequest) (*ssov1.GetUserResponse, error) {
+func (c *gRPCController) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*userv1.GetUserResponse, error) {
 	const method = "controller.gRPC.GetUser"
 
 	log := c.log.With(slog.String("method", method))
@@ -39,7 +38,7 @@ func (c *gRPCController) GetUser(ctx context.Context, req *ssov1.GetUserRequest)
 	return toGetUserResponse(user), nil
 }
 
-func (c *gRPCController) GetUserByID(ctx context.Context, req *ssov1.GetUserByIDRequest) (*ssov1.GetUserByIDResponse, error) {
+func (c *gRPCController) GetUserByID(ctx context.Context, req *userv1.GetUserByIDRequest) (*userv1.GetUserByIDResponse, error) {
 	const method = "controller.gRPC.GetUserByID"
 
 	log := c.log.With(slog.String("method", method))
@@ -71,7 +70,7 @@ func (c *gRPCController) GetUserByID(ctx context.Context, req *ssov1.GetUserByID
 	return toGetUserByIDResponse(user), nil
 }
 
-func (c *gRPCController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRequest) (*ssov1.UpdateUserResponse, error) {
+func (c *gRPCController) UpdateUser(ctx context.Context, req *userv1.UpdateUserRequest) (*userv1.UpdateUserResponse, error) {
 	const method = "сontroller.gRPC.UpdateUser"
 
 	log := c.log.With(slog.String("method", method))
@@ -106,7 +105,7 @@ func (c *gRPCController) UpdateUser(ctx context.Context, req *ssov1.UpdateUserRe
 	return toUpdateUserResponse(updatedUser), nil
 }
 
-func (c *gRPCController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRequest) (*ssov1.DeleteUserResponse, error) {
+func (c *gRPCController) DeleteUser(ctx context.Context, req *userv1.DeleteUserRequest) (*userv1.DeleteUserResponse, error) {
 	const method = "сontroller.gRPC.DeleteUser"
 
 	log := c.log.With(slog.String("method", method))
@@ -131,10 +130,10 @@ func (c *gRPCController) DeleteUser(ctx context.Context, req *ssov1.DeleteUserRe
 		return nil, mapErrorToGRPCStatus(err)
 	}
 
-	return &ssov1.DeleteUserResponse{}, nil
+	return &userv1.DeleteUserResponse{}, nil
 }
 
-func (c *gRPCController) DeleteUserByID(ctx context.Context, req *ssov1.DeleteUserByIDRequest) (*ssov1.DeleteUserByIDResponse, error) {
+func (c *gRPCController) DeleteUserByID(ctx context.Context, req *userv1.DeleteUserByIDRequest) (*userv1.DeleteUserByIDResponse, error) {
 	const method = "controller.gRPC.DeleteUserByID"
 
 	log := c.log.With(slog.String("method", method))
@@ -163,5 +162,5 @@ func (c *gRPCController) DeleteUserByID(ctx context.Context, req *ssov1.DeleteUs
 		return nil, mapErrorToGRPCStatus(err)
 	}
 
-	return &ssov1.DeleteUserByIDResponse{}, nil
+	return &userv1.DeleteUserByIDResponse{}, nil
 }
