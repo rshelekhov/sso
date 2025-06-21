@@ -46,7 +46,7 @@ func NewManager(jwksProvider JWKSProvider, opts ...Option) Manager {
 
 type Option func(m *manager)
 
-func WithAppID(clientID string) Option {
+func WithClientID(clientID string) Option {
 	return func(m *manager) {
 		m.clientID = clientID
 	}
@@ -54,7 +54,7 @@ func WithAppID(clientID string) Option {
 
 const (
 	AuthorizationHeader = "authorization"
-	AppIDHeader         = "X-App-ID"
+	ClientIDHeader      = "X-Client-ID"
 
 	AccessTokenKey  = "access_token"
 	RefreshTokenKey = "refresh_token"

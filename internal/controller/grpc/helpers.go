@@ -21,19 +21,19 @@ func (c *gRPCController) getRequestID(ctx context.Context) (string, error) {
 }
 
 func (c *gRPCController) getAndValidateClientID(ctx context.Context) (string, error) {
-	clientID, err := c.getAppID(ctx)
+	clientID, err := c.getClientID(ctx)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", controller.ErrFailedToGetClientID, err)
 	}
 
-	if err = c.validateAppID(ctx, clientID); err != nil {
+	if err = c.validateClientID(ctx, clientID); err != nil {
 		return "", fmt.Errorf("%w: %w", controller.ErrFailedToValidateClientID, err)
 	}
 
 	return clientID, nil
 }
 
-func (c *gRPCController) getAppID(ctx context.Context) (string, error) {
+func (c *gRPCController) getClientID(ctx context.Context) (string, error) {
 	clientID, ok := clientid.FromContext(ctx)
 	if !ok {
 		return "", controller.ErrClientIDNotFoundInContext
@@ -42,7 +42,7 @@ func (c *gRPCController) getAppID(ctx context.Context) (string, error) {
 	return clientID, nil
 }
 
-func (c *gRPCController) validateAppID(ctx context.Context, clientID string) error {
+func (c *gRPCController) validateClientID(ctx context.Context, clientID string) error {
 	if err := c.clientValidator.ValidateClientID(ctx, clientID); err != nil {
 		if errors.Is(err, domain.ErrClientNotFound) {
 			return controller.ErrClientNotFound

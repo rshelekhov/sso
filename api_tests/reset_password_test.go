@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/brianvoe/gofakeit/v6"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain"
@@ -29,11 +29,11 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -41,7 +41,7 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 
 	// Request reset password instructions on email
-	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
+	_, err = st.AuthService.ResetPassword(ctx, &authv1.ResetPasswordRequest{
 		Email:      email,
 		ConfirmUrl: cfg.ConfirmChangePasswordURL,
 	})
@@ -52,7 +52,7 @@ func TestResetPassword_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 
 	// Change password
-	_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
+	_, err = st.AuthService.ChangePassword(ctx, &authv1.ChangePasswordRequest{
 		Token:           resetPasswordToken,
 		UpdatedPassword: randomFakePassword(),
 	})
@@ -85,11 +85,11 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -97,7 +97,7 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	require.NoError(t, err)
 
 	// Request reset password instructions on email
-	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
+	_, err = st.AuthService.ResetPassword(ctx, &authv1.ResetPasswordRequest{
 		Email:      email,
 		ConfirmUrl: cfg.ConfirmChangePasswordURL,
 	})
@@ -112,7 +112,7 @@ func TestResetPassword_TokenExpired(t *testing.T) {
 	require.NoError(t, err)
 
 	// Try to change password
-	_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
+	_, err = st.AuthService.ChangePassword(ctx, &authv1.ChangePasswordRequest{
 		Token:           resetPasswordToken,
 		UpdatedPassword: randomFakePassword(),
 	})
@@ -150,11 +150,11 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -162,7 +162,7 @@ func TestResetPassword_EmptyEmail(t *testing.T) {
 	require.NoError(t, err)
 
 	// Request reset password instructions on email
-	_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
+	_, err = st.AuthService.ResetPassword(ctx, &authv1.ResetPasswordRequest{
 		Email:      emptyValue,
 		ConfirmUrl: cfg.ConfirmChangePasswordURL,
 	})
@@ -195,11 +195,11 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -226,7 +226,7 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Request reset password instructions on email
-			_, err = st.AuthClient.ResetPassword(ctx, &ssov1.ResetPasswordRequest{
+			_, err = st.AuthService.ResetPassword(ctx, &authv1.ResetPasswordRequest{
 				Email:      email,
 				ConfirmUrl: cfg.ConfirmChangePasswordURL,
 			})
@@ -237,7 +237,7 @@ func TestResetPassword_FailCasesWithPassword(t *testing.T) {
 			require.NoError(t, err)
 
 			// Change password
-			_, err = st.AuthClient.ChangePassword(ctx, &ssov1.ChangePasswordRequest{
+			_, err = st.AuthService.ChangePassword(ctx, &authv1.ChangePasswordRequest{
 				Token:           resetPasswordToken,
 				UpdatedPassword: tt.password,
 			})

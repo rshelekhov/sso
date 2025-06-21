@@ -7,7 +7,8 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rshelekhov/jwtauth"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/stretchr/testify/require"
@@ -28,7 +29,7 @@ type cleanupParams struct {
 	t        *testing.T
 	st       *suite.Suite
 	clientID string
-	token    *ssov1.TokenData
+	token    *authv1.TokenData
 }
 
 func cleanup(params cleanupParams, clientID string) {
@@ -38,6 +39,6 @@ func cleanup(params cleanupParams, clientID string) {
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	// Delete user
-	_, err := params.st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{})
+	_, err := params.st.UserService.DeleteUser(ctx, &userv1.DeleteUserRequest{})
 	require.NoError(params.t, err)
 }

@@ -4,14 +4,18 @@ import (
 	"context"
 	"log/slog"
 
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+	clientv1 "github.com/rshelekhov/sso-protos/gen/go/api/client/v1"
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/domain/service/clientvalidator"
 	"google.golang.org/grpc"
 )
 
 type gRPCController struct {
-	ssov1.UnimplementedAuthServer
+	authv1.UnimplementedAuthServiceServer
+	userv1.UnimplementedUserServiceServer
+	clientv1.UnimplementedClientManagementServiceServer
 	log             *slog.Logger
 	clientValidator clientvalidator.Validator
 	clientUsecase   ClientUsecase
@@ -53,11 +57,15 @@ func RegisterController(
 	authUsecase AuthUsecase,
 	userUsecase UserUsecase,
 ) {
-	ssov1.RegisterAuthServer(gRPC, &gRPCController{
+	controller := &gRPCController{
 		log:             log,
 		clientValidator: clientValidator,
 		clientUsecase:   clientUsecase,
 		authUsecase:     authUsecase,
 		userUsecase:     userUsecase,
-	})
+	}
+
+	authv1.RegisterAuthServiceServer(gRPC, controller)
+	userv1.RegisterUserServiceServer(gRPC, controller)
+	clientv1.RegisterClientManagementServiceServer(gRPC, controller)
 }

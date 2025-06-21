@@ -7,7 +7,9 @@ import (
 	"os"
 	"testing"
 
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+	clientv1 "github.com/rshelekhov/sso-protos/gen/go/api/client/v1"
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	testStorage "github.com/rshelekhov/sso/api_tests/suite/storage"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/settings"
@@ -18,9 +20,11 @@ import (
 
 type Suite struct {
 	*testing.T
-	Cfg        *config.ServerSettings
-	AuthClient ssov1.AuthClient
-	Storage    testStorage.TestStorage
+	Cfg                     *config.ServerSettings
+	AuthService             authv1.AuthServiceClient
+	UserService             userv1.UserServiceClient
+	ClientManagementService clientv1.ClientManagementServiceClient
+	Storage                 testStorage.TestStorage
 }
 
 const (
@@ -60,10 +64,12 @@ func New(t *testing.T) (context.Context, *Suite) {
 	}
 
 	return ctx, &Suite{
-		T:          t,
-		Cfg:        cfg,
-		AuthClient: ssov1.NewAuthClient(cc),
-		Storage:    testStorage,
+		T:                       t,
+		Cfg:                     cfg,
+		AuthService:             authv1.NewAuthServiceClient(cc),
+		UserService:             userv1.NewUserServiceClient(cc),
+		ClientManagementService: clientv1.NewClientManagementServiceClient(cc),
+		Storage:                 testStorage,
 	}
 }
 

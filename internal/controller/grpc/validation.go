@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+	clientv1 "github.com/rshelekhov/sso-protos/gen/go/api/client/v1"
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -64,8 +66,8 @@ func validateUserDeviceData(userAgent, ip string) error {
 	return nil
 }
 
-func validateRegisterAppRequest(req *ssov1.RegisterAppRequest) error {
-	appName := req.GetAppName()
+func validateRegisterClientRequest(req *clientv1.RegisterClientRequest) error {
+	appName := req.GetClientName()
 
 	if appName == emptyValue {
 		return status.Error(codes.InvalidArgument, ErrAppNameIsRequired.Error())
@@ -77,7 +79,7 @@ func validateRegisterAppRequest(req *ssov1.RegisterAppRequest) error {
 	return nil
 }
 
-func validateVerifyEmailRequest(req *ssov1.VerifyEmailRequest) error {
+func validateVerifyEmailRequest(req *authv1.VerifyEmailRequest) error {
 	if req.GetToken() == emptyValue {
 		return ErrVerificationTokenIsRequired
 	}
@@ -85,7 +87,7 @@ func validateVerifyEmailRequest(req *ssov1.VerifyEmailRequest) error {
 	return nil
 }
 
-func validateLoginRequest(req *ssov1.LoginRequest) error {
+func validateLoginRequest(req *authv1.LoginRequest) error {
 	var errMessages []string
 
 	if err := validateUserCredentials(req.GetEmail(), req.GetPassword()); err != nil {
@@ -102,7 +104,7 @@ func validateLoginRequest(req *ssov1.LoginRequest) error {
 	return nil
 }
 
-func validateRegisterUserRequest(req *ssov1.RegisterUserRequest) error {
+func validateRegisterUserRequest(req *authv1.RegisterUserRequest) error {
 	var errMessages []string
 
 	if err := validateUserCredentials(req.GetEmail(), req.GetPassword()); err != nil {
@@ -123,7 +125,7 @@ func validateRegisterUserRequest(req *ssov1.RegisterUserRequest) error {
 	return nil
 }
 
-func validateLogoutRequest(req *ssov1.LogoutRequest) error {
+func validateLogoutRequest(req *authv1.LogoutRequest) error {
 	if err := validateUserDeviceData(req.UserDeviceData.GetUserAgent(), req.UserDeviceData.GetIp()); err != nil {
 		return err
 	}
@@ -131,7 +133,7 @@ func validateLogoutRequest(req *ssov1.LogoutRequest) error {
 	return nil
 }
 
-func validateResetPasswordRequest(req *ssov1.ResetPasswordRequest) error {
+func validateResetPasswordRequest(req *authv1.ResetPasswordRequest) error {
 	var errMessages []string
 
 	if req.GetEmail() == emptyValue {
@@ -149,7 +151,7 @@ func validateResetPasswordRequest(req *ssov1.ResetPasswordRequest) error {
 	return nil
 }
 
-func validateChangePasswordRequest(req *ssov1.ChangePasswordRequest) error {
+func validateChangePasswordRequest(req *authv1.ChangePasswordRequest) error {
 	var errMessages []string
 
 	if req.GetToken() == emptyValue {
@@ -167,7 +169,7 @@ func validateChangePasswordRequest(req *ssov1.ChangePasswordRequest) error {
 	return nil
 }
 
-func validateRefreshRequest(req *ssov1.RefreshRequest) error {
+func validateRefreshRequest(req *authv1.RefreshTokensRequest) error {
 	var errMessages []string
 
 	if req.GetRefreshToken() == emptyValue {
@@ -185,14 +187,14 @@ func validateRefreshRequest(req *ssov1.RefreshRequest) error {
 	return nil
 }
 
-func validateGetUserByIDRequest(req *ssov1.GetUserByIDRequest) error {
+func validateGetUserByIDRequest(req *userv1.GetUserByIDRequest) error {
 	if req.GetUserId() == "" {
 		return status.Error(codes.InvalidArgument, ErrUserIDIsRequired.Error())
 	}
 	return nil
 }
 
-func validateUpdateUserRequest(req *ssov1.UpdateUserRequest) error {
+func validateUpdateUserRequest(req *userv1.UpdateUserRequest) error {
 	var errMessages []string
 
 	password := req.GetCurrentPassword()
@@ -210,7 +212,7 @@ func validateUpdateUserRequest(req *ssov1.UpdateUserRequest) error {
 	return nil
 }
 
-func validateDeleteUserByIDRequest(req *ssov1.DeleteUserByIDRequest) error {
+func validateDeleteUserByIDRequest(req *userv1.DeleteUserByIDRequest) error {
 	if req.GetUserId() == "" {
 		return status.Error(codes.InvalidArgument, ErrUserIDIsRequired.Error())
 	}

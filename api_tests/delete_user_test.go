@@ -5,7 +5,8 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rshelekhov/jwtauth"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/stretchr/testify/require"
@@ -26,11 +27,11 @@ func TestDeleteUser_HappyPath(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -50,7 +51,7 @@ func TestDeleteUser_HappyPath(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Delete user
-	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{})
+	_, err = st.UserService.DeleteUser(ctx, &userv1.DeleteUserRequest{})
 	require.NoError(t, err)
 }
 
@@ -66,11 +67,11 @@ func TestDeleteUserByID_HappyPath(t *testing.T) {
 	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -86,12 +87,12 @@ func TestDeleteUserByID_HappyPath(t *testing.T) {
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	respUser, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{})
+	respUser, err := st.UserService.GetUser(ctx, &userv1.GetUserRequest{})
 	require.NoError(t, err)
 	userID := respUser.GetUser().GetId()
 
 	// Delete user by ID
-	_, err = st.AuthClient.DeleteUserByID(ctx, &ssov1.DeleteUserByIDRequest{
+	_, err = st.UserService.DeleteUserByID(ctx, &userv1.DeleteUserByIDRequest{
 		UserId: userID,
 	})
 	require.NoError(t, err)

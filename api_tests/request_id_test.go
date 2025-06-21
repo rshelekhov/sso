@@ -5,7 +5,7 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rshelekhov/jwtauth"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/requestid"
@@ -30,11 +30,11 @@ func TestRequestID_HappyPath(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -54,8 +54,8 @@ func TestRequestID_HappyPath(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Logout user
-	_, err = st.AuthClient.Logout(ctx, &ssov1.LogoutRequest{
-		UserDeviceData: &ssov1.UserDeviceData{
+	_, err = st.AuthService.Logout(ctx, &authv1.LogoutRequest{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -89,11 +89,11 @@ func TestRequestID_EmptyRequestID(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -114,8 +114,8 @@ func TestRequestID_EmptyRequestID(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Logout user
-	_, err = st.AuthClient.Logout(ctx, &ssov1.LogoutRequest{
-		UserDeviceData: &ssov1.UserDeviceData{
+	_, err = st.AuthService.Logout(ctx, &authv1.LogoutRequest{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},

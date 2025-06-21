@@ -8,11 +8,11 @@ import (
 	"github.com/rshelekhov/sso/internal/controller"
 	"github.com/rshelekhov/sso/internal/lib/e"
 
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	clientv1 "github.com/rshelekhov/sso-protos/gen/go/api/client/v1"
 )
 
-func (c *gRPCController) RegisterApp(ctx context.Context, req *ssov1.RegisterAppRequest) (*ssov1.RegisterAppResponse, error) {
-	const method = "controller.gRPC.RegisterApp"
+func (c *gRPCController) RegisterClient(ctx context.Context, req *clientv1.RegisterClientRequest) (*clientv1.RegisterClientResponse, error) {
+	const method = "controller.gRPC.RegisterClient"
 
 	log := c.log.With(slog.String("method", method))
 
@@ -24,18 +24,17 @@ func (c *gRPCController) RegisterApp(ctx context.Context, req *ssov1.RegisterApp
 
 	log = log.With(slog.String("requestID", reqID))
 
-	if err = validateRegisterAppRequest(req); err != nil {
+	if err = validateRegisterClientRequest(req); err != nil {
 		e.LogError(ctx, log, controller.ErrValidationError, err)
 		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
 	}
 
-	// TODO: change to GetClientName after updating imports of sso-protos
-	clientName := req.GetAppName()
+	clientName := req.GetClientName()
 
 	err = c.clientUsecase.RegisterClient(ctx, clientName)
 	if err != nil {
 		return nil, mapErrorToGRPCStatus(err)
 	}
 
-	return &ssov1.RegisterAppResponse{}, nil
+	return &clientv1.RegisterClientResponse{}, nil
 }
