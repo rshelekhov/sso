@@ -4,7 +4,7 @@ package config
 type GRPCMethodSettings struct {
 	FullMethod      string // Full path of the method (e.g. "/auth.Auth/GetUserByID")
 	RequireJWT      bool   // Requires a JWT authentication
-	RequireClientID bool   // Requires an AppID
+	RequireClientID bool   // Requires an ClientID
 	SkipUserID      bool   // Skip userID check (for unauthenticated methods)
 }
 
@@ -34,7 +34,7 @@ func (mc *GRPCMethodsConfig) GetJWTRequiredMethods() []string {
 	return methods
 }
 
-func (mc *GRPCMethodsConfig) GetAppIDRequiredMethods() []string {
+func (mc *GRPCMethodsConfig) GetClientIDRequiredMethods() []string {
 	var methods []string
 
 	for method, config := range mc.settings {

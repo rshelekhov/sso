@@ -125,10 +125,10 @@ func main() {
 
 ```go
 // Extract user ID from token
-userID, err := jwtManager.ExtractUserID(ctx, appID)
+userID, err := jwtManager.ExtractUserID(ctx, clientID)
 
 // Verify token manually
-err := jwtManager.verifyToken(appID, tokenString)
+err := jwtManager.verifyToken(clientID, tokenString)
 ```
 
 ## Error Handling
