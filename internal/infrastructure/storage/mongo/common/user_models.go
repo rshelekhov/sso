@@ -23,7 +23,6 @@ type UserDocument struct {
 	ID           string     `bson:"_id"`
 	Email        string     `bson:"email"`
 	PasswordHash string     `bson:"password_hash"`
-	ClientID     string     `bson:"client_id"`
 	Verified     bool       `bson:"verified"`
 	CreatedAt    time.Time  `bson:"created_at"`
 	UpdatedAt    time.Time  `bson:"updated_at"`
@@ -40,7 +39,6 @@ func ToUserDoc(user entity.User) UserDocument {
 		ID:           user.ID,
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
-		ClientID:     user.ClientID,
 		Verified:     user.Verified,
 		CreatedAt:    user.CreatedAt,
 		UpdatedAt:    user.UpdatedAt,
@@ -53,7 +51,6 @@ func ToUserEntity(doc UserDocument) entity.User {
 		ID:           doc.ID,
 		Email:        doc.Email,
 		PasswordHash: doc.PasswordHash,
-		ClientID:     doc.ClientID,
 		Verified:     doc.Verified,
 		CreatedAt:    doc.CreatedAt,
 		UpdatedAt:    doc.UpdatedAt,
