@@ -28,7 +28,6 @@ type ClientStatus struct {
 type Token struct {
 	Token       string    `db:"token"`
 	UserID      string    `db:"user_id"`
-	ClientID    string    `db:"client_id"`
 	Endpoint    string    `db:"endpoint"`
 	Recipient   string    `db:"recipient"`
 	TokenTypeID int32     `db:"token_type_id"`
@@ -45,7 +44,6 @@ type User struct {
 	ID           string             `db:"id"`
 	Email        string             `db:"email"`
 	PasswordHash string             `db:"password_hash"`
-	ClientID     string             `db:"client_id"`
 	Verified     pgtype.Bool        `db:"verified"`
 	CreatedAt    time.Time          `db:"created_at"`
 	UpdatedAt    time.Time          `db:"updated_at"`
@@ -55,7 +53,6 @@ type User struct {
 type UserDevice struct {
 	ID            string             `db:"id"`
 	UserID        string             `db:"user_id"`
-	ClientID      string             `db:"client_id"`
 	UserAgent     string             `db:"user_agent"`
 	Ip            string             `db:"ip"`
 	Detached      bool               `db:"detached"`

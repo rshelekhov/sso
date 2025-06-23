@@ -10,11 +10,11 @@ import (
 
 type Querier interface {
 	DeleteUser(ctx context.Context, arg DeleteUserParams) error
-	GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (GetUserByEmailRow, error)
-	GetUserByID(ctx context.Context, arg GetUserByIDParams) (GetUserByIDRow, error)
-	GetUserData(ctx context.Context, arg GetUserDataParams) (GetUserDataRow, error)
-	GetUserStatusByEmail(ctx context.Context, arg GetUserStatusByEmailParams) (string, error)
-	GetUserStatusByID(ctx context.Context, arg GetUserStatusByIDParams) (string, error)
+	GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error)
+	GetUserByID(ctx context.Context, id string) (GetUserByIDRow, error)
+	GetUserData(ctx context.Context, id string) (GetUserDataRow, error)
+	GetUserStatusByEmail(ctx context.Context, email string) (string, error)
+	GetUserStatusByID(ctx context.Context, id string) (string, error)
 }
 
 var _ Querier = (*Queries)(nil)
