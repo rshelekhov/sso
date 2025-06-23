@@ -40,7 +40,6 @@ func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.Us
 	params := sqlc.ReplaceSoftDeletedUserParams{
 		ID:           user.ID,
 		PasswordHash: user.PasswordHash,
-		ClientID:     user.ClientID,
 		Verified: pgtype.Bool{
 			Bool:  user.Verified,
 			Valid: true,
@@ -75,7 +74,6 @@ func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error 
 		ID:           user.ID,
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
-		ClientID:     user.ClientID,
 		Verified: pgtype.Bool{
 			Bool:  user.Verified,
 			Valid: true,
@@ -101,22 +99,17 @@ func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error 
 	return nil
 }
 
-func (s *AuthStorage) MarkEmailVerified(ctx context.Context, userID, clientID string) error {
+func (s *AuthStorage) MarkEmailVerified(ctx context.Context, userID string) error {
 	const method = "storage.auth.postgres.MarkEmailVerified"
-
-	params := sqlc.MarkEmailVerifiedParams{
-		ID:       userID,
-		ClientID: clientID,
-	}
 
 	// Mark email as verified within transaction
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
-		return s.queries.WithTx(tx).MarkEmailVerified(ctx, params)
+		return s.queries.WithTx(tx).MarkEmailVerified(ctx, userID)
 	})
 
 	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 		// Mark email as verified without transaction
-		err = s.queries.MarkEmailVerified(ctx, params)
+		err = s.queries.MarkEmailVerified(ctx, userID)
 	}
 
 	if err != nil {
