@@ -13,16 +13,11 @@ import (
 const deleteAllUserDevices = `-- name: DeleteAllUserDevices :exec
 DELETE FROM user_devices
 WHERE user_id = $1
-  AND client_id = $2
+  AND detached = FALSE
 `
 
-type DeleteAllUserDevicesParams struct {
-	UserID   string `db:"user_id"`
-	ClientID string `db:"client_id"`
-}
-
-func (q *Queries) DeleteAllUserDevices(ctx context.Context, arg DeleteAllUserDevicesParams) error {
-	_, err := q.db.Exec(ctx, deleteAllUserDevices, arg.UserID, arg.ClientID)
+func (q *Queries) DeleteAllUserDevices(ctx context.Context, userID string) error {
+	_, err := q.db.Exec(ctx, deleteAllUserDevices, userID)
 	return err
 }
 
@@ -31,32 +26,29 @@ SELECT id
 FROM user_devices
 WHERE user_id = $1
   AND user_agent = $2
-  AND client_id = $3
   AND detached = FALSE
 `
 
 type GetUserDeviceIDParams struct {
 	UserID    string `db:"user_id"`
 	UserAgent string `db:"user_agent"`
-	ClientID  string `db:"client_id"`
 }
 
 func (q *Queries) GetUserDeviceID(ctx context.Context, arg GetUserDeviceIDParams) (string, error) {
-	row := q.db.QueryRow(ctx, getUserDeviceID, arg.UserID, arg.UserAgent, arg.ClientID)
+	row := q.db.QueryRow(ctx, getUserDeviceID, arg.UserID, arg.UserAgent)
 	var id string
 	err := row.Scan(&id)
 	return id, err
 }
 
 const registerDevice = `-- name: RegisterDevice :exec
-INSERT INTO user_devices (id, user_id, client_id, user_agent, ip, detached, last_visited_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO user_devices (id, user_id, user_agent, ip, detached, last_visited_at)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type RegisterDeviceParams struct {
 	ID            string    `db:"id"`
 	UserID        string    `db:"user_id"`
-	ClientID      string    `db:"client_id"`
 	UserAgent     string    `db:"user_agent"`
 	Ip            string    `db:"ip"`
 	Detached      bool      `db:"detached"`
@@ -67,7 +59,6 @@ func (q *Queries) RegisterDevice(ctx context.Context, arg RegisterDeviceParams) 
 	_, err := q.db.Exec(ctx, registerDevice,
 		arg.ID,
 		arg.UserID,
-		arg.ClientID,
 		arg.UserAgent,
 		arg.Ip,
 		arg.Detached,
@@ -80,16 +71,14 @@ const updateLastVisitedAt = `-- name: UpdateLastVisitedAt :exec
 UPDATE user_devices
 SET last_visited_at = $1
 WHERE id = $2
-  AND client_id = $3
 `
 
 type UpdateLastVisitedAtParams struct {
 	LastVisitedAt time.Time `db:"last_visited_at"`
 	ID            string    `db:"id"`
-	ClientID      string    `db:"client_id"`
 }
 
 func (q *Queries) UpdateLastVisitedAt(ctx context.Context, arg UpdateLastVisitedAtParams) error {
-	_, err := q.db.Exec(ctx, updateLastVisitedAt, arg.LastVisitedAt, arg.ID, arg.ClientID)
+	_, err := q.db.Exec(ctx, updateLastVisitedAt, arg.LastVisitedAt, arg.ID)
 	return err
 }

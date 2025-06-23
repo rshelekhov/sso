@@ -37,7 +37,6 @@ func (s *DeviceStorage) RegisterDevice(ctx context.Context, device entity.UserDe
 	params := sqlc.RegisterDeviceParams{
 		ID:            device.ID,
 		UserID:        device.UserID,
-		ClientID:      device.ClientID,
 		UserAgent:     device.UserAgent,
 		Ip:            device.IP,
 		Detached:      device.Detached,
@@ -61,13 +60,12 @@ func (s *DeviceStorage) RegisterDevice(ctx context.Context, device entity.UserDe
 	return nil
 }
 
-func (s *DeviceStorage) GetUserDeviceID(ctx context.Context, userID, clientID, userAgent string) (string, error) {
+func (s *DeviceStorage) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
 	const method = "storage.device.postgres.GetUserDeviceID"
 
 	deviceID, err := s.queries.GetUserDeviceID(ctx, sqlc.GetUserDeviceIDParams{
 		UserID:    userID,
 		UserAgent: userAgent,
-		ClientID:  clientID,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -85,7 +83,6 @@ func (s *DeviceStorage) UpdateLastVisitedAt(ctx context.Context, session entity.
 	params := sqlc.UpdateLastVisitedAtParams{
 		ID:            session.DeviceID,
 		LastVisitedAt: session.LastVisitedAt,
-		ClientID:      session.ClientID,
 	}
 
 	// Update last visited at within transaction
@@ -105,23 +102,17 @@ func (s *DeviceStorage) UpdateLastVisitedAt(ctx context.Context, session entity.
 	return nil
 }
 
-func (s *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID, clientID string) error {
+func (s *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID string) error {
 	const method = "storage.device.postgres.DeleteAllUserDevices"
 
 	// Delete all user devices within transaction
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
-		return s.queries.WithTx(tx).DeleteAllUserDevices(ctx, sqlc.DeleteAllUserDevicesParams{
-			UserID:   userID,
-			ClientID: clientID,
-		})
+		return s.queries.WithTx(tx).DeleteAllUserDevices(ctx, userID)
 	})
 
 	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 		// Delete all user devices without transaction
-		err = s.queries.DeleteAllUserDevices(ctx, sqlc.DeleteAllUserDevicesParams{
-			UserID:   userID,
-			ClientID: clientID,
-		})
+		err = s.queries.DeleteAllUserDevices(ctx, userID)
 	}
 
 	if err != nil {
