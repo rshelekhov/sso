@@ -98,14 +98,13 @@ func (s *VerificationStorage) DeleteVerificationToken(ctx context.Context, token
 	return nil
 }
 
-func (s *VerificationStorage) DeleteAllTokens(ctx context.Context, clientID, userID string) error {
+func (s *VerificationStorage) DeleteAllTokens(ctx context.Context, userID string) error {
 	const method = "storage.verification.mongo.DeleteAllTokens"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 
 	filter := bson.M{
-		fieldAppID:  clientID,
 		fieldUserID: userID,
 	}
 

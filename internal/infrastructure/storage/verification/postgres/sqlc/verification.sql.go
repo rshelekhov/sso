@@ -13,16 +13,10 @@ import (
 const deleteAllVerificationTokens = `-- name: DeleteAllVerificationTokens :exec
 DELETE FROM tokens
 WHERE user_id = $1
-  AND client_id = $2
 `
 
-type DeleteAllVerificationTokensParams struct {
-	UserID   string `db:"user_id"`
-	ClientID string `db:"client_id"`
-}
-
-func (q *Queries) DeleteAllVerificationTokens(ctx context.Context, arg DeleteAllVerificationTokensParams) error {
-	_, err := q.db.Exec(ctx, deleteAllVerificationTokens, arg.UserID, arg.ClientID)
+func (q *Queries) DeleteAllVerificationTokens(ctx context.Context, userID string) error {
+	_, err := q.db.Exec(ctx, deleteAllVerificationTokens, userID)
 	return err
 }
 
@@ -37,7 +31,7 @@ func (q *Queries) DeleteVerificationToken(ctx context.Context, token string) err
 }
 
 const getVerificationTokenData = `-- name: GetVerificationTokenData :one
-SELECT token, user_id, client_id, endpoint, token_type_id, recipient, expires_at
+SELECT token, user_id, endpoint, token_type_id, recipient, expires_at
 FROM tokens
 WHERE token = $1
 `
@@ -45,7 +39,6 @@ WHERE token = $1
 type GetVerificationTokenDataRow struct {
 	Token       string    `db:"token"`
 	UserID      string    `db:"user_id"`
-	ClientID    string    `db:"client_id"`
 	Endpoint    string    `db:"endpoint"`
 	TokenTypeID int32     `db:"token_type_id"`
 	Recipient   string    `db:"recipient"`
@@ -58,7 +51,6 @@ func (q *Queries) GetVerificationTokenData(ctx context.Context, token string) (G
 	err := row.Scan(
 		&i.Token,
 		&i.UserID,
-		&i.ClientID,
 		&i.Endpoint,
 		&i.TokenTypeID,
 		&i.Recipient,
@@ -68,14 +60,13 @@ func (q *Queries) GetVerificationTokenData(ctx context.Context, token string) (G
 }
 
 const saveVerificationToken = `-- name: SaveVerificationToken :exec
-INSERT INTO tokens (token, user_id, client_id, endpoint, recipient, token_type_id,  created_at, expires_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO tokens (token, user_id, endpoint, recipient, token_type_id,  created_at, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type SaveVerificationTokenParams struct {
 	Token       string    `db:"token"`
 	UserID      string    `db:"user_id"`
-	ClientID    string    `db:"client_id"`
 	Endpoint    string    `db:"endpoint"`
 	Recipient   string    `db:"recipient"`
 	TokenTypeID int32     `db:"token_type_id"`
@@ -87,7 +78,6 @@ func (q *Queries) SaveVerificationToken(ctx context.Context, arg SaveVerificatio
 	_, err := q.db.Exec(ctx, saveVerificationToken,
 		arg.Token,
 		arg.UserID,
-		arg.ClientID,
 		arg.Endpoint,
 		arg.Recipient,
 		arg.TokenTypeID,
