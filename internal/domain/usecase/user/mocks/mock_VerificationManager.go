@@ -21,17 +21,17 @@ func (_m *VerificationManager) EXPECT() *VerificationManager_Expecter {
 	return &VerificationManager_Expecter{mock: &_m.Mock}
 }
 
-// DeleteAllTokens provides a mock function with given fields: ctx, clientID, userID
-func (_m *VerificationManager) DeleteAllTokens(ctx context.Context, clientID string, userID string) error {
-	ret := _m.Called(ctx, clientID, userID)
+// DeleteAllTokens provides a mock function with given fields: ctx, userID
+func (_m *VerificationManager) DeleteAllTokens(ctx context.Context, userID string) error {
+	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteAllTokens")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, clientID, userID)
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, userID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -46,15 +46,14 @@ type VerificationManager_DeleteAllTokens_Call struct {
 
 // DeleteAllTokens is a helper method to define mock.On call
 //   - ctx context.Context
-//   - clientID string
 //   - userID string
-func (_e *VerificationManager_Expecter) DeleteAllTokens(ctx interface{}, clientID interface{}, userID interface{}) *VerificationManager_DeleteAllTokens_Call {
-	return &VerificationManager_DeleteAllTokens_Call{Call: _e.mock.On("DeleteAllTokens", ctx, clientID, userID)}
+func (_e *VerificationManager_Expecter) DeleteAllTokens(ctx interface{}, userID interface{}) *VerificationManager_DeleteAllTokens_Call {
+	return &VerificationManager_DeleteAllTokens_Call{Call: _e.mock.On("DeleteAllTokens", ctx, userID)}
 }
 
-func (_c *VerificationManager_DeleteAllTokens_Call) Run(run func(ctx context.Context, clientID string, userID string)) *VerificationManager_DeleteAllTokens_Call {
+func (_c *VerificationManager_DeleteAllTokens_Call) Run(run func(ctx context.Context, userID string)) *VerificationManager_DeleteAllTokens_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
@@ -64,7 +63,7 @@ func (_c *VerificationManager_DeleteAllTokens_Call) Return(_a0 error) *Verificat
 	return _c
 }
 
-func (_c *VerificationManager_DeleteAllTokens_Call) RunAndReturn(run func(context.Context, string, string) error) *VerificationManager_DeleteAllTokens_Call {
+func (_c *VerificationManager_DeleteAllTokens_Call) RunAndReturn(run func(context.Context, string) error) *VerificationManager_DeleteAllTokens_Call {
 	_c.Call.Return(run)
 	return _c
 }

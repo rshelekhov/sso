@@ -39,10 +39,10 @@ type (
 	}
 
 	UserdataManager interface {
-		GetUserByID(ctx context.Context, clientID, userID string) (entity.User, error)
-		GetUserData(ctx context.Context, clientID, userID string) (entity.User, error)
-		GetUserStatusByEmail(ctx context.Context, clientID, email string) (string, error)
-		GetUserStatusByID(ctx context.Context, clientID, userID string) (string, error)
+		GetUserByID(ctx context.Context, userID string) (entity.User, error)
+		GetUserData(ctx context.Context, userID string) (entity.User, error)
+		GetUserStatusByEmail(ctx context.Context, email string) (string, error)
+		GetUserStatusByID(ctx context.Context, userID string) (string, error)
 		UpdateUserData(ctx context.Context, user entity.User) error
 		DeleteUser(ctx context.Context, user entity.User) error
 	}
@@ -57,7 +57,7 @@ type (
 	}
 
 	VerificationManager interface {
-		DeleteAllTokens(ctx context.Context, clientID, userID string) error
+		DeleteAllTokens(ctx context.Context, userID string) error
 	}
 
 	TransactionManager interface {
@@ -98,7 +98,7 @@ func (u *User) GetUser(ctx context.Context, clientID string) (entity.User, error
 		return entity.User{}, domain.ErrFailedToExtractUserIDFromContext
 	}
 
-	userData, err := u.userMgr.GetUserByID(ctx, clientID, userID)
+	userData, err := u.userMgr.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
@@ -119,7 +119,7 @@ func (u *User) GetUserByID(ctx context.Context, clientID, userID string) (entity
 
 	log := u.log.With(slog.String("method", method))
 
-	userData, err := u.userMgr.GetUserByID(ctx, clientID, userID)
+	userData, err := u.userMgr.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
@@ -146,7 +146,7 @@ func (u *User) UpdateUser(ctx context.Context, clientID string, data entity.User
 		return entity.User{}, domain.ErrFailedToExtractUserIDFromContext
 	}
 
-	userDataFromDB, err := u.userMgr.GetUserData(ctx, clientID, userID)
+	userDataFromDB, err := u.userMgr.GetUserData(ctx, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
@@ -157,7 +157,7 @@ func (u *User) UpdateUser(ctx context.Context, clientID string, data entity.User
 		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
 	}
 
-	updatedUser, err := u.updateUserFields(ctx, clientID, data, userDataFromDB)
+	updatedUser, err := u.updateUserFields(ctx, data, userDataFromDB)
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToUpdateUser, err, slog.Any("userID", userID))
 		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToUpdateUser, err)
@@ -181,12 +181,11 @@ func (u *User) DeleteUser(ctx context.Context, clientID string) error {
 
 	userData := entity.User{
 		ID:        userID,
-		ClientID:  clientID,
 		DeletedAt: time.Now(),
 	}
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.ClientID, userData.ID)
+		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.ID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByID, err)
 		}
@@ -219,12 +218,11 @@ func (u *User) DeleteUserByID(ctx context.Context, clientID, userID string) erro
 
 	userData := entity.User{
 		ID:        userID,
-		ClientID:  clientID,
 		DeletedAt: time.Now(),
 	}
 
 	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.ClientID, userData.ID)
+		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.ID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByID, err)
 		}
@@ -252,14 +250,12 @@ func (u *User) DeleteUserByID(ctx context.Context, clientID, userID string) erro
 
 func (u *User) updateUserFields(
 	ctx context.Context,
-	clientID string,
 	data entity.UserRequestData,
 	userDataFromDB entity.User,
 ) (entity.User, error) {
 	updatedUser := entity.User{
 		ID:        userDataFromDB.ID,
 		Email:     data.Email,
-		ClientID:  clientID,
 		UpdatedAt: time.Now(),
 	}
 
@@ -356,7 +352,7 @@ func (u *User) handleEmailUpdate(ctx context.Context, userDataFromDB entity.User
 		return domain.ErrNoEmailChangesDetected
 	}
 
-	userStatus, err := u.userMgr.GetUserStatusByEmail(ctx, updatedUser.ClientID, updatedUser.Email)
+	userStatus, err := u.userMgr.GetUserStatusByEmail(ctx, updatedUser.Email)
 	if err != nil {
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToGetUserStatusByEmail, err)
 	}
@@ -381,7 +377,7 @@ func (u *User) cleanupUserData(ctx context.Context, user entity.User) error {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteUserDevices, err)
 	}
 
-	if err := u.verificationMgr.DeleteAllTokens(ctx, user.ClientID, user.ID); err != nil {
+	if err := u.verificationMgr.DeleteAllTokens(ctx, user.ID); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteUserTokens, err)
 	}
 
