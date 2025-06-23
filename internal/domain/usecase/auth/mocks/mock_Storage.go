@@ -22,17 +22,17 @@ func (_m *Storage) EXPECT() *Storage_Expecter {
 	return &Storage_Expecter{mock: &_m.Mock}
 }
 
-// MarkEmailVerified provides a mock function with given fields: ctx, userID, clientID
-func (_m *Storage) MarkEmailVerified(ctx context.Context, userID string, clientID string) error {
-	ret := _m.Called(ctx, userID, clientID)
+// MarkEmailVerified provides a mock function with given fields: ctx, userID
+func (_m *Storage) MarkEmailVerified(ctx context.Context, userID string) error {
+	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MarkEmailVerified")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, userID, clientID)
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, userID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -48,14 +48,13 @@ type Storage_MarkEmailVerified_Call struct {
 // MarkEmailVerified is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID string
-//   - clientID string
-func (_e *Storage_Expecter) MarkEmailVerified(ctx interface{}, userID interface{}, clientID interface{}) *Storage_MarkEmailVerified_Call {
-	return &Storage_MarkEmailVerified_Call{Call: _e.mock.On("MarkEmailVerified", ctx, userID, clientID)}
+func (_e *Storage_Expecter) MarkEmailVerified(ctx interface{}, userID interface{}) *Storage_MarkEmailVerified_Call {
+	return &Storage_MarkEmailVerified_Call{Call: _e.mock.On("MarkEmailVerified", ctx, userID)}
 }
 
-func (_c *Storage_MarkEmailVerified_Call) Run(run func(ctx context.Context, userID string, clientID string)) *Storage_MarkEmailVerified_Call {
+func (_c *Storage_MarkEmailVerified_Call) Run(run func(ctx context.Context, userID string)) *Storage_MarkEmailVerified_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
@@ -65,7 +64,7 @@ func (_c *Storage_MarkEmailVerified_Call) Return(_a0 error) *Storage_MarkEmailVe
 	return _c
 }
 
-func (_c *Storage_MarkEmailVerified_Call) RunAndReturn(run func(context.Context, string, string) error) *Storage_MarkEmailVerified_Call {
+func (_c *Storage_MarkEmailVerified_Call) RunAndReturn(run func(context.Context, string) error) *Storage_MarkEmailVerified_Call {
 	_c.Call.Return(run)
 	return _c
 }

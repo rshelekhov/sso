@@ -23,7 +23,6 @@ func TestUserUsecase_GetUser(t *testing.T) {
 	expectedUser := entity.User{
 		ID:        userID,
 		Email:     "test@example.com",
-		ClientID:  clientID,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -41,7 +40,7 @@ func TestUserUsecase_GetUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(expectedUser, nil)
 			},
@@ -65,7 +64,7 @@ func TestUserUsecase_GetUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(entity.User{}, domain.ErrUserNotFound)
 			},
@@ -79,7 +78,7 @@ func TestUserUsecase_GetUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
@@ -119,7 +118,6 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 	expectedUser := entity.User{
 		ID:        userID,
 		Email:     "test@example.com",
-		ClientID:  clientID,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -133,7 +131,7 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 		{
 			name: "Success",
 			mockBehavior: func(userMgr *mocks.UserdataManager) {
-				userMgr.EXPECT().GetUserByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(expectedUser, nil)
 			},
@@ -143,7 +141,7 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 		{
 			name: "User not found",
 			mockBehavior: func(userMgr *mocks.UserdataManager) {
-				userMgr.EXPECT().GetUserByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(entity.User{}, domain.ErrUserNotFound)
 			},
@@ -153,7 +151,7 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 		{
 			name: "Failed to get user",
 			mockBehavior: func(userMgr *mocks.UserdataManager) {
-				userMgr.EXPECT().GetUserByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
@@ -199,7 +197,6 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		ID:           userID,
 		Email:        currentEmail,
 		PasswordHash: currentPasswordHash,
-		ClientID:     clientID,
 	}
 
 	tests := []struct {
@@ -226,11 +223,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, newEmail).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, newEmail).
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -255,7 +252,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -309,7 +306,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(entity.User{}, domain.ErrUserNotFound)
 			},
@@ -329,7 +326,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
@@ -349,11 +346,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, newEmail).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, newEmail).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 			},
@@ -373,7 +370,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 			},
@@ -393,11 +390,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, clientID, newEmail).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, newEmail).
 					Once().
 					Return("", fmt.Errorf("user manager error"))
 			},
@@ -418,7 +415,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -445,7 +442,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -472,7 +469,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -503,7 +500,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -534,7 +531,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -569,7 +566,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -653,7 +650,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -669,7 +666,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 					Once().
 					Return(nil)
 
-				verificationMgr.EXPECT().DeleteAllTokens(ctx, clientID, userID).
+				verificationMgr.EXPECT().DeleteAllTokens(ctx, userID).
 					Once().
 					Return(nil)
 			},
@@ -708,7 +705,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusSoftDeleted.String(), nil)
 			},
@@ -732,7 +729,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return("some-unknown-user-status", nil)
 			},
@@ -756,7 +753,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return("", fmt.Errorf("user manager error"))
 			},
@@ -780,7 +777,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -808,7 +805,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -840,7 +837,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -876,7 +873,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -892,7 +889,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 					Once().
 					Return(nil)
 
-				verificationMgr.EXPECT().DeleteAllTokens(ctx, clientID, userID).
+				verificationMgr.EXPECT().DeleteAllTokens(ctx, userID).
 					Once().
 					Return(fmt.Errorf("verification manager error"))
 			},
@@ -973,7 +970,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -989,7 +986,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 					Once().
 					Return(nil)
 
-				verificationMgr.EXPECT().DeleteAllTokens(ctx, clientID, userID).
+				verificationMgr.EXPECT().DeleteAllTokens(ctx, userID).
 					Once().
 					Return(nil)
 			},
@@ -1008,7 +1005,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusSoftDeleted.String(), nil)
 			},
@@ -1027,7 +1024,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return("some-unknown-user-status", nil)
 			},
@@ -1046,7 +1043,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return("", fmt.Errorf("user manager error"))
 			},
@@ -1065,7 +1062,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -1088,7 +1085,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -1115,7 +1112,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -1146,7 +1143,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, clientID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -1162,7 +1159,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 					Once().
 					Return(nil)
 
-				verificationMgr.EXPECT().DeleteAllTokens(ctx, clientID, userID).
+				verificationMgr.EXPECT().DeleteAllTokens(ctx, userID).
 					Once().
 					Return(fmt.Errorf("verification manager error"))
 			},

@@ -69,17 +69,17 @@ func (_c *SessionStorage_CreateSession_Call) RunAndReturn(run func(context.Conte
 	return _c
 }
 
-// DeleteAllSessions provides a mock function with given fields: ctx, userID, clientID
-func (_m *SessionStorage) DeleteAllSessions(ctx context.Context, userID string, clientID string) error {
-	ret := _m.Called(ctx, userID, clientID)
+// DeleteAllSessions provides a mock function with given fields: ctx, userID
+func (_m *SessionStorage) DeleteAllSessions(ctx context.Context, userID string) error {
+	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteAllSessions")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, userID, clientID)
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, userID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -95,14 +95,13 @@ type SessionStorage_DeleteAllSessions_Call struct {
 // DeleteAllSessions is a helper method to define mock.On call
 //   - ctx context.Context
 //   - userID string
-//   - clientID string
-func (_e *SessionStorage_Expecter) DeleteAllSessions(ctx interface{}, userID interface{}, clientID interface{}) *SessionStorage_DeleteAllSessions_Call {
-	return &SessionStorage_DeleteAllSessions_Call{Call: _e.mock.On("DeleteAllSessions", ctx, userID, clientID)}
+func (_e *SessionStorage_Expecter) DeleteAllSessions(ctx interface{}, userID interface{}) *SessionStorage_DeleteAllSessions_Call {
+	return &SessionStorage_DeleteAllSessions_Call{Call: _e.mock.On("DeleteAllSessions", ctx, userID)}
 }
 
-func (_c *SessionStorage_DeleteAllSessions_Call) Run(run func(ctx context.Context, userID string, clientID string)) *SessionStorage_DeleteAllSessions_Call {
+func (_c *SessionStorage_DeleteAllSessions_Call) Run(run func(ctx context.Context, userID string)) *SessionStorage_DeleteAllSessions_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
@@ -112,7 +111,7 @@ func (_c *SessionStorage_DeleteAllSessions_Call) Return(_a0 error) *SessionStora
 	return _c
 }
 
-func (_c *SessionStorage_DeleteAllSessions_Call) RunAndReturn(run func(context.Context, string, string) error) *SessionStorage_DeleteAllSessions_Call {
+func (_c *SessionStorage_DeleteAllSessions_Call) RunAndReturn(run func(context.Context, string) error) *SessionStorage_DeleteAllSessions_Call {
 	_c.Call.Return(run)
 	return _c
 }

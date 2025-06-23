@@ -15,12 +15,12 @@ type UserData struct {
 }
 
 type Storage interface {
-	GetUserByID(ctx context.Context, clientID, userID string) (entity.User, error)
-	GetUserByEmail(ctx context.Context, clientID, email string) (entity.User, error)
-	GetUserData(ctx context.Context, clientID, userID string) (entity.User, error)
+	GetUserByID(ctx context.Context, userID string) (entity.User, error)
+	GetUserByEmail(ctx context.Context, email string) (entity.User, error)
+	GetUserData(ctx context.Context, userID string) (entity.User, error)
 	UpdateUser(ctx context.Context, user entity.User) error
-	GetUserStatusByEmail(ctx context.Context, clientID, email string) (string, error)
-	GetUserStatusByID(ctx context.Context, clientID, userID string) (string, error)
+	GetUserStatusByEmail(ctx context.Context, email string) (string, error)
+	GetUserStatusByID(ctx context.Context, userID string) (string, error)
 	DeleteUser(ctx context.Context, user entity.User) error
 }
 
@@ -30,10 +30,10 @@ func NewService(storage Storage) *UserData {
 	}
 }
 
-func (d *UserData) GetUserByID(ctx context.Context, clientID, userID string) (entity.User, error) {
+func (d *UserData) GetUserByID(ctx context.Context, userID string) (entity.User, error) {
 	const method = "service.user.GetUserByID"
 
-	user, err := d.storage.GetUserByID(ctx, clientID, userID)
+	user, err := d.storage.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return entity.User{}, domain.ErrUserNotFound
@@ -44,10 +44,10 @@ func (d *UserData) GetUserByID(ctx context.Context, clientID, userID string) (en
 	return user, nil
 }
 
-func (d *UserData) GetUserByEmail(ctx context.Context, clientID, email string) (entity.User, error) {
+func (d *UserData) GetUserByEmail(ctx context.Context, email string) (entity.User, error) {
 	const method = "service.user.GetUserByEmail"
 
-	user, err := d.storage.GetUserByEmail(ctx, clientID, email)
+	user, err := d.storage.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return entity.User{}, domain.ErrUserNotFound
@@ -58,10 +58,10 @@ func (d *UserData) GetUserByEmail(ctx context.Context, clientID, email string) (
 	return user, nil
 }
 
-func (d *UserData) GetUserData(ctx context.Context, clientID, userID string) (entity.User, error) {
+func (d *UserData) GetUserData(ctx context.Context, userID string) (entity.User, error) {
 	const method = "service.user.GetUserData"
 
-	user, err := d.storage.GetUserData(ctx, clientID, userID)
+	user, err := d.storage.GetUserData(ctx, userID)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return entity.User{}, domain.ErrUserNotFound
@@ -85,10 +85,10 @@ func (d *UserData) UpdateUserData(ctx context.Context, user entity.User) error {
 	return nil
 }
 
-func (d *UserData) GetUserStatusByEmail(ctx context.Context, clientID, email string) (string, error) {
+func (d *UserData) GetUserStatusByEmail(ctx context.Context, email string) (string, error) {
 	const method = "service.user.GetUserStatusByEmail"
 
-	status, err := d.storage.GetUserStatusByEmail(ctx, clientID, email)
+	status, err := d.storage.GetUserStatusByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return "", domain.ErrUserNotFound
@@ -99,10 +99,10 @@ func (d *UserData) GetUserStatusByEmail(ctx context.Context, clientID, email str
 	return status, nil
 }
 
-func (d *UserData) GetUserStatusByID(ctx context.Context, clientID, userID string) (string, error) {
+func (d *UserData) GetUserStatusByID(ctx context.Context, userID string) (string, error) {
 	const method = "service.user.GetUserStatusByID"
 
-	status, err := d.storage.GetUserStatusByID(ctx, clientID, userID)
+	status, err := d.storage.GetUserStatusByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			return "", domain.ErrUserNotFound
