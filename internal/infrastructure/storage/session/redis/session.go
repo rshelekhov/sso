@@ -38,7 +38,7 @@ func NewSessionStorage(redisConn *storage.RedisConnection) (*SessionStorage, err
 func (s *SessionStorage) CreateSession(ctx context.Context, session entity.Session) error {
 	const method = "storage.redis.CreateSession"
 
-	sessionKey := s.sessionKey(session.UserID, session.ClientID, session.DeviceID)
+	sessionKey := s.sessionKey(session.UserID, session.DeviceID)
 	data := toRedisSessionData(session)
 
 	if err := s.client.HSet(ctx, sessionKey, data).Err(); err != nil {
@@ -106,7 +106,7 @@ func (s *SessionStorage) DeleteRefreshToken(ctx context.Context, refreshToken st
 func (s *SessionStorage) DeleteSession(ctx context.Context, session entity.Session) error {
 	const method = "storage.redis.DeleteSession"
 
-	sessionKey := s.sessionKey(session.UserID, session.ClientID, session.DeviceID)
+	sessionKey := s.sessionKey(session.UserID, session.DeviceID)
 
 	data, err := s.client.HGetAll(ctx, sessionKey).Result()
 	if err != nil {
@@ -125,10 +125,10 @@ func (s *SessionStorage) DeleteSession(ctx context.Context, session entity.Sessi
 	return nil
 }
 
-func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID, clientID string) error {
+func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID string) error {
 	const method = "storage.redis.DeleteAllSessions"
 
-	pattern := fmt.Sprintf("%s:%s:%s:*", sessionKeyPrefix, userID, clientID)
+	pattern := fmt.Sprintf("%s:%s:*", sessionKeyPrefix, userID)
 	iter := s.client.Scan(ctx, 0, pattern, 0).Iterator()
 
 	var keysToDelete []string
@@ -192,8 +192,8 @@ func (s *SessionStorage) IsAccessTokenRevoked(ctx context.Context, token string)
 	return true, nil
 }
 
-func (s *SessionStorage) sessionKey(userID, clientID, deviceID string) string {
-	return fmt.Sprintf("%s:%s:%s:%s", sessionKeyPrefix, userID, clientID, deviceID)
+func (s *SessionStorage) sessionKey(userID, deviceID string) string {
+	return fmt.Sprintf("%s:%s:%s", sessionKeyPrefix, userID, deviceID)
 }
 
 func (s *SessionStorage) refreshIndexKey(refreshToken string) string {
