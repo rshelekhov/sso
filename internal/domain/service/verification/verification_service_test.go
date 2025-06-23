@@ -32,7 +32,7 @@ func TestVerificationService_CreateToken(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "Error – Failed to save verification token",
+			name: "Error - Failed to save verification token",
 			mockBehavior: func(verificationStorage *mocks.Storage) {
 				verificationStorage.EXPECT().SaveVerificationToken(ctx, mock.AnythingOfType("entity.VerificationToken")).
 					Once().
@@ -45,9 +45,8 @@ func TestVerificationService_CreateToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			user := entity.User{
-				ID:       "test-user-id",
-				ClientID: "test-client-id",
-				Email:    "test-email@gmail.com",
+				ID:    "test-user-id",
+				Email: "test-email@gmail.com",
 			}
 			tokenType := entity.TokenTypeVerifyEmail
 			verificationEndpoint := "https://example.com/verify"
@@ -81,7 +80,6 @@ func TestVerificationService_GetTokenData(t *testing.T) {
 	verificationToken := entity.VerificationToken{
 		Token:    tokenStr,
 		UserID:   "test-user-id",
-		ClientID: "test-client-id",
 		Endpoint: "https://example.com/verify",
 		Email:    "test-email@gmail.com",
 		Type:     entity.TokenTypeVerifyEmail,
@@ -102,7 +100,7 @@ func TestVerificationService_GetTokenData(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "Error – Token not found",
+			name: "Error - Token not found",
 			mockBehavior: func(verificationStorage *mocks.Storage) {
 				verificationStorage.EXPECT().GetVerificationTokenData(ctx, tokenStr).
 					Once().
@@ -111,7 +109,7 @@ func TestVerificationService_GetTokenData(t *testing.T) {
 			expectedError: domain.ErrVerificationTokenNotFound,
 		},
 		{
-			name: "Error – Failed to get verification token data",
+			name: "Error - Failed to get verification token data",
 			mockBehavior: func(verificationStorage *mocks.Storage) {
 				verificationStorage.EXPECT().GetVerificationTokenData(ctx, tokenStr).
 					Once().
@@ -162,7 +160,7 @@ func TestVerificationService_DeleteToken(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "Error – Failed to delete verification token",
+			name: "Error - Failed to delete verification token",
 			mockBehavior: func(mockVerificationStorage *mocks.Storage) {
 				mockVerificationStorage.EXPECT().DeleteVerificationToken(ctx, tokenStr).
 					Once().
@@ -193,7 +191,6 @@ func TestVerificationService_DeleteToken(t *testing.T) {
 }
 
 func TestVerificationService_DeleteAllTokens(t *testing.T) {
-	clientID := "test-app-id"
 	userID := "test-user-id"
 
 	tests := []struct {
@@ -205,7 +202,7 @@ func TestVerificationService_DeleteAllTokens(t *testing.T) {
 			name: "Success",
 			mockBehavior: func(verificationStorage *mocks.Storage) {
 				verificationStorage.EXPECT().
-					DeleteAllTokens(context.Background(), clientID, userID).
+					DeleteAllTokens(context.Background(), userID).
 					Return(nil)
 			},
 			expectedError: nil,
@@ -214,7 +211,7 @@ func TestVerificationService_DeleteAllTokens(t *testing.T) {
 			name: "Error - Storage error",
 			mockBehavior: func(verificationStorage *mocks.Storage) {
 				verificationStorage.EXPECT().
-					DeleteAllTokens(context.Background(), clientID, userID).
+					DeleteAllTokens(context.Background(), userID).
 					Return(errors.New("verification storage error"))
 			},
 			expectedError: errors.New("verification storage error"),
@@ -229,7 +226,7 @@ func TestVerificationService_DeleteAllTokens(t *testing.T) {
 			tokenExpiryTime := 24 * time.Hour
 			verificationService := NewService(tokenExpiryTime, mockVerificationStorage)
 
-			err := verificationService.DeleteAllTokens(context.Background(), clientID, userID)
+			err := verificationService.DeleteAllTokens(context.Background(), userID)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
