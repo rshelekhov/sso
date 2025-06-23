@@ -7,5 +7,4 @@ const (
 	IssuerKey           = "issuer"
 	ClientIDKey         = "client_id"
 	ExpirationAtKey     = "expiration_at"
-	RoleKey             = "role"
 )
