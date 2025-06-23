@@ -25,22 +25,6 @@ func (s *Service) ExtractUserIDFromTokenInContext(ctx context.Context, clientID 
 	return userID.(string), nil
 }
 
-func (s *Service) ExtractUserRoleFromTokenInContext(ctx context.Context, clientID string) (string, error) {
-	const method = "service.token.ExtractUserRoleFromTokenInContext"
-
-	claims, err := s.getClaimsFromToken(ctx, clientID)
-	if err != nil {
-		return "", fmt.Errorf("%s: %w", method, err)
-	}
-
-	role, ok := claims[domain.RoleKey]
-	if !ok {
-		return "", fmt.Errorf("%s: %w", method, domain.ErrRoleNotFoundInContext)
-	}
-
-	return role.(string), nil
-}
-
 func (s *Service) getClaimsFromToken(ctx context.Context, clientID string) (map[string]interface{}, error) {
 	const method = "service.token.getClaimsFromToken"
 
@@ -74,7 +58,7 @@ func (s *Service) parseToken(tokenRaw, clientID string) (*jwt.Token, error) {
 	tokenString := strings.TrimSpace(tokenRaw)
 
 	//nolint:revive
-	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, func(token *jwt.Token) (any, error) {
 		return s.PublicKey(clientID)
 	})
 	if err != nil {

@@ -149,13 +149,13 @@ The application follows a clean architecture approach:
 - `/internal/controller`: gRPC controllers and HTTP handlers for handling incoming requests
 - `/internal/domain/entity`: Domain models and business objects with no external dependencies
 - `/internal/domain/service`: Core business logic services
-  - `/internal/domain/service/appvalidator`: Service for validating applications by appID and managing application permissions
+  - `/internal/domain/service/clientvalidator`: Service for validating clients by clientID and managing client permissions
   - `/internal/domain/service/session`: Service for session management (creation, refreshing, deletion, and validation)
   - `/internal/domain/service/token`: Service for token management (JWT creation, validation, and revocation)
   - `/internal/domain/service/userdata`: Service for user data management (creation, updating, deletion, and profile management)
   - `/internal/domain/service/verification`: Service for managing verification tokens (for user confirmation after registration and password changes)
 - `/internal/domain/usecase`: Application use cases implementing business logic
-  - `/internal/domain/usecase/app`: Use cases for application management (registration, validation, and configuration)
+  - `/internal/domain/usecase/app`: Use cases for client management (registration, validation, and configuration)
   - `/internal/domain/usecase/auth`: Use cases for authentication and authorization (registration, login, logout, token refresh)
   - `/internal/domain/usecase/user`: Use cases for user management (profile updates, user deleting)
 - `/internal/infrastructure/service`: Third-party service integrations (email service for now, SMS service planned for future)
@@ -163,9 +163,9 @@ The application follows a clean architecture approach:
 
 ### Storage Layer
 - `/internal/infrastructure/storage`: Database connections and interfaces for Mongo, Postgres and Redis
-  - `/internal/infrastructure/app`: Storage interfaces and implementations for application management
-    - `/internal/infrastructure/app/mongo`: MongoDB implementation of app management storage interface
-    - `/internal/infrastructure/app/postgres`: PostgreSQL implementation of app management storage interface
+  - `/internal/infrastructure/client`: Storage interfaces and implementations for client management
+    - `/internal/infrastructure/client/mongo`: MongoDB implementation of client management storage interface
+    - `/internal/infrastructure/client/postgres`: PostgreSQL implementation of client management storage interface
   - `/internal/infrastructure/auth`: Storage interfaces and implementations for authentication
     - `/internal/infrastructure/auth/mongo`: MongoDB implementation of auth and user data storage interfaces
     - `/internal/infrastructure/auth/postgres`: PostgreSQL implementation of auth and user data storage interfaces
@@ -191,15 +191,12 @@ The application follows a clean architecture approach:
 ### Common
 - `/internal/lib/e`: Helper functions for standardized error handling and logging
 - `/internal/lib/interceptor`: gRPC interceptors for request processing
-  - `/internal/lib/interceptor/appid`: Interceptor for extracting and validating appID from requests
   - `/internal/lib/interceptor/auth`: Interceptor for user authentication and authorization
+  - `/internal/lib/interceptor/clientid`: Interceptor for extracting and validating clientID from requests
+  - `/internal/lib/interceptor/requestid`: Request ID tracking and management
 - `/internal/lib/logger`: Logging system implementation
   - `/internal/lib/logger/handler/slogdiscard`: Null logger implementation for unit tests
   - `/internal/lib/logger/handler/slogpretty`: Pretty formatter for log output
-- `/internal/lib/midleware/logger`: HTTP middleware for request logging
-- `/pkg/middleware`: Abstract middleware interfaces and implementations
-  - `/pkg/middleware/appid`: AppID management in request context
-  - `/pkg/middleware/requestID`: Request ID tracking and management
 - `/pkg/service/mail`: Email service interfaces and implementations
   - `/pkg/service/mail/mailgun`: Mailgun email service integration
   - `/pkg/service/mail/mocks`: Mock email service for testing
@@ -214,7 +211,7 @@ The application follows a clean architecture approach:
 
 ### CMD
 - `/cmd/migrate`: CLI tool for database schema migrations
-- `/cmd/register_app`: CLI tool for registering new applications in the SSO system
+- `/cmd/register_client`: CLI tool for registering new clients in the SSO system
 - `cmd/sso`: Main application entry point and server initialization
 
 ### Other

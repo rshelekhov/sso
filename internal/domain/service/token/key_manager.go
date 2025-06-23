@@ -25,7 +25,7 @@ func (s *Service) GenerateAndSavePrivateKey(clientID string) error {
 	return nil
 }
 
-func (s *Service) PublicKey(clientID string) (interface{}, error) {
+func (s *Service) PublicKey(clientID string) (any, error) {
 	const method = "service.token.PublicKey"
 
 	privateKey, err := s.getPrivateKeyFromPEM(clientID)
@@ -33,7 +33,7 @@ func (s *Service) PublicKey(clientID string) (interface{}, error) {
 		return nil, fmt.Errorf("%s: %w", method, err)
 	}
 
-	var publicKey interface{}
+	var publicKey any
 	switch key := privateKey.(type) {
 	case *rsa.PrivateKey:
 		publicKey = &key.PublicKey
@@ -63,7 +63,7 @@ func generatePrivateKeyPEM() ([]byte, error) {
 	return pemBytes, nil
 }
 
-func (s *Service) getPrivateKeyFromPEM(clientID string) (interface{}, error) {
+func (s *Service) getPrivateKeyFromPEM(clientID string) (any, error) {
 	privateKeyPEM, err := s.keyStorage.GetPrivateKey(clientID)
 	if err != nil {
 		return nil, err
