@@ -10,7 +10,6 @@ type (
 	UserDevice struct {
 		ID            string
 		UserID        string
-		ClientID      string
 		UserAgent     string
 		IP            string
 		Detached      bool
@@ -28,7 +27,6 @@ func NewUserDevice(session SessionRequestData) UserDevice {
 	return UserDevice{
 		ID:            ksuid.New().String(),
 		UserID:        session.UserID,
-		ClientID:      session.ClientID,
 		UserAgent:     session.UserDevice.UserAgent,
 		IP:            session.UserDevice.IP,
 		Detached:      false,

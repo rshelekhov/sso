@@ -10,7 +10,6 @@ type (
 	Session struct {
 		ID            string
 		UserID        string
-		ClientID      string
 		DeviceID      string
 		RefreshToken  string
 		LastVisitedAt time.Time
@@ -19,9 +18,20 @@ type (
 
 	SessionRequestData struct {
 		UserID     string
-		ClientID   string
 		DeviceID   string
+		ClientID   string
 		UserDevice UserDeviceRequestData
+	}
+
+	// SessionTokens uses for creating user sessions
+	SessionTokens struct {
+		AccessToken      string
+		RefreshToken     string
+		Domain           string
+		Path             string
+		ExpiresAt        time.Time
+		HTTPOnly         bool
+		AdditionalFields map[string]string
 	}
 )
 
@@ -34,7 +44,6 @@ func NewSession(
 	return Session{
 		ID:            ksuid.New().String(),
 		UserID:        reqData.UserID,
-		ClientID:      reqData.ClientID,
 		DeviceID:      reqData.DeviceID,
 		RefreshToken:  refreshToken,
 		LastVisitedAt: currentTime,
