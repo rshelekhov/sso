@@ -13,11 +13,11 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-func (s *Service) NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error) {
+func (s *Service) NewAccessToken(clientID, kid string, additionalClaims map[string]any) (string, error) {
 	const method = "service.token.NewAccessToken"
 
-	if appID == "" {
-		return "", fmt.Errorf("%s: %w", method, domain.ErrAppIDIsNotAllowed)
+	if clientID == "" {
+		return "", fmt.Errorf("%s: %w", method, domain.ErrClientIDIsNotAllowed)
 	}
 
 	if kid == "" {
@@ -30,7 +30,7 @@ func (s *Service) NewAccessToken(appID, kid string, additionalClaims map[string]
 		maps.Copy(claims, additionalClaims)
 	}
 
-	privateKeyPEM, err := s.keyStorage.GetPrivateKey(appID)
+	privateKeyPEM, err := s.keyStorage.GetPrivateKey(clientID)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToGetPrivateKey, err)
 	}
@@ -72,15 +72,15 @@ func (s *Service) JWKSTTL() time.Duration {
 	return s.jwksTTL
 }
 
-func (s *Service) Kid(appID string) (string, error) {
+func (s *Service) Kid(clientID string) (string, error) {
 	const method = "service.Service.Kid"
 
-	if appID == "" {
-		return "", fmt.Errorf("%s: %w", method, domain.ErrAppIDIsNotAllowed)
+	if clientID == "" {
+		return "", fmt.Errorf("%s: %w", method, domain.ErrClientIDIsNotAllowed)
 	}
 
 	// Get public key
-	pub, err := s.PublicKey(appID)
+	pub, err := s.PublicKey(clientID)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToGetPublicKey, err)
 	}

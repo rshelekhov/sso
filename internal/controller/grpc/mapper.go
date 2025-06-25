@@ -5,7 +5,8 @@ import (
 
 	"github.com/rshelekhov/sso/internal/controller"
 
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"google.golang.org/grpc/codes"
@@ -13,7 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func fromLoginRequest(req *ssov1.LoginRequest) *entity.UserRequestData {
+func fromLoginRequest(req *authv1.LoginRequest) *entity.UserRequestData {
 	return &entity.UserRequestData{
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),
@@ -24,9 +25,9 @@ func fromLoginRequest(req *ssov1.LoginRequest) *entity.UserRequestData {
 	}
 }
 
-func toLoginResponse(tokenData entity.SessionTokens) *ssov1.LoginResponse {
-	return &ssov1.LoginResponse{
-		TokenData: &ssov1.TokenData{
+func toLoginResponse(tokenData entity.SessionTokens) *authv1.LoginResponse {
+	return &authv1.LoginResponse{
+		TokenData: &authv1.TokenData{
 			AccessToken:      tokenData.AccessToken,
 			RefreshToken:     tokenData.RefreshToken,
 			Domain:           tokenData.Domain,
@@ -38,7 +39,7 @@ func toLoginResponse(tokenData entity.SessionTokens) *ssov1.LoginResponse {
 	}
 }
 
-func fromRegisterUserRequest(req *ssov1.RegisterUserRequest) *entity.UserRequestData {
+func fromRegisterUserRequest(req *authv1.RegisterUserRequest) *entity.UserRequestData {
 	return &entity.UserRequestData{
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),
@@ -49,9 +50,9 @@ func fromRegisterUserRequest(req *ssov1.RegisterUserRequest) *entity.UserRequest
 	}
 }
 
-func toRegisterUserResponse(tokenData entity.SessionTokens) *ssov1.RegisterUserResponse {
-	return &ssov1.RegisterUserResponse{
-		TokenData: &ssov1.TokenData{
+func toRegisterUserResponse(tokenData entity.SessionTokens) *authv1.RegisterUserResponse {
+	return &authv1.RegisterUserResponse{
+		TokenData: &authv1.TokenData{
 			AccessToken:      tokenData.AccessToken,
 			RefreshToken:     tokenData.RefreshToken,
 			Domain:           tokenData.Domain,
@@ -63,27 +64,27 @@ func toRegisterUserResponse(tokenData entity.SessionTokens) *ssov1.RegisterUserR
 	}
 }
 
-func fromResetPasswordRequest(req *ssov1.ResetPasswordRequest) *entity.ResetPasswordRequestData {
+func fromResetPasswordRequest(req *authv1.ResetPasswordRequest) *entity.ResetPasswordRequestData {
 	return &entity.ResetPasswordRequestData{
 		Email: req.GetEmail(),
 	}
 }
 
-func fromChangePasswordRequest(req *ssov1.ChangePasswordRequest) *entity.ChangePasswordRequestData {
+func fromChangePasswordRequest(req *authv1.ChangePasswordRequest) *entity.ChangePasswordRequestData {
 	return &entity.ChangePasswordRequestData{
 		ResetPasswordToken: req.GetToken(),
 		UpdatedPassword:    req.GetUpdatedPassword(),
 	}
 }
 
-func fromLogoutRequest(req *ssov1.LogoutRequest) *entity.UserDeviceRequestData {
+func fromLogoutRequest(req *authv1.LogoutRequest) *entity.UserDeviceRequestData {
 	return &entity.UserDeviceRequestData{
 		UserAgent: req.UserDeviceData.GetUserAgent(),
 		IP:        req.UserDeviceData.GetIp(),
 	}
 }
 
-func fromRefreshRequest(req *ssov1.RefreshRequest) *entity.RefreshTokenRequestData {
+func fromRefreshRequest(req *authv1.RefreshTokensRequest) *entity.RefreshTokenRequestData {
 	return &entity.RefreshTokenRequestData{
 		RefreshToken: req.GetRefreshToken(),
 		UserDevice: entity.UserDeviceRequestData{
@@ -93,9 +94,9 @@ func fromRefreshRequest(req *ssov1.RefreshRequest) *entity.RefreshTokenRequestDa
 	}
 }
 
-func toRefreshResponse(tokenData entity.SessionTokens) *ssov1.RefreshResponse {
-	return &ssov1.RefreshResponse{
-		TokenData: &ssov1.TokenData{
+func toRefreshTokensResponse(tokenData entity.SessionTokens) *authv1.RefreshTokensResponse {
+	return &authv1.RefreshTokensResponse{
+		TokenData: &authv1.TokenData{
 			AccessToken:      tokenData.AccessToken,
 			RefreshToken:     tokenData.RefreshToken,
 			Domain:           tokenData.Domain,
@@ -107,11 +108,11 @@ func toRefreshResponse(tokenData entity.SessionTokens) *ssov1.RefreshResponse {
 	}
 }
 
-func toJWKSResponse(jwks entity.JWKS) *ssov1.GetJWKSResponse {
-	var jwksResponse []*ssov1.JWK
+func toJWKSResponse(jwks entity.JWKS) *authv1.GetJWKSResponse {
+	var jwksResponse []*authv1.JWK
 
 	for _, jwk := range jwks.Keys {
-		jwkResponse := &ssov1.JWK{
+		jwkResponse := &authv1.JWK{
 			Kty: jwk.Kty,
 			Kid: jwk.Kid,
 			Use: jwk.Use,
@@ -123,24 +124,23 @@ func toJWKSResponse(jwks entity.JWKS) *ssov1.GetJWKSResponse {
 		jwksResponse = append(jwksResponse, jwkResponse)
 	}
 
-	return &ssov1.GetJWKSResponse{
+	return &authv1.GetJWKSResponse{
 		Jwks: jwksResponse,
 	}
 }
 
-func toGetUserResponse(user entity.User) *ssov1.GetUserResponse {
-	return &ssov1.GetUserResponse{
-		User: &ssov1.User{
+func toGetUserResponse(user entity.User) *userv1.GetUserResponse {
+	return &userv1.GetUserResponse{
+		User: &userv1.User{
 			Id:        user.ID,
 			Email:     user.Email,
 			Verified:  user.Verified,
-			Role:      user.Role,
 			UpdatedAt: timestamppb.New(user.UpdatedAt),
 		},
 	}
 }
 
-func fromUpdateUserRequest(req *ssov1.UpdateUserRequest) entity.UserRequestData {
+func fromUpdateUserRequest(req *userv1.UpdateUserRequest) entity.UserRequestData {
 	return entity.UserRequestData{
 		Email:           req.GetEmail(),
 		Password:        req.GetCurrentPassword(),
@@ -148,21 +148,20 @@ func fromUpdateUserRequest(req *ssov1.UpdateUserRequest) entity.UserRequestData 
 	}
 }
 
-func toUpdateUserResponse(user entity.User) *ssov1.UpdateUserResponse {
-	return &ssov1.UpdateUserResponse{
+func toUpdateUserResponse(user entity.User) *userv1.UpdateUserResponse {
+	return &userv1.UpdateUserResponse{
 		Email:     user.Email,
 		UpdatedAt: timestamppb.New(user.UpdatedAt),
 	}
 }
 
-func toGetUserByIDResponse(user entity.User) *ssov1.GetUserByIDResponse {
-	return &ssov1.GetUserByIDResponse{
-		User: &ssov1.User{
+func toGetUserByIDResponse(user entity.User) *userv1.GetUserByIDResponse {
+	return &userv1.GetUserByIDResponse{
+		User: &userv1.User{
 			Id:        user.ID,
 			Email:     user.Email,
 			Verified:  user.Verified,
 			UpdatedAt: timestamppb.New(user.UpdatedAt),
-			Role:      user.Role,
 		},
 	}
 }
@@ -181,7 +180,7 @@ var errorToStatus = map[error]codes.Code{
 	domain.ErrNoEmailChangesDetected:      codes.InvalidArgument,
 	domain.ErrNoPasswordChangesDetected:   codes.InvalidArgument,
 	domain.ErrTokenExpiredWithEmailResent: codes.FailedPrecondition,
-	domain.ErrAppAlreadyExists:            codes.AlreadyExists,
+	domain.ErrClientIDIsNotAllowed:        codes.InvalidArgument,
 }
 
 func mapErrorToGRPCStatus(err error) error {

@@ -53,7 +53,7 @@ func (s *DeviceStorage) RegisterDevice(ctx context.Context, device entity.UserDe
 	return nil
 }
 
-func (s *DeviceStorage) GetUserDeviceID(ctx context.Context, userID, appID, userAgent string) (string, error) {
+func (s *DeviceStorage) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
 	const method = "storage.session.mongo.GetUserDeviceID"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
@@ -61,7 +61,6 @@ func (s *DeviceStorage) GetUserDeviceID(ctx context.Context, userID, appID, user
 
 	filter := bson.M{
 		fieldUserID:    userID,
-		fieldAppID:     appID,
 		fieldUserAgent: userAgent,
 	}
 
@@ -112,7 +111,7 @@ func (s *DeviceStorage) UpdateLastVisitedAt(ctx context.Context, session entity.
 	return nil
 }
 
-func (s *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID, appID string) error {
+func (s *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID string) error {
 	const method = "storage.session.mongo.DeleteAllUserDevices"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
@@ -120,7 +119,6 @@ func (s *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID, appID 
 
 	filter := bson.M{
 		fieldUserID: userID,
-		fieldAppID:  appID,
 	}
 
 	result, err := s.devicesColl.DeleteMany(ctx, filter)

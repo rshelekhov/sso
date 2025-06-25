@@ -8,7 +8,6 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/domain/service/rbac"
 	"github.com/rshelekhov/sso/internal/domain/usecase/user/mocks"
 	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogdiscard"
 	"github.com/stretchr/testify/assert"
@@ -18,13 +17,12 @@ import (
 
 func TestUserUsecase_GetUser(t *testing.T) {
 	ctx := context.Background()
-	appID := "test-app-id"
+	clientID := "test-app-id"
 	userID := "test-user-id"
 
 	expectedUser := entity.User{
 		ID:        userID,
 		Email:     "test@example.com",
-		AppID:     appID,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -38,11 +36,11 @@ func TestUserUsecase_GetUser(t *testing.T) {
 		{
 			name: "Success",
 			mockBehavior: func(identityMgr *mocks.IdentityManager, userMgr *mocks.UserdataManager) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(expectedUser, nil)
 			},
@@ -52,7 +50,7 @@ func TestUserUsecase_GetUser(t *testing.T) {
 		{
 			name: "Failed to extract user ID",
 			mockBehavior: func(identityMgr *mocks.IdentityManager, userMgr *mocks.UserdataManager) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return("", domain.ErrFailedToExtractUserIDFromContext)
 			},
@@ -62,11 +60,11 @@ func TestUserUsecase_GetUser(t *testing.T) {
 		{
 			name: "User not found",
 			mockBehavior: func(identityMgr *mocks.IdentityManager, userMgr *mocks.UserdataManager) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(entity.User{}, domain.ErrUserNotFound)
 			},
@@ -76,11 +74,11 @@ func TestUserUsecase_GetUser(t *testing.T) {
 		{
 			name: "Failed to get user",
 			mockBehavior: func(identityMgr *mocks.IdentityManager, userMgr *mocks.UserdataManager) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
@@ -98,9 +96,9 @@ func TestUserUsecase_GetUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, nil, userMgr, nil, identityMgr, nil, nil)
+			userUsecase := NewUsecase(log, nil, nil, userMgr, nil, identityMgr, nil, nil)
 
-			userData, err := user.GetUser(ctx, appID)
+			userData, err := userUsecase.GetUser(ctx, clientID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -114,13 +112,12 @@ func TestUserUsecase_GetUser(t *testing.T) {
 
 func TestUserUsecase_GetUserByID(t *testing.T) {
 	ctx := context.Background()
-	appID := "test-app-id"
+	clientID := "test-app-id"
 	userID := "test-user-id"
 
 	expectedUser := entity.User{
 		ID:        userID,
 		Email:     "test@example.com",
-		AppID:     appID,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -134,7 +131,7 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 		{
 			name: "Success",
 			mockBehavior: func(userMgr *mocks.UserdataManager) {
-				userMgr.EXPECT().GetUserByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(expectedUser, nil)
 			},
@@ -144,7 +141,7 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 		{
 			name: "User not found",
 			mockBehavior: func(userMgr *mocks.UserdataManager) {
-				userMgr.EXPECT().GetUserByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(entity.User{}, domain.ErrUserNotFound)
 			},
@@ -154,7 +151,7 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 		{
 			name: "Failed to get user",
 			mockBehavior: func(userMgr *mocks.UserdataManager) {
-				userMgr.EXPECT().GetUserByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserByID(ctx, userID).
 					Once().
 					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
@@ -171,9 +168,9 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, nil, userMgr, nil, nil, nil, nil)
+			userUsecase := NewUsecase(log, nil, nil, userMgr, nil, nil, nil, nil)
 
-			userData, err := user.GetUserByID(ctx, appID, userID)
+			userData, err := userUsecase.GetUserByID(ctx, clientID, userID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -187,7 +184,7 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 
 func TestUserUsecase_UpdateUser(t *testing.T) {
 	ctx := context.Background()
-	appID := "test-app-id"
+	clientID := "test-app-id"
 	userID := "test-user-id"
 	currentEmail := "old@example.com"
 	newEmail := "new@example.com"
@@ -200,7 +197,6 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 		ID:           userID,
 		Email:        currentEmail,
 		PasswordHash: currentPasswordHash,
-		AppID:        appID,
 	}
 
 	tests := []struct {
@@ -223,15 +219,15 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, newEmail).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, newEmail).
 					Once().
 					Return(entity.UserStatusNotFound.String(), nil)
 
@@ -252,11 +248,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -290,7 +286,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return("", domain.ErrFailedToExtractUserIDFromContext)
 			},
@@ -306,11 +302,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(entity.User{}, domain.ErrUserNotFound)
 			},
@@ -326,11 +322,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(entity.User{}, fmt.Errorf("user manager error"))
 			},
@@ -346,15 +342,15 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, newEmail).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, newEmail).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 			},
@@ -370,11 +366,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 			},
@@ -390,15 +386,15 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
-				userMgr.EXPECT().GetUserStatusByEmail(ctx, appID, newEmail).
+				userMgr.EXPECT().GetUserStatusByEmail(ctx, newEmail).
 					Once().
 					Return("", fmt.Errorf("user manager error"))
 			},
@@ -415,11 +411,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -442,11 +438,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -469,11 +465,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -500,11 +496,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -531,11 +527,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -566,11 +562,11 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 				userMgr *mocks.UserdataManager,
 				passwordMgr *mocks.PasswordManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
-				userMgr.EXPECT().GetUserData(ctx, appID, userID).
+				userMgr.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(existingUser, nil)
 
@@ -606,9 +602,9 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, nil, userMgr, passwordMgr, identityMgr, nil, nil)
+			userUsecase := NewUsecase(log, nil, nil, userMgr, passwordMgr, identityMgr, nil, nil)
 
-			updatedUser, err := user.UpdateUser(ctx, appID, tt.reqData)
+			updatedUser, err := userUsecase.UpdateUser(ctx, clientID, tt.reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -622,7 +618,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 
 func TestUserUsecase_DeleteUser(t *testing.T) {
 	ctx := context.Background()
-	appID := "test-app-id"
+	clientID := "test-app-id"
 	userID := "test-user-id"
 
 	tests := []struct {
@@ -645,7 +641,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
@@ -654,7 +650,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -670,7 +666,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 					Once().
 					Return(nil)
 
-				verificationMgr.EXPECT().DeleteAllTokens(ctx, appID, userID).
+				verificationMgr.EXPECT().DeleteAllTokens(ctx, userID).
 					Once().
 					Return(nil)
 			},
@@ -685,7 +681,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return("", domain.ErrFailedToExtractUserIDFromContext)
 			},
@@ -700,7 +696,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
@@ -709,7 +705,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusSoftDeleted.String(), nil)
 			},
@@ -724,7 +720,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
@@ -733,7 +729,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return("some-unknown-user-status", nil)
 			},
@@ -748,7 +744,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
@@ -757,7 +753,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return("", fmt.Errorf("user manager error"))
 			},
@@ -772,7 +768,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
@@ -781,7 +777,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -800,7 +796,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
@@ -809,7 +805,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -832,7 +828,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
@@ -841,7 +837,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -868,7 +864,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
@@ -877,7 +873,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -893,7 +889,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 					Once().
 					Return(nil)
 
-				verificationMgr.EXPECT().DeleteAllTokens(ctx, appID, userID).
+				verificationMgr.EXPECT().DeleteAllTokens(ctx, userID).
 					Once().
 					Return(fmt.Errorf("verification manager error"))
 			},
@@ -908,7 +904,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 				verificationMgr *mocks.VerificationManager,
 				txMgr *mocks.TransactionManager,
 			) {
-				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, appID).
+				identityMgr.EXPECT().ExtractUserIDFromTokenInContext(ctx, clientID).
 					Once().
 					Return(userID, nil)
 
@@ -933,9 +929,9 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, sessionMgr, userMgr, nil, identityMgr, verificationMgr, txMgr)
+			userUsecase := NewUsecase(log, nil, sessionMgr, userMgr, nil, identityMgr, verificationMgr, txMgr)
 
-			err := user.DeleteUser(ctx, appID)
+			err := userUsecase.DeleteUser(ctx, clientID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -948,7 +944,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 
 func TestUserUsecase_DeleteUserByID(t *testing.T) {
 	ctx := context.Background()
-	appID := "test-app-id"
+	clientID := "test-app-id"
 	userID := "test-user-id"
 
 	tests := []struct {
@@ -974,7 +970,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -990,7 +986,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 					Once().
 					Return(nil)
 
-				verificationMgr.EXPECT().DeleteAllTokens(ctx, appID, userID).
+				verificationMgr.EXPECT().DeleteAllTokens(ctx, userID).
 					Once().
 					Return(nil)
 			},
@@ -1009,7 +1005,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusSoftDeleted.String(), nil)
 			},
@@ -1028,7 +1024,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return("some-unknown-user-status", nil)
 			},
@@ -1047,7 +1043,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return("", fmt.Errorf("user manager error"))
 			},
@@ -1066,7 +1062,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -1089,7 +1085,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -1116,7 +1112,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -1147,7 +1143,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 						return fn(ctx)
 					})
 
-				userMgr.EXPECT().GetUserStatusByID(ctx, appID, userID).
+				userMgr.EXPECT().GetUserStatusByID(ctx, userID).
 					Once().
 					Return(entity.UserStatusActive.String(), nil)
 
@@ -1163,7 +1159,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 					Once().
 					Return(nil)
 
-				verificationMgr.EXPECT().DeleteAllTokens(ctx, appID, userID).
+				verificationMgr.EXPECT().DeleteAllTokens(ctx, userID).
 					Once().
 					Return(fmt.Errorf("verification manager error"))
 			},
@@ -1197,126 +1193,9 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			user := NewUsecase(log, nil, nil, sessionMgr, userMgr, nil, nil, verificationMgr, txMgr)
+			userUsecase := NewUsecase(log, nil, sessionMgr, userMgr, nil, nil, verificationMgr, txMgr)
 
-			err := user.DeleteUserByID(ctx, appID, userID)
-
-			if tt.expectedError != nil {
-				assert.Contains(t, err.Error(), tt.expectedError.Error())
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestUserUsecase_GetUserRole(t *testing.T) {
-	ctx := context.Background()
-	appID := "test-app-id"
-	userID := "test-user-id"
-
-	tests := []struct {
-		name          string
-		mockBehavior  func(rbacMgr *mocks.RBACManager)
-		expectedError error
-		expectedRole  string
-	}{
-		{
-			name: "Success",
-			mockBehavior: func(rbacMgr *mocks.RBACManager) {
-				rbacMgr.EXPECT().GetUserRole(ctx, appID, userID).
-					Once().
-					Return(rbac.Role("admin"), nil)
-			},
-			expectedError: nil,
-			expectedRole:  "admin",
-		},
-		{
-			name: "Failed to get user role",
-			mockBehavior: func(rbacMgr *mocks.RBACManager) {
-				rbacMgr.EXPECT().GetUserRole(ctx, appID, userID).
-					Once().
-					Return(rbac.Role(""), fmt.Errorf("rbac manager error"))
-			},
-			expectedError: domain.ErrFailedToGetUserRole,
-			expectedRole:  "",
-		},
-		{
-			name: "Role received but cache update failed",
-			mockBehavior: func(rbacMgr *mocks.RBACManager) {
-				rbacMgr.EXPECT().GetUserRole(ctx, appID, userID).
-					Once().
-					Return(rbac.Role("admin"), fmt.Errorf("cache update error"))
-			},
-			expectedError: nil,
-			expectedRole:  "admin",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rbacMgr := mocks.NewRBACManager(t)
-
-			tt.mockBehavior(rbacMgr)
-
-			log := slogdiscard.NewDiscardLogger()
-
-			user := NewUsecase(log, nil, rbacMgr, nil, nil, nil, nil, nil, nil)
-
-			role, err := user.GetUserRole(ctx, appID, userID)
-
-			if tt.expectedError != nil {
-				assert.Contains(t, err.Error(), tt.expectedError.Error())
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.expectedRole, role)
-			}
-		})
-	}
-}
-
-func TestUserUsecase_ChangeUserRole(t *testing.T) {
-	ctx := context.Background()
-	appID := "test-app-id"
-	userID := "test-user-id"
-	newRole := "admin"
-
-	tests := []struct {
-		name          string
-		mockBehavior  func(rbacMgr *mocks.RBACManager)
-		expectedError error
-	}{
-		{
-			name: "Success",
-			mockBehavior: func(rbacMgr *mocks.RBACManager) {
-				rbacMgr.EXPECT().SetUserRole(ctx, appID, userID, rbac.Role(newRole)).
-					Once().
-					Return(nil)
-			},
-			expectedError: nil,
-		},
-		{
-			name: "Failed to set user role",
-			mockBehavior: func(rbacMgr *mocks.RBACManager) {
-				rbacMgr.EXPECT().SetUserRole(ctx, appID, userID, rbac.Role(newRole)).
-					Once().
-					Return(fmt.Errorf("rbac manager error"))
-			},
-			expectedError: domain.ErrFailedToSetUserRole,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			rbacMgr := mocks.NewRBACManager(t)
-
-			tt.mockBehavior(rbacMgr)
-
-			log := slogdiscard.NewDiscardLogger()
-
-			user := NewUsecase(log, nil, rbacMgr, nil, nil, nil, nil, nil, nil)
-
-			err := user.ChangeUserRole(ctx, appID, userID, newRole)
+			err := userUsecase.DeleteUserByID(ctx, clientID, userID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())

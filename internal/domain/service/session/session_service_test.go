@@ -20,8 +20,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 	ctx := context.Background()
 
 	userID := "test-user-id"
-	appID := "test-app-id"
-	role := "test-role"
+	clientID := "test-app-id"
 	userAgent := "test-user-agent"
 	ip := "127.0.0.1"
 	issuer := "test-issuer"
@@ -35,9 +34,8 @@ func TestSessionService_CreateSession(t *testing.T) {
 	deviceID := "test-device-id"
 
 	sessionReqData := entity.SessionRequestData{
-		UserID: userID,
-		AppID:  appID,
-		Role:   role,
+		UserID:   userID,
+		ClientID: clientID,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: userAgent,
 			IP:        ip,
@@ -84,11 +82,11 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(refreshTokenTTL)
 
-				jwtManager.EXPECT().Kid(sessionReqData.AppID).
+				jwtManager.EXPECT().Kid(sessionReqData.ClientID).
 					Once().
 					Return(kid, nil)
 
-				jwtManager.EXPECT().NewAccessToken(sessionReqData.AppID, kid, mock.Anything).
+				jwtManager.EXPECT().NewAccessToken(sessionReqData.ClientID, kid, mock.Anything).
 					Once().
 					Return(accessTokenStr, nil)
 
@@ -104,7 +102,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(cookiePath)
 
-				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.AppID, sessionReqData.UserDevice.UserAgent).
+				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.UserDevice.UserAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -139,11 +137,11 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(refreshTokenTTL)
 
-				jwtManager.EXPECT().Kid(sessionReqData.AppID).
+				jwtManager.EXPECT().Kid(sessionReqData.ClientID).
 					Once().
 					Return(kid, nil)
 
-				jwtManager.EXPECT().NewAccessToken(sessionReqData.AppID, kid, mock.Anything).
+				jwtManager.EXPECT().NewAccessToken(sessionReqData.ClientID, kid, mock.Anything).
 					Once().
 					Return(accessTokenStr, nil)
 
@@ -159,7 +157,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(cookiePath)
 
-				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.AppID, sessionReqData.UserDevice.UserAgent).
+				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.UserDevice.UserAgent).
 					Once().
 					Return("", storage.ErrUserDeviceNotFound)
 
@@ -198,7 +196,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(refreshTokenTTL)
 
-				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.AppID, sessionReqData.UserDevice.UserAgent).
+				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.UserDevice.UserAgent).
 					Once().
 					Return("", errors.New("failed to get device ID"))
 			},
@@ -225,11 +223,11 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(refreshTokenTTL)
 
-				jwtManager.EXPECT().Kid(sessionReqData.AppID).
+				jwtManager.EXPECT().Kid(sessionReqData.ClientID).
 					Once().
 					Return("", domain.ErrFailedToGetKeyID)
 
-				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.AppID, sessionReqData.UserDevice.UserAgent).
+				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.UserDevice.UserAgent).
 					Once().
 					Return(deviceID, nil)
 			},
@@ -256,14 +254,14 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(refreshTokenTTL)
 
-				jwtManager.EXPECT().Kid(sessionReqData.AppID).
+				jwtManager.EXPECT().Kid(sessionReqData.ClientID).
 					Once().
 					Return(kid, nil)
 
-				jwtManager.EXPECT().NewAccessToken(sessionReqData.AppID, kid, mock.Anything).
+				jwtManager.EXPECT().NewAccessToken(sessionReqData.ClientID, kid, mock.Anything).
 					Once().Return("", errors.New("jwt manager error"))
 
-				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.AppID, sessionReqData.UserDevice.UserAgent).
+				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.UserDevice.UserAgent).
 					Once().
 					Return(deviceID, nil)
 			},
@@ -290,11 +288,11 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(refreshTokenTTL)
 
-				jwtManager.EXPECT().Kid(sessionReqData.AppID).
+				jwtManager.EXPECT().Kid(sessionReqData.ClientID).
 					Once().
 					Return(kid, nil)
 
-				jwtManager.EXPECT().NewAccessToken(sessionReqData.AppID, kid, mock.Anything).
+				jwtManager.EXPECT().NewAccessToken(sessionReqData.ClientID, kid, mock.Anything).
 					Once().
 					Return(accessTokenStr, nil)
 
@@ -302,7 +300,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(refreshTokenStr)
 
-				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.AppID, sessionReqData.UserDevice.UserAgent).
+				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.UserDevice.UserAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -332,11 +330,11 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(refreshTokenTTL)
 
-				jwtManager.EXPECT().Kid(sessionReqData.AppID).
+				jwtManager.EXPECT().Kid(sessionReqData.ClientID).
 					Once().
 					Return(kid, nil)
 
-				jwtManager.EXPECT().NewAccessToken(sessionReqData.AppID, kid, mock.Anything).
+				jwtManager.EXPECT().NewAccessToken(sessionReqData.ClientID, kid, mock.Anything).
 					Once().
 					Return(accessTokenStr, nil)
 
@@ -344,7 +342,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(refreshTokenStr)
 
-				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.AppID, sessionReqData.UserDevice.UserAgent).
+				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.UserDevice.UserAgent).
 					Once().
 					Return(deviceID, nil)
 
@@ -378,7 +376,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(refreshTokenTTL)
 
-				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.AppID, sessionReqData.UserDevice.UserAgent).
+				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.UserDevice.UserAgent).
 					Once().
 					Return("", storage.ErrUserDeviceNotFound)
 
@@ -438,7 +436,6 @@ func TestSessionService_GetSessionByRefreshToken(t *testing.T) {
 					Once().
 					Return(entity.Session{
 						UserID:        "test-user-id",
-						AppID:         "test-app-id",
 						DeviceID:      "test-device-id",
 						RefreshToken:  refreshToken,
 						LastVisitedAt: time.Now(),
@@ -467,7 +464,6 @@ func TestSessionService_GetSessionByRefreshToken(t *testing.T) {
 					Once().
 					Return(entity.Session{
 						UserID:        "test-user-id",
-						AppID:         "test-app-id",
 						DeviceID:      "test-device-id",
 						RefreshToken:  refreshToken,
 						LastVisitedAt: time.Now(),
@@ -535,7 +531,7 @@ func TestSessionService_GetUserDeviceID(t *testing.T) {
 			name:    "Success",
 			reqData: sessionReqData,
 			mockBehavior: func(deviceStorage *mocks.DeviceStorage) {
-				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.AppID, sessionReqData.UserDevice.UserAgent).
+				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.UserDevice.UserAgent).
 					Once().
 					Return("test-device-id", nil)
 			},
@@ -546,7 +542,7 @@ func TestSessionService_GetUserDeviceID(t *testing.T) {
 			name:    "Device not found",
 			reqData: sessionReqData,
 			mockBehavior: func(deviceStorage *mocks.DeviceStorage) {
-				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.AppID, sessionReqData.UserDevice.UserAgent).
+				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.UserDevice.UserAgent).
 					Once().
 					Return("", storage.ErrUserDeviceNotFound)
 			},
@@ -557,7 +553,7 @@ func TestSessionService_GetUserDeviceID(t *testing.T) {
 			name:    "Failed to get device ID",
 			reqData: sessionReqData,
 			mockBehavior: func(deviceStorage *mocks.DeviceStorage) {
-				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.AppID, sessionReqData.UserDevice.UserAgent).
+				deviceStorage.EXPECT().GetUserDeviceID(ctx, sessionReqData.UserID, sessionReqData.UserDevice.UserAgent).
 					Once().
 					Return("", errors.New("failed to get device id"))
 			},
@@ -573,7 +569,7 @@ func TestSessionService_GetUserDeviceID(t *testing.T) {
 
 			service := NewService(nil, nil, deviceStorage)
 
-			deviceID, err := service.GetUserDeviceID(ctx, tt.reqData.UserID, tt.reqData.AppID, tt.reqData.UserDevice.UserAgent)
+			deviceID, err := service.GetUserDeviceID(ctx, tt.reqData.UserID, tt.reqData.UserDevice.UserAgent)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -647,7 +643,6 @@ func TestSessionService_DeleteSession(t *testing.T) {
 	sessionReqData := entity.SessionRequestData{
 		UserID:   "test-user-id",
 		DeviceID: "test-device-id",
-		AppID:    "test-app-id",
 	}
 
 	tests := []struct {
@@ -663,7 +658,6 @@ func TestSessionService_DeleteSession(t *testing.T) {
 				sessionStorage.EXPECT().DeleteSession(ctx, entity.Session{
 					UserID:   sessionReqData.UserID,
 					DeviceID: sessionReqData.DeviceID,
-					AppID:    sessionReqData.AppID,
 				}).
 					Once().
 					Return(nil)
@@ -677,7 +671,6 @@ func TestSessionService_DeleteSession(t *testing.T) {
 				sessionStorage.EXPECT().DeleteSession(ctx, entity.Session{
 					UserID:   sessionReqData.UserID,
 					DeviceID: sessionReqData.DeviceID,
-					AppID:    sessionReqData.AppID,
 				}).
 					Once().
 					Return(errors.New("failed to delete session"))
@@ -721,7 +714,7 @@ func TestSessionService_DeleteUserSessions(t *testing.T) {
 			name: "Success",
 			user: user,
 			mockBehavior: func(sessionStorage *mocks.SessionStorage) {
-				sessionStorage.EXPECT().DeleteAllSessions(ctx, user.ID, "").
+				sessionStorage.EXPECT().DeleteAllSessions(ctx, user.ID).
 					Once().
 					Return(nil)
 			},
@@ -731,7 +724,7 @@ func TestSessionService_DeleteUserSessions(t *testing.T) {
 			name: "Failed to delete user sessions",
 			user: user,
 			mockBehavior: func(sessionStorage *mocks.SessionStorage) {
-				sessionStorage.EXPECT().DeleteAllSessions(ctx, user.ID, "").
+				sessionStorage.EXPECT().DeleteAllSessions(ctx, user.ID).
 					Once().
 					Return(errors.New("failed to delete user sessions"))
 			},
@@ -761,8 +754,7 @@ func TestSessionService_DeleteUserSessions(t *testing.T) {
 func TestSessionService_DeleteUserDevices(t *testing.T) {
 	ctx := context.Background()
 	user := entity.User{
-		ID:    "test-user-id",
-		AppID: "test-app-id",
+		ID: "test-user-id",
 	}
 
 	tests := []struct {
@@ -775,7 +767,7 @@ func TestSessionService_DeleteUserDevices(t *testing.T) {
 			name: "Success",
 			user: user,
 			mockBehavior: func(deviceStorage *mocks.DeviceStorage) {
-				deviceStorage.EXPECT().DeleteAllUserDevices(ctx, user.ID, user.AppID).
+				deviceStorage.EXPECT().DeleteAllUserDevices(ctx, user.ID).
 					Once().
 					Return(nil)
 			},
@@ -785,7 +777,7 @@ func TestSessionService_DeleteUserDevices(t *testing.T) {
 			name: "Failed to delete user devices",
 			user: user,
 			mockBehavior: func(deviceStorage *mocks.DeviceStorage) {
-				deviceStorage.EXPECT().DeleteAllUserDevices(ctx, user.ID, user.AppID).
+				deviceStorage.EXPECT().DeleteAllUserDevices(ctx, user.ID).
 					Once().
 					Return(errors.New("failed to delete user devices"))
 			},

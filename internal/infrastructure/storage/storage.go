@@ -101,23 +101,23 @@ func createUserIndexes(db *mongo.Database) error {
 	indexes := []mongo.IndexModel{
 		{
 			Keys: bson.D{
-				{common.FieldAppID, 1},
-				{common.FieldID, 1},
+				{Key: common.FieldClientID, Value: 1},
+				{Key: common.FieldID, Value: 1},
 			},
 			Options: options.Index().SetUnique(true),
 		},
 		{
 			// Email should be unique for active (not soft-deleted) users
 			Keys: bson.D{
-				{common.FieldAppID, 1},
-				{common.FieldEmail, 1},
+				{Key: common.FieldClientID, Value: 1},
+				{Key: common.FieldEmail, Value: 1},
 			},
 			Options: options.Index().
 				SetUnique(true).
 				SetPartialFilterExpression(bson.D{
 					{
-						common.FieldDeletedAt,
-						bson.D{{"$eq", nil}},
+						Key:   common.FieldDeletedAt,
+						Value: bson.D{{Key: "$eq", Value: nil}},
 					},
 				}),
 		},

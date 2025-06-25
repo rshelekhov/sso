@@ -9,14 +9,12 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/domain/service/rbac"
 	"github.com/rshelekhov/sso/internal/lib/e"
 )
 
 type User struct {
 	log             *slog.Logger
-	appValidator    AppValidator
-	rbacService     RBACManager
+	clientValidator ClientValidator
 	sessionMgr      SessionManager
 	userMgr         UserdataManager
 	passwordMgr     PasswordManager
@@ -31,13 +29,8 @@ type (
 		ToContext(ctx context.Context, value string) context.Context
 	}
 
-	AppValidator interface {
-		ValidateAppID(ctx context.Context, appID string) error
-	}
-
-	RBACManager interface {
-		GetUserRole(ctx context.Context, appID, userID string) (rbac.Role, error)
-		SetUserRole(ctx context.Context, appID, userID string, role rbac.Role) error
+	ClientValidator interface {
+		ValidateClientID(ctx context.Context, clientID string) error
 	}
 
 	SessionManager interface {
@@ -46,10 +39,10 @@ type (
 	}
 
 	UserdataManager interface {
-		GetUserByID(ctx context.Context, appID, userID string) (entity.User, error)
-		GetUserData(ctx context.Context, appID, userID string) (entity.User, error)
-		GetUserStatusByEmail(ctx context.Context, appID, email string) (string, error)
-		GetUserStatusByID(ctx context.Context, appID, userID string) (string, error)
+		GetUserByID(ctx context.Context, userID string) (entity.User, error)
+		GetUserData(ctx context.Context, userID string) (entity.User, error)
+		GetUserStatusByEmail(ctx context.Context, email string) (string, error)
+		GetUserStatusByID(ctx context.Context, userID string) (string, error)
 		UpdateUserData(ctx context.Context, user entity.User) error
 		DeleteUser(ctx context.Context, user entity.User) error
 	}
@@ -60,11 +53,11 @@ type (
 	}
 
 	IdentityManager interface {
-		ExtractUserIDFromTokenInContext(ctx context.Context, appID string) (string, error)
+		ExtractUserIDFromTokenInContext(ctx context.Context, clientID string) (string, error)
 	}
 
 	VerificationManager interface {
-		DeleteAllTokens(ctx context.Context, appID, userID string) error
+		DeleteAllTokens(ctx context.Context, userID string) error
 	}
 
 	TransactionManager interface {
@@ -74,8 +67,7 @@ type (
 
 func NewUsecase(
 	log *slog.Logger,
-	av AppValidator,
-	rbac RBACManager,
+	av ClientValidator,
 	ss SessionManager,
 	um UserdataManager,
 	pm PasswordManager,
@@ -85,8 +77,7 @@ func NewUsecase(
 ) *User {
 	return &User{
 		log:             log,
-		appValidator:    av,
-		rbacService:     rbac,
+		clientValidator: av,
 		sessionMgr:      ss,
 		userMgr:         um,
 		passwordMgr:     pm,
@@ -96,18 +87,18 @@ func NewUsecase(
 	}
 }
 
-func (u *User) GetUser(ctx context.Context, appID string) (entity.User, error) {
+func (u *User) GetUser(ctx context.Context, clientID string) (entity.User, error) {
 	const method = "usecase.User.GetUser"
 
 	log := u.log.With(slog.String("method", method))
 
-	userID, err := u.identityMgr.ExtractUserIDFromTokenInContext(ctx, appID)
+	userID, err := u.identityMgr.ExtractUserIDFromTokenInContext(ctx, clientID)
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return entity.User{}, domain.ErrFailedToExtractUserIDFromContext
 	}
 
-	userData, err := u.userMgr.GetUserByID(ctx, appID, userID)
+	userData, err := u.userMgr.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
@@ -123,12 +114,12 @@ func (u *User) GetUser(ctx context.Context, appID string) (entity.User, error) {
 	return userData, nil
 }
 
-func (u *User) GetUserByID(ctx context.Context, appID, userID string) (entity.User, error) {
+func (u *User) GetUserByID(ctx context.Context, clientID, userID string) (entity.User, error) {
 	const method = "usecase.User.GetUserByID"
 
 	log := u.log.With(slog.String("method", method))
 
-	userData, err := u.userMgr.GetUserByID(ctx, appID, userID)
+	userData, err := u.userMgr.GetUserByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
@@ -144,18 +135,18 @@ func (u *User) GetUserByID(ctx context.Context, appID, userID string) (entity.Us
 	return userData, nil
 }
 
-func (u *User) UpdateUser(ctx context.Context, appID string, data entity.UserRequestData) (entity.User, error) {
+func (u *User) UpdateUser(ctx context.Context, clientID string, data entity.UserRequestData) (entity.User, error) {
 	const method = "usecase.User.UpdateUser"
 
 	log := u.log.With(slog.String("method", method))
 
-	userID, err := u.identityMgr.ExtractUserIDFromTokenInContext(ctx, appID)
+	userID, err := u.identityMgr.ExtractUserIDFromTokenInContext(ctx, clientID)
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return entity.User{}, domain.ErrFailedToExtractUserIDFromContext
 	}
 
-	userDataFromDB, err := u.userMgr.GetUserData(ctx, appID, userID)
+	userDataFromDB, err := u.userMgr.GetUserData(ctx, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
@@ -166,7 +157,7 @@ func (u *User) UpdateUser(ctx context.Context, appID string, data entity.UserReq
 		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
 	}
 
-	updatedUser, err := u.updateUserFields(ctx, appID, data, userDataFromDB)
+	updatedUser, err := u.updateUserFields(ctx, data, userDataFromDB)
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToUpdateUser, err, slog.Any("userID", userID))
 		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToUpdateUser, err)
@@ -177,56 +168,12 @@ func (u *User) UpdateUser(ctx context.Context, appID string, data entity.UserReq
 	return updatedUser, nil
 }
 
-func (u *User) GetUserRole(ctx context.Context, appID, userID string) (string, error) {
-	const method = "usecase.User.GetUserRole"
-
-	log := u.log.With(slog.String("method", method))
-
-	role, err := u.rbacService.GetUserRole(ctx, appID, userID)
-	if err != nil {
-		// If role was received, but there were problems with the cache
-		if role != "" {
-			// Log the error, but return the role
-			e.LogError(ctx, log, domain.ErrFailedToUpdateRoleCache, err, slog.Any("userID", userID))
-			return role.String(), nil
-		}
-
-		e.LogError(ctx, log, domain.ErrFailedToGetUserRole, err, slog.Any("userID", userID))
-		return "", fmt.Errorf("%w: %w", domain.ErrFailedToGetUserRole, err)
-	}
-
-	log.Info("user role received",
-		slog.String("userID", userID),
-		slog.String("role", role.String()),
-	)
-
-	return role.String(), nil
-}
-
-func (u *User) ChangeUserRole(ctx context.Context, appID, userID, role string) error {
-	const method = "usecase.User.ChangeUserRole"
-
-	log := u.log.With(slog.String("method", method))
-
-	if err := u.rbacService.SetUserRole(ctx, appID, userID, rbac.Role(role)); err != nil {
-		e.LogError(ctx, log, domain.ErrFailedToSetUserRole, err, slog.Any("userID", userID))
-		return fmt.Errorf("%w: %w", domain.ErrFailedToSetUserRole, err)
-	}
-
-	log.Info("user role changed",
-		slog.String("userID", userID),
-		slog.String("role", role),
-	)
-
-	return nil
-}
-
-func (u *User) DeleteUser(ctx context.Context, appID string) error {
+func (u *User) DeleteUser(ctx context.Context, clientID string) error {
 	const method = "usecase.User.DeleteUser"
 
 	log := u.log.With(slog.String("method", method))
 
-	userID, err := u.identityMgr.ExtractUserIDFromTokenInContext(ctx, appID)
+	userID, err := u.identityMgr.ExtractUserIDFromTokenInContext(ctx, clientID)
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return domain.ErrFailedToExtractUserIDFromContext
@@ -234,12 +181,11 @@ func (u *User) DeleteUser(ctx context.Context, appID string) error {
 
 	userData := entity.User{
 		ID:        userID,
-		AppID:     appID,
 		DeletedAt: time.Now(),
 	}
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.AppID, userData.ID)
+		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.ID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByID, err)
 		}
@@ -265,19 +211,18 @@ func (u *User) DeleteUser(ctx context.Context, appID string) error {
 	return nil
 }
 
-func (u *User) DeleteUserByID(ctx context.Context, appID, userID string) error {
+func (u *User) DeleteUserByID(ctx context.Context, clientID, userID string) error {
 	const method = "usecase.User.DeleteUserByID"
 
 	log := u.log.With(slog.String("method", method))
 
 	userData := entity.User{
 		ID:        userID,
-		AppID:     appID,
 		DeletedAt: time.Now(),
 	}
 
 	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.AppID, userData.ID)
+		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.ID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByID, err)
 		}
@@ -305,14 +250,12 @@ func (u *User) DeleteUserByID(ctx context.Context, appID, userID string) error {
 
 func (u *User) updateUserFields(
 	ctx context.Context,
-	appID string,
 	data entity.UserRequestData,
 	userDataFromDB entity.User,
 ) (entity.User, error) {
 	updatedUser := entity.User{
 		ID:        userDataFromDB.ID,
 		Email:     data.Email,
-		AppID:     appID,
 		UpdatedAt: time.Now(),
 	}
 
@@ -409,7 +352,7 @@ func (u *User) handleEmailUpdate(ctx context.Context, userDataFromDB entity.User
 		return domain.ErrNoEmailChangesDetected
 	}
 
-	userStatus, err := u.userMgr.GetUserStatusByEmail(ctx, updatedUser.AppID, updatedUser.Email)
+	userStatus, err := u.userMgr.GetUserStatusByEmail(ctx, updatedUser.Email)
 	if err != nil {
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToGetUserStatusByEmail, err)
 	}
@@ -434,7 +377,7 @@ func (u *User) cleanupUserData(ctx context.Context, user entity.User) error {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteUserDevices, err)
 	}
 
-	if err := u.verificationMgr.DeleteAllTokens(ctx, user.AppID, user.ID); err != nil {
+	if err := u.verificationMgr.DeleteAllTokens(ctx, user.ID); err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToDeleteUserTokens, err)
 	}
 

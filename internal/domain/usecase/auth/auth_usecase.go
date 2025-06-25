@@ -13,7 +13,6 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/internal/domain/service/rbac"
 	"github.com/rshelekhov/sso/internal/infrastructure/service/mail"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/rshelekhov/sso/internal/lib/e"
@@ -34,15 +33,15 @@ type (
 	SessionManager interface {
 		CreateSession(ctx context.Context, reqData entity.SessionRequestData) (entity.SessionTokens, error)
 		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error)
-		GetUserDeviceID(ctx context.Context, userID, appID, userAgent string) (string, error)
+		GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
 		DeleteSession(ctx context.Context, sessionReqData entity.SessionRequestData) error
 		DeleteRefreshToken(ctx context.Context, refreshToken string) error
 	}
 
 	UserdataManager interface {
-		GetUserByEmail(ctx context.Context, appID, email string) (entity.User, error)
-		GetUserStatusByEmail(ctx context.Context, appID, email string) (string, error)
-		GetUserData(ctx context.Context, appID, userID string) (entity.User, error)
+		GetUserByEmail(ctx context.Context, email string) (entity.User, error)
+		GetUserStatusByEmail(ctx context.Context, email string) (string, error)
+		GetUserData(ctx context.Context, userID string) (entity.User, error)
 		UpdateUserData(ctx context.Context, user entity.User) error
 	}
 
@@ -53,9 +52,9 @@ type (
 	TokenManager interface {
 		HashPassword(password string) (string, error)
 		PasswordMatch(hash, password string) (bool, error)
-		ExtractUserIDFromTokenInContext(ctx context.Context, appID string) (string, error)
-		PublicKey(appID string) (interface{}, error)
-		Kid(appID string) (string, error)
+		ExtractUserIDFromTokenInContext(ctx context.Context, clientID string) (string, error)
+		PublicKey(clientID string) (any, error)
+		Kid(clientID string) (string, error)
 		JWKSTTL() time.Duration
 		SigningMethod() string
 	}
@@ -73,7 +72,7 @@ type (
 	Storage interface {
 		ReplaceSoftDeletedUser(ctx context.Context, user entity.User) error
 		RegisterUser(ctx context.Context, user entity.User) error
-		MarkEmailVerified(ctx context.Context, userID, appID string) error
+		MarkEmailVerified(ctx context.Context, userID string) error
 	}
 )
 
@@ -100,7 +99,7 @@ func NewUsecase(
 }
 
 // Login checks if user with given credentials exists in the system
-func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequestData) (entity.SessionTokens, error) {
+func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserRequestData) (entity.SessionTokens, error) {
 	const method = "usecase.Auth.Login"
 
 	log := u.log.With(
@@ -108,7 +107,7 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 		slog.String("email", reqData.Email),
 	)
 
-	userData, err := u.userMgr.GetUserByEmail(ctx, appID, reqData.Email)
+	userData, err := u.userMgr.GetUserByEmail(ctx, reqData.Email)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.LogError(ctx, log, domain.ErrUserNotFound, err)
@@ -130,9 +129,8 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 	}
 
 	sessionReqData := entity.SessionRequestData{
-		UserID: userData.ID,
-		AppID:  userData.AppID,
-		Role:   userData.Role,
+		UserID:   userData.ID,
+		ClientID: clientID,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: reqData.UserDevice.UserAgent,
 			IP:        reqData.UserDevice.IP,
@@ -161,7 +159,7 @@ func (u *Auth) Login(ctx context.Context, appID string, reqData *entity.UserRequ
 }
 
 // RegisterUser creates new user in the system and returns jwtoken
-func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.UserRequestData, verifyEmailEndpoint string) (entity.SessionTokens, error) {
+func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entity.UserRequestData, verifyEmailEndpoint string) (entity.SessionTokens, error) {
 	const method = "usecase.Auth.RegisterUser"
 
 	log := u.log.With(
@@ -175,12 +173,12 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 		return entity.SessionTokens{}, domain.ErrFailedToGeneratePasswordHash
 	}
 
-	newUser := entity.NewUser(appID, reqData.Email, hash, rbac.RoleUser.String())
+	newUser := entity.NewUser(reqData.Email, hash)
 
 	authTokenData := entity.SessionTokens{}
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
-		userStatus, err := u.userMgr.GetUserStatusByEmail(txCtx, newUser.AppID, newUser.Email)
+		userStatus, err := u.userMgr.GetUserStatusByEmail(txCtx, newUser.Email)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByEmail, err)
 		}
@@ -201,9 +199,8 @@ func (u *Auth) RegisterUser(ctx context.Context, appID string, reqData *entity.U
 		}
 
 		sessionReqData := entity.SessionRequestData{
-			UserID: newUser.ID,
-			AppID:  newUser.AppID,
-			Role:   newUser.Role,
+			UserID:   newUser.ID,
+			ClientID: clientID,
 			UserDevice: entity.UserDeviceRequestData{
 				UserAgent: reqData.UserDevice.UserAgent,
 				IP:        reqData.UserDevice.IP,
@@ -258,7 +255,7 @@ func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) (entit
 			return nil
 		}
 
-		if err = u.storage.MarkEmailVerified(txCtx, tokenData.UserID, tokenData.AppID); err != nil {
+		if err = u.storage.MarkEmailVerified(txCtx, tokenData.UserID); err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToMarkEmailVerified, err)
 		}
 
@@ -272,7 +269,7 @@ func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) (entit
 	return result, nil
 }
 
-func (u *Auth) ResetPassword(ctx context.Context, appID string, reqData *entity.ResetPasswordRequestData, changePasswordEndpoint string) error {
+func (u *Auth) ResetPassword(ctx context.Context, clientID string, reqData *entity.ResetPasswordRequestData, changePasswordEndpoint string) error {
 	const method = "usecase.Auth.ResetPassword"
 
 	log := u.log.With(
@@ -280,7 +277,7 @@ func (u *Auth) ResetPassword(ctx context.Context, appID string, reqData *entity.
 		slog.String("email", reqData.Email),
 	)
 
-	userData, err := u.userMgr.GetUserByEmail(ctx, appID, reqData.Email)
+	userData, err := u.userMgr.GetUserByEmail(ctx, reqData.Email)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserNotFound) {
 			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("email", reqData.Email))
@@ -310,7 +307,7 @@ func (u *Auth) ResetPassword(ctx context.Context, appID string, reqData *entity.
 	return nil
 }
 
-func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity.ChangePasswordRequestData) (entity.ChangingPasswordResult, error) {
+func (u *Auth) ChangePassword(ctx context.Context, clientID string, reqData *entity.ChangePasswordRequestData) (entity.ChangingPasswordResult, error) {
 	const method = "usecase.Auth.ChangePassword"
 
 	log := u.log.With(
@@ -331,12 +328,12 @@ func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity
 			return nil
 		}
 
-		userDataFromDB, err := u.userMgr.GetUserData(txCtx, appID, tokenData.UserID)
+		userDataFromDB, err := u.userMgr.GetUserData(txCtx, tokenData.UserID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
 		}
 
-		if err = u.checkPasswordHashAndUpdate(txCtx, appID, userDataFromDB, reqData); err != nil {
+		if err = u.checkPasswordHashAndUpdate(txCtx, userDataFromDB, reqData); err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCheckPasswordHashAndUpdate, err)
 		}
 
@@ -351,22 +348,22 @@ func (u *Auth) ChangePassword(ctx context.Context, appID string, reqData *entity
 	return result, nil
 }
 
-func (u *Auth) LogoutUser(ctx context.Context, appID string, reqData *entity.UserDeviceRequestData) error {
+func (u *Auth) LogoutUser(ctx context.Context, clientID string, reqData *entity.UserDeviceRequestData) error {
 	const method = "usecase.Auth.LogoutUser"
 
 	log := u.log.With(
 		slog.String("method", method),
 	)
 
-	userID, err := u.tokenMgr.ExtractUserIDFromTokenInContext(ctx, appID)
+	userID, err := u.tokenMgr.ExtractUserIDFromTokenInContext(ctx, clientID)
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return domain.ErrFailedToExtractUserIDFromContext
 	}
 
 	sessionReqData := entity.SessionRequestData{
-		UserID: userID,
-		AppID:  appID,
+		UserID:   userID,
+		ClientID: clientID,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: reqData.UserAgent,
 			IP:        reqData.IP,
@@ -374,7 +371,7 @@ func (u *Auth) LogoutUser(ctx context.Context, appID string, reqData *entity.Use
 	}
 
 	// Check if the device exists
-	sessionReqData.DeviceID, err = u.sessionMgr.GetUserDeviceID(ctx, userID, appID, reqData.UserAgent)
+	sessionReqData.DeviceID, err = u.sessionMgr.GetUserDeviceID(ctx, userID, reqData.UserAgent)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserDeviceNotFound) {
 			e.LogError(ctx, log, domain.ErrUserDeviceNotFound, err)
@@ -398,7 +395,7 @@ func (u *Auth) LogoutUser(ctx context.Context, appID string, reqData *entity.Use
 	return nil
 }
 
-func (u *Auth) RefreshTokens(ctx context.Context, appID string, reqData *entity.RefreshTokenRequestData) (entity.SessionTokens, error) {
+func (u *Auth) RefreshTokens(ctx context.Context, clientID string, reqData *entity.RefreshTokenRequestData) (entity.SessionTokens, error) {
 	const method = "usecase.Auth.RefreshTokens"
 
 	log := u.log.With(
@@ -419,7 +416,7 @@ func (u *Auth) RefreshTokens(ctx context.Context, appID string, reqData *entity.
 		return entity.SessionTokens{}, domain.ErrFailedToGetSessionByRefreshToken
 	}
 
-	_, err = u.sessionMgr.GetUserDeviceID(ctx, userSession.UserID, userSession.AppID, reqData.UserDevice.UserAgent)
+	_, err = u.sessionMgr.GetUserDeviceID(ctx, userSession.UserID, reqData.UserDevice.UserAgent)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserDeviceNotFound) {
 			e.LogError(ctx, log, domain.ErrUserDeviceNotFound, err)
@@ -436,8 +433,8 @@ func (u *Auth) RefreshTokens(ctx context.Context, appID string, reqData *entity.
 	}
 
 	sessionReqData := entity.SessionRequestData{
-		UserID: userSession.UserID,
-		AppID:  appID,
+		UserID:   userSession.UserID,
+		ClientID: clientID,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: reqData.UserDevice.UserAgent,
 			IP:        reqData.UserDevice.IP,
@@ -455,20 +452,20 @@ func (u *Auth) RefreshTokens(ctx context.Context, appID string, reqData *entity.
 	return tokenData, nil
 }
 
-func (u *Auth) GetJWKS(ctx context.Context, appID string) (entity.JWKS, error) {
+func (u *Auth) GetJWKS(ctx context.Context, clientID string) (entity.JWKS, error) {
 	const method = "usecase.Auth.GetJWKS"
 
 	log := u.log.With(
 		slog.String("method", method),
 	)
 
-	publicKey, err := u.tokenMgr.PublicKey(appID)
+	publicKey, err := u.tokenMgr.PublicKey(clientID)
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToGetPublicKey, err)
 		return entity.JWKS{}, domain.ErrFailedToGetPublicKey
 	}
 
-	kid, err := u.tokenMgr.Kid(appID)
+	kid, err := u.tokenMgr.Kid(clientID)
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToGetKeyID, err)
 		return entity.JWKS{}, domain.ErrFailedToGetKeyID
@@ -486,7 +483,7 @@ func (u *Auth) GetJWKS(ctx context.Context, appID string) (entity.JWKS, error) {
 		jwk.N = base64.RawURLEncoding.EncodeToString(pub.N.Bytes())
 		jwk.E = base64.RawURLEncoding.EncodeToString(big.NewInt(int64(pub.E)).Bytes())
 	case *ecdsa.PublicKey:
-		p := pub.Curve.Params()
+		p := pub.Params()
 		jwk.Kty = "EC"
 		jwk.Crv = p.Name
 		jwk.X = base64.RawURLEncoding.EncodeToString(pub.X.Bytes())
@@ -508,7 +505,7 @@ func (u *Auth) GetJWKS(ctx context.Context, appID string) (entity.JWKS, error) {
 func (u *Auth) verifyPassword(ctx context.Context, userData entity.User, password string) error {
 	const method = "usecase.Auth.verifyPassword"
 
-	userData, err := u.userMgr.GetUserData(ctx, userData.AppID, userData.ID)
+	userData, err := u.userMgr.GetUserData(ctx, userData.ID)
 	if err != nil {
 		return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
 	}
@@ -560,7 +557,6 @@ func (u *Auth) handleTokenProcessing(
 
 		userData := entity.User{
 			ID:    tokenData.UserID,
-			AppID: tokenData.AppID,
 			Email: tokenData.Email,
 		}
 
@@ -581,7 +577,6 @@ func (u *Auth) handleTokenProcessing(
 
 func (u *Auth) checkPasswordHashAndUpdate(
 	ctx context.Context,
-	appID string,
 	userData entity.User,
 	reqData *entity.ChangePasswordRequestData,
 ) error {
@@ -600,7 +595,6 @@ func (u *Auth) checkPasswordHashAndUpdate(
 	updatedUser := entity.User{
 		ID:           userData.ID,
 		PasswordHash: updatedPassHash,
-		AppID:        appID,
 		UpdatedAt:    time.Now(),
 	}
 

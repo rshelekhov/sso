@@ -13,12 +13,12 @@ import (
 
 type (
 	JWTManager interface {
-		NewAccessToken(appID, kid string, additionalClaims map[string]interface{}) (string, error)
+		NewAccessToken(clientID, kid string, additionalClaims map[string]any) (string, error)
 		NewRefreshToken() string
 		Issuer() string
 		AccessTokenTTL() time.Duration
 		RefreshTokenTTL() time.Duration
-		Kid(appID string) (string, error)
+		Kid(clientID string) (string, error)
 		RefreshTokenCookieDomain() string
 		RefreshTokenCookiePath() string
 	}
@@ -28,14 +28,14 @@ type (
 		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error)
 		DeleteRefreshToken(ctx context.Context, refreshToken string) error
 		DeleteSession(ctx context.Context, session entity.Session) error
-		DeleteAllSessions(ctx context.Context, userID, appID string) error
+		DeleteAllSessions(ctx context.Context, userID string) error
 	}
 
 	DeviceStorage interface {
 		RegisterDevice(ctx context.Context, device entity.UserDevice) error
-		GetUserDeviceID(ctx context.Context, userID, appID, userAgent string) (string, error)
+		GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
 		UpdateLastVisitedAt(ctx context.Context, session entity.Session) error
-		DeleteAllUserDevices(ctx context.Context, userID, appID string) error
+		DeleteAllUserDevices(ctx context.Context, userID string) error
 	}
 )
 
@@ -100,10 +100,10 @@ func (s *Session) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 	return session, nil
 }
 
-func (s *Session) GetUserDeviceID(ctx context.Context, userID, appID, userAgent string) (string, error) {
+func (s *Session) GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error) {
 	const method = "service.session.GetUserDeviceID"
 
-	deviceID, err := s.deviceStorage.GetUserDeviceID(ctx, userID, appID, userAgent)
+	deviceID, err := s.deviceStorage.GetUserDeviceID(ctx, userID, userAgent)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserDeviceNotFound) {
 			return "", domain.ErrUserDeviceNotFound
@@ -130,7 +130,6 @@ func (s *Session) DeleteSession(ctx context.Context, sessionReqData entity.Sessi
 	if err := s.sessionStorage.DeleteSession(ctx, entity.Session{
 		UserID:   sessionReqData.UserID,
 		DeviceID: sessionReqData.DeviceID,
-		AppID:    sessionReqData.AppID,
 	}); err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
@@ -141,7 +140,7 @@ func (s *Session) DeleteSession(ctx context.Context, sessionReqData entity.Sessi
 func (s *Session) DeleteUserSessions(ctx context.Context, user entity.User) error {
 	const method = "service.session.DeleteAllUserSessions"
 
-	if err := s.sessionStorage.DeleteAllSessions(ctx, user.ID, user.AppID); err != nil {
+	if err := s.sessionStorage.DeleteAllSessions(ctx, user.ID); err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
 
@@ -151,7 +150,7 @@ func (s *Session) DeleteUserSessions(ctx context.Context, user entity.User) erro
 func (s *Session) DeleteUserDevices(ctx context.Context, user entity.User) error {
 	const method = "service.session.DeleteUserDevices"
 
-	if err := s.deviceStorage.DeleteAllUserDevices(ctx, user.ID, user.AppID); err != nil {
+	if err := s.deviceStorage.DeleteAllUserDevices(ctx, user.ID); err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
 
@@ -167,7 +166,7 @@ func (s *Session) prepareTokenConfig() (issuer string, accessTokenTTL, refreshTo
 }
 
 func (s *Session) getOrRegisterDeviceID(ctx context.Context, session entity.SessionRequestData) (string, error) {
-	deviceID, err := s.deviceStorage.GetUserDeviceID(ctx, session.UserID, session.AppID, session.UserDevice.UserAgent)
+	deviceID, err := s.deviceStorage.GetUserDeviceID(ctx, session.UserID, session.UserDevice.UserAgent)
 	if err != nil {
 		if errors.Is(err, storage.ErrUserDeviceNotFound) {
 			return s.registerDevice(ctx, session)
@@ -198,20 +197,19 @@ func (s *Session) createTokens(
 	refreshToken string,
 	err error,
 ) {
-	kid, err := s.jwtMgr.Kid(session.AppID)
+	kid, err := s.jwtMgr.Kid(session.ClientID)
 	if err != nil {
 		return "", "", fmt.Errorf("%w: %w", domain.ErrFailedToGetKeyID, err)
 	}
 
-	additionalClaims := map[string]interface{}{
+	additionalClaims := map[string]any{
 		domain.IssuerKey:       issuer,
 		domain.UserIDKey:       session.UserID,
-		domain.AppIDKey:        session.AppID,
-		domain.RoleKey:         session.Role,
+		domain.ClientIDKey:     session.ClientID,
 		domain.ExpirationAtKey: currentTime.Add(accessTokenTTL).Unix(),
 	}
 
-	accessToken, err = s.jwtMgr.NewAccessToken(session.AppID, kid, additionalClaims)
+	accessToken, err = s.jwtMgr.NewAccessToken(session.ClientID, kid, additionalClaims)
 	if err != nil {
 		return "", "", fmt.Errorf("%w: %w", domain.ErrFailedToCreateAccessToken, err)
 	}

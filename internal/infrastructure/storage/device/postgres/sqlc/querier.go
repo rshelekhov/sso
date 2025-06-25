@@ -9,7 +9,7 @@ import (
 )
 
 type Querier interface {
-	DeleteAllUserDevices(ctx context.Context, arg DeleteAllUserDevicesParams) error
+	DeleteAllUserDevices(ctx context.Context, userID string) error
 	GetUserDeviceID(ctx context.Context, arg GetUserDeviceIDParams) (string, error)
 	RegisterDevice(ctx context.Context, arg RegisterDeviceParams) error
 	UpdateLastVisitedAt(ctx context.Context, arg UpdateLastVisitedAtParams) error

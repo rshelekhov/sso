@@ -7,9 +7,10 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rshelekhov/jwtauth"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 )
@@ -23,16 +24,16 @@ func TestGetUser_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -46,49 +47,45 @@ func TestGetUser_HappyPath(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 
 	// Create context for the request
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Get user
-	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{})
+	respGet, err := st.UserService.GetUser(ctx, &userv1.GetUserRequest{})
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.User.GetEmail())
 	require.NotEmpty(t, respGet.User.GetUpdatedAt())
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestGetUserByID_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
-	// Register and login admin
-	admin, cleanupAdmin := registerAndLoginAdmin(t, st, ctx)
-	defer cleanupAdmin()
-
-	// Register regular user
-	regularEmail := gofakeit.Email()
-	regularPass := randomFakePassword()
+	// Register user
+	email := gofakeit.Email()
+	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-		Email:           regularEmail,
-		Password:        regularPass,
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
+		Email:           email,
+		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -96,39 +93,35 @@ func TestGetUserByID_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respReg.GetTokenData())
 
-	regularToken := respReg.GetTokenData()
-	regularAccessToken := regularToken.GetAccessToken()
+	token := respReg.GetTokenData()
+	accessToken := token.GetAccessToken()
 
-	// Get regular user's ID
-	md = metadata.Pairs(appid.Header, cfg.AppID)
-	md.Append(jwtauth.AuthorizationHeader, regularAccessToken)
+	// Get user's ID
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	respUser, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{})
+	respUser, err := st.UserService.GetUser(ctx, &userv1.GetUserRequest{})
 	require.NoError(t, err)
-	regularUserID := respUser.GetUser().GetId()
+	userID := respUser.GetUser().GetId()
 
-	// Try to get regular user's data using admin token
-	md = metadata.Pairs(appid.Header, cfg.AppID)
-	md.Append(jwtauth.AuthorizationHeader, admin.accessToken)
-	ctx = metadata.NewOutgoingContext(ctx, md)
-
-	respGet, err := st.AuthClient.GetUserByID(ctx, &ssov1.GetUserByIDRequest{
-		UserId: regularUserID,
+	// Get user's data by ID
+	respGet, err := st.UserService.GetUserByID(ctx, &userv1.GetUserByIDRequest{
+		UserId: userID,
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.User.GetEmail())
-	require.Equal(t, regularEmail, respGet.User.GetEmail())
+	require.Equal(t, email, respGet.User.GetEmail())
 	require.NotEmpty(t, respGet.User.GetUpdatedAt())
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: regularToken,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestGetUser_UserNotFound(t *testing.T) {
@@ -140,16 +133,16 @@ func TestGetUser_UserNotFound(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -163,18 +156,18 @@ func TestGetUser_UserNotFound(t *testing.T) {
 	accessToken := token.GetAccessToken()
 	require.NotEmpty(t, accessToken)
 
-	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 
 	// Create context for the request
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Delete user
-	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{})
+	_, err = st.UserService.DeleteUser(ctx, &userv1.DeleteUserRequest{})
 	require.NoError(t, err)
 
 	// Try to get user
-	respGet, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{})
+	respGet, err := st.UserService.GetUser(ctx, &userv1.GetUserRequest{})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), domain.ErrUserNotFound.Error())
 	require.Empty(t, respGet)
@@ -183,24 +176,20 @@ func TestGetUser_UserNotFound(t *testing.T) {
 func TestGetUserByID_UserNotFound(t *testing.T) {
 	ctx, st := suite.New(t)
 
-	// Register and login admin
-	admin, cleanupAdmin := registerAndLoginAdmin(t, st, ctx)
-	defer cleanupAdmin()
-
-	// Register regular user
-	regularEmail := gofakeit.Email()
-	regularPass := randomFakePassword()
+	// Register user
+	email := gofakeit.Email()
+	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-		Email:           regularEmail,
-		Password:        regularPass,
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
+		Email:           email,
+		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -208,29 +197,25 @@ func TestGetUserByID_UserNotFound(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respReg.GetTokenData())
 
-	regularToken := respReg.GetTokenData()
-	regularAccessToken := regularToken.GetAccessToken()
+	token := respReg.GetTokenData()
+	accessToken := token.GetAccessToken()
 
-	// Get regular user's ID
-	md = metadata.Pairs(appid.Header, cfg.AppID)
-	md.Append(jwtauth.AuthorizationHeader, regularAccessToken)
+	// Get user's ID
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	respUser, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{})
+	respUser, err := st.UserService.GetUser(ctx, &userv1.GetUserRequest{})
 	require.NoError(t, err)
-	regularUserID := respUser.GetUser().GetId()
+	userID := respUser.GetUser().GetId()
 
-	// Delete regular user
-	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{})
+	// Delete user
+	_, err = st.UserService.DeleteUser(ctx, &userv1.DeleteUserRequest{})
 	require.NoError(t, err)
 
-	// Try to get regular user's data using admin token
-	md = metadata.Pairs(appid.Header, cfg.AppID)
-	md.Append(jwtauth.AuthorizationHeader, admin.accessToken)
-	ctx = metadata.NewOutgoingContext(ctx, md)
-
-	respGet, err := st.AuthClient.GetUserByID(ctx, &ssov1.GetUserByIDRequest{
-		UserId: regularUserID,
+	// Try to get user's data by ID after deletion
+	respGet, err := st.UserService.GetUserByID(ctx, &userv1.GetUserByIDRequest{
+		UserId: userID,
 	})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), domain.ErrUserNotFound.Error())

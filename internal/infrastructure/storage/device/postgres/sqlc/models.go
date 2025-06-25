@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type App struct {
+type Client struct {
 	ID        string             `db:"id"`
 	Name      string             `db:"name"`
 	Secret    string             `db:"secret"`
@@ -20,7 +20,7 @@ type App struct {
 	DeletedAt pgtype.Timestamptz `db:"deleted_at"`
 }
 
-type AppStatus struct {
+type ClientStatus struct {
 	ID    int32  `db:"id"`
 	Title string `db:"title"`
 }
@@ -28,7 +28,6 @@ type AppStatus struct {
 type Token struct {
 	Token       string    `db:"token"`
 	UserID      string    `db:"user_id"`
-	AppID       string    `db:"app_id"`
 	Endpoint    string    `db:"endpoint"`
 	Recipient   string    `db:"recipient"`
 	TokenTypeID int32     `db:"token_type_id"`
@@ -45,8 +44,6 @@ type User struct {
 	ID           string             `db:"id"`
 	Email        string             `db:"email"`
 	PasswordHash string             `db:"password_hash"`
-	Role         string             `db:"role"`
-	AppID        string             `db:"app_id"`
 	Verified     pgtype.Bool        `db:"verified"`
 	CreatedAt    time.Time          `db:"created_at"`
 	UpdatedAt    time.Time          `db:"updated_at"`
@@ -56,7 +53,6 @@ type User struct {
 type UserDevice struct {
 	ID            string             `db:"id"`
 	UserID        string             `db:"user_id"`
-	AppID         string             `db:"app_id"`
 	UserAgent     string             `db:"user_agent"`
 	Ip            string             `db:"ip"`
 	Detached      bool               `db:"detached"`

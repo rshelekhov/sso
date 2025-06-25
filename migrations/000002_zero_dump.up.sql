@@ -4,7 +4,7 @@ VALUES
     (0, 'verify_email'),
     (1, 'reset_password');
 
-INSERT INTO app_statuses
+INSERT INTO client_statuses
 (id, title)
 VALUES
     (0, 'inactive'),

@@ -12,10 +12,9 @@ import (
 	"github.com/rshelekhov/jwtauth"
 	"github.com/rshelekhov/sso/internal/config"
 	ssogrpc "github.com/rshelekhov/sso/internal/controller/grpc"
-	"github.com/rshelekhov/sso/internal/domain/service/appvalidator"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	"github.com/rshelekhov/sso/internal/domain/service/clientvalidator"
 	authenticate "github.com/rshelekhov/sso/internal/lib/interceptor/auth"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/rbac"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/requestid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -32,9 +31,8 @@ func New(
 	port string,
 	log *slog.Logger,
 	jwtMiddleware jwtauth.Middleware,
-	appValidator appvalidator.Validator,
-	roleExtractor rbac.RoleExtractor,
-	appUsecase ssogrpc.AppUsecase,
+	clientValidator clientvalidator.Validator,
+	clientUsecase ssogrpc.ClientUsecase,
 	authUsecase ssogrpc.AuthUsecase,
 	userUsecase ssogrpc.UserUsecase,
 	redisClient *redis.Client,
@@ -54,26 +52,23 @@ func New(
 	}
 
 	requestIDInterceptor := requestid.NewInterceptor()
-	appIDInterceptor := appid.NewInterceptor(methodsConfig)
-
-	rbacInterceptor := rbac.NewInterceptor(log, methodsConfig, appValidator, roleExtractor)
+	clientIDInterceptor := clientid.NewInterceptor(methodsConfig)
 
 	gRPCServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			recovery.UnaryServerInterceptor(recoveryOpts...),
 			logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
 			requestIDInterceptor.UnaryServerInterceptor(),
-			appIDInterceptor.UnaryServerInterceptor(),
+			clientIDInterceptor.UnaryServerInterceptor(),
 			authenticate.UnaryServerInterceptor(methodsConfig, jwtMiddleware.UnaryServerInterceptor()),
-			rbacInterceptor.UnaryServerInterceptor(),
 		),
 	)
 
 	ssogrpc.RegisterController(
 		gRPCServer,
 		log,
-		appValidator,
-		appUsecase,
+		clientValidator,
+		clientUsecase,
 		authUsecase,
 		userUsecase,
 	)

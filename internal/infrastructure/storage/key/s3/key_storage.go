@@ -46,10 +46,10 @@ type Config struct {
 
 const privateKeyFilePathFormat = "%s/app_%s_private.pem"
 
-func (s *KeyStorage) SavePrivateKey(appID string, privateKeyPEM []byte) error {
+func (s *KeyStorage) SavePrivateKey(clientID string, privateKeyPEM []byte) error {
 	const method = "storage.key.s3.SavePrivateKey"
 
-	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, appID)
+	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, clientID)
 
 	_, err := s.Client.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(s.Bucket),
@@ -64,10 +64,10 @@ func (s *KeyStorage) SavePrivateKey(appID string, privateKeyPEM []byte) error {
 	return nil
 }
 
-func (s *KeyStorage) GetPrivateKey(appID string) ([]byte, error) {
+func (s *KeyStorage) GetPrivateKey(clientID string) ([]byte, error) {
 	const method = "storage.key.s3.GetPrivateKey"
 
-	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, appID)
+	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, clientID)
 
 	result, err := s.Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(s.Bucket),

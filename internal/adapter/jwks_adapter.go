@@ -8,7 +8,7 @@ import (
 )
 
 type JWKSGetter interface {
-	GetJWKS(ctx context.Context, appID string) (entity.JWKS, error)
+	GetJWKS(ctx context.Context, clientID string) (entity.JWKS, error)
 }
 
 type JWKSAdapter struct {
@@ -21,8 +21,8 @@ func NewJWKSAdapter(jwksGetter JWKSGetter) *JWKSAdapter {
 	}
 }
 
-func (a *JWKSAdapter) GetJWKS(ctx context.Context, appID string) ([]jwtauth.JWK, error) {
-	jwks, err := a.jwksGetter.GetJWKS(ctx, appID)
+func (a *JWKSAdapter) GetJWKS(ctx context.Context, clientID string) ([]jwtauth.JWK, error) {
+	jwks, err := a.jwksGetter.GetJWKS(ctx, clientID)
 	if err != nil {
 		return nil, err
 	}

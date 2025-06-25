@@ -1,13 +1,13 @@
 version: "2"
 sql:
-  - name: app
+  - name: client
     schema: "migrations"
-    queries: "internal/infrastructure/storage/app/postgres/query"
+    queries: "internal/infrastructure/storage/client/postgres/query"
     engine: "postgresql"
     gen:
       go:
         package: "sqlc"
-        out: "internal/infrastructure/storage/app/postgres/sqlc"
+        out: "internal/infrastructure/storage/client/postgres/sqlc"
         sql_package: "pgx/v5"
         emit_db_tags: true
         emit_interface: true
@@ -40,22 +40,6 @@ sql:
       go:
         package: "sqlc"
         out: "internal/infrastructure/storage/device/postgres/sqlc"
-        sql_package: "pgx/v5"
-        emit_db_tags: true
-        emit_interface: true
-        emit_empty_slices: true
-        overrides:
-          - db_type: "pg_catalog.timestamptz"
-            go_type: "time.Time"
-
-  - name: rbac
-    schema: "migrations"
-    queries: "internal/infrastructure/storage/rbac/postgres/query"
-    engine: "postgresql"
-    gen:
-      go:
-        package: "sqlc"
-        out: "internal/infrastructure/storage/rbac/postgres/sqlc"
         sql_package: "pgx/v5"
         emit_db_tags: true
         emit_interface: true

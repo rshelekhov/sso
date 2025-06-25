@@ -37,7 +37,6 @@ func (s *VerificationStorage) SaveVerificationToken(ctx context.Context, data en
 	params := sqlc.SaveVerificationTokenParams{
 		Token:       data.Token,
 		UserID:      data.UserID,
-		AppID:       data.AppID,
 		Endpoint:    data.Endpoint,
 		Recipient:   data.Email,
 		TokenTypeID: int32(data.Type),
@@ -76,7 +75,6 @@ func (s *VerificationStorage) GetVerificationTokenData(ctx context.Context, toke
 	return entity.VerificationToken{
 		Token:     tokenData.Token,
 		UserID:    tokenData.UserID,
-		AppID:     tokenData.AppID,
 		Endpoint:  tokenData.Endpoint,
 		Email:     tokenData.Recipient,
 		Type:      entity.VerificationTokenType(tokenData.TokenTypeID),
@@ -104,22 +102,17 @@ func (s *VerificationStorage) DeleteVerificationToken(ctx context.Context, token
 	return nil
 }
 
-func (s *VerificationStorage) DeleteAllTokens(ctx context.Context, appID, userID string) error {
+func (s *VerificationStorage) DeleteAllTokens(ctx context.Context, userID string) error {
 	const method = "storage.verification.postgres.DeleteAllTokens"
-
-	params := sqlc.DeleteAllVerificationTokensParams{
-		UserID: userID,
-		AppID:  appID,
-	}
 
 	// Delete verification tokens within transaction
 	err := s.txMgr.ExecWithinTx(ctx, func(tx pgx.Tx) error {
-		return s.queries.WithTx(tx).DeleteAllVerificationTokens(ctx, params)
+		return s.queries.WithTx(tx).DeleteAllVerificationTokens(ctx, userID)
 	})
 
 	if errors.Is(err, transaction.ErrTransactionNotFoundInCtx) {
 		// Delete verification tokens without transaction
-		err = s.queries.DeleteAllVerificationTokens(ctx, params)
+		err = s.queries.DeleteAllVerificationTokens(ctx, userID)
 	}
 
 	if err != nil {

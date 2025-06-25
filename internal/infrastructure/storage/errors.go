@@ -12,12 +12,12 @@ var (
 	ErrSessionsNotFound   = errors.New("sessions not found")
 
 	// ===========================================================================
-	// App storage errors
+	// Client storage errors
 	// ===========================================================================
 
-	ErrAppIDDoesNotExist = errors.New("app ID does not exist")
-	ErrAppAlreadyExists  = errors.New("app already exists")
-	ErrAppNotFound       = errors.New("app not found")
+	ErrClientIDDoesNotExist = errors.New("client ID does not exist")
+	ErrClientAlreadyExists  = errors.New("client already exists")
+	ErrClientNotFound       = errors.New("client not found")
 
 	// ===========================================================================
 	// User storage errors

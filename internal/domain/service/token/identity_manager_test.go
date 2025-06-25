@@ -28,7 +28,7 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 				}))
 			},
 			mockBehavior: func() {
-				mockKeyStorage.EXPECT().GetPrivateKey(appID).
+				mockKeyStorage.EXPECT().GetPrivateKey(clientID).
 					Once().
 					Return(privateKeyPEM, nil)
 			},
@@ -41,7 +41,7 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 				return context.WithValue(context.Background(), domain.AuthorizationHeader, createSignedToken(t, privateKey, jwt.MapClaims{}))
 			},
 			mockBehavior: func() {
-				mockKeyStorage.EXPECT().GetPrivateKey(appID).
+				mockKeyStorage.EXPECT().GetPrivateKey(clientID).
 					Once().
 					Return(privateKeyPEM, nil)
 			},
@@ -73,7 +73,7 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 			tt.mockBehavior()
 			ctx := tt.setupContext()
 
-			userID, err := tokenService.ExtractUserIDFromTokenInContext(ctx, appID)
+			userID, err := tokenService.ExtractUserIDFromTokenInContext(ctx, clientID)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -82,85 +82,6 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.Equal(t, tt.expectedID, userID)
-			}
-
-			mockKeyStorage.AssertExpectations(t)
-		})
-	}
-}
-
-func TestTokenService_ExtractUserRoleFromContext(t *testing.T) {
-	mockKeyStorage, tokenService, privateKey, privateKeyPEM := setup(t)
-
-	tests := []struct {
-		name          string
-		setupContext  func() context.Context
-		mockBehavior  func()
-		expectedRole  string
-		expectedError error
-	}{
-		{
-			name: "Success",
-			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), domain.AuthorizationHeader, createSignedToken(t, privateKey, jwt.MapClaims{
-					"role": "test-role",
-				}))
-			},
-			mockBehavior: func() {
-				mockKeyStorage.EXPECT().GetPrivateKey(appID).
-					Once().
-					Return(privateKeyPEM, nil)
-			},
-			expectedRole:  "test-role",
-			expectedError: nil,
-		},
-		{
-			name: "Role not found",
-			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), domain.AuthorizationHeader, createSignedToken(t, privateKey, jwt.MapClaims{}))
-			},
-			mockBehavior: func() {
-				mockKeyStorage.EXPECT().GetPrivateKey(appID).
-					Once().
-					Return(privateKeyPEM, nil)
-			},
-			expectedRole:  "",
-			expectedError: domain.ErrRoleNotFoundInContext,
-		},
-		{
-			name: "No token found in context",
-			setupContext: func() context.Context {
-				return context.Background()
-			},
-			mockBehavior:  func() {}, // No need to mock anything, as the token will not be found
-			expectedRole:  "",
-			expectedError: domain.ErrNoTokenFoundInContext,
-		},
-		{
-			name: "Invalid token",
-			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), domain.AuthorizationHeader, "invalid-token")
-			},
-			mockBehavior:  func() {}, // No need to mock anything, as the token not valid and will not be parsed
-			expectedRole:  "",
-			expectedError: domain.ErrFailedToParseTokenWithClaims,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.mockBehavior()
-			ctx := tt.setupContext()
-
-			role, err := tokenService.ExtractUserRoleFromTokenInContext(ctx, appID)
-
-			if tt.expectedError != nil {
-				require.Error(t, err)
-				require.ErrorIs(t, err, tt.expectedError)
-				require.Empty(t, role)
-			} else {
-				require.NoError(t, err)
-				require.Equal(t, tt.expectedRole, role)
 			}
 
 			mockKeyStorage.AssertExpectations(t)

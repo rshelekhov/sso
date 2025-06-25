@@ -16,31 +16,23 @@ const markEmailVerified = `-- name: MarkEmailVerified :exec
 UPDATE users
 SET verified = TRUE
 WHERE id = $1
-  AND app_id = $2
   AND deleted_at IS NULL
 `
 
-type MarkEmailVerifiedParams struct {
-	ID    string `db:"id"`
-	AppID string `db:"app_id"`
-}
-
-func (q *Queries) MarkEmailVerified(ctx context.Context, arg MarkEmailVerifiedParams) error {
-	_, err := q.db.Exec(ctx, markEmailVerified, arg.ID, arg.AppID)
+func (q *Queries) MarkEmailVerified(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, markEmailVerified, id)
 	return err
 }
 
 const registerUser = `-- name: RegisterUser :exec
-INSERT INTO users (id, email, password_hash, role, app_id, verified, created_at,updated_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO users (id, email, password_hash, verified, created_at,updated_at)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type RegisterUserParams struct {
 	ID           string      `db:"id"`
 	Email        string      `db:"email"`
 	PasswordHash string      `db:"password_hash"`
-	Role         string      `db:"role"`
-	AppID        string      `db:"app_id"`
 	Verified     pgtype.Bool `db:"verified"`
 	CreatedAt    time.Time   `db:"created_at"`
 	UpdatedAt    time.Time   `db:"updated_at"`
@@ -51,8 +43,6 @@ func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) erro
 		arg.ID,
 		arg.Email,
 		arg.PasswordHash,
-		arg.Role,
-		arg.AppID,
 		arg.Verified,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -65,21 +55,17 @@ UPDATE users
 SET
     id = $1,
     password_hash = $2,
-    role = $3,
-    app_id = $4,
-    verified = $5,
-    created_at = $6,
-    updated_at = $7,
+    verified = $3,
+    created_at = $4,
+    updated_at = $5,
     deleted_at = NULL
-WHERE email = $8
+WHERE email = $6
   AND deleted_at IS NOT NULL
 `
 
 type ReplaceSoftDeletedUserParams struct {
 	ID           string      `db:"id"`
 	PasswordHash string      `db:"password_hash"`
-	Role         string      `db:"role"`
-	AppID        string      `db:"app_id"`
 	Verified     pgtype.Bool `db:"verified"`
 	CreatedAt    time.Time   `db:"created_at"`
 	UpdatedAt    time.Time   `db:"updated_at"`
@@ -90,8 +76,6 @@ func (q *Queries) ReplaceSoftDeletedUser(ctx context.Context, arg ReplaceSoftDel
 	_, err := q.db.Exec(ctx, replaceSoftDeletedUser,
 		arg.ID,
 		arg.PasswordHash,
-		arg.Role,
-		arg.AppID,
 		arg.Verified,
 		arg.CreatedAt,
 		arg.UpdatedAt,

@@ -5,9 +5,10 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rshelekhov/jwtauth"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 )
@@ -21,16 +22,16 @@ func TestDeleteUser_HappyPath(t *testing.T) {
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -50,49 +51,27 @@ func TestDeleteUser_HappyPath(t *testing.T) {
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Delete user
-	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{})
+	_, err = st.UserService.DeleteUser(ctx, &userv1.DeleteUserRequest{})
 	require.NoError(t, err)
 }
 
 func TestDeleteUserByID_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
-	// Register admin user via CLI
-	adminEmail := gofakeit.Email()
-	adminPass := randomFakePassword()
-
-	err := registerAdmin(t, cfg.AppID, adminEmail, adminPass)
-	require.NoError(t, err)
-
-	// Login as admin
-	md := metadata.Pairs(appid.Header, cfg.AppID)
-	ctx = metadata.NewOutgoingContext(ctx, md)
-
-	respLogin, err := st.AuthClient.Login(ctx, &ssov1.LoginRequest{
-		Email:    adminEmail,
-		Password: adminPass,
-		UserDeviceData: &ssov1.UserDeviceData{
-			UserAgent: gofakeit.UserAgent(),
-			Ip:        gofakeit.IPv4Address(),
-		},
-	})
-	require.NoError(t, err)
-	require.NotEmpty(t, respLogin.GetTokenData())
-
-	adminToken := respLogin.GetTokenData()
-	adminAccessToken := adminToken.GetAccessToken()
-
-	// Register regular user
-	regularEmail := gofakeit.Email()
-	regularPass := randomFakePassword()
+	// Register user
+	email := gofakeit.Email()
+	pass := randomFakePassword()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
-		Email:           regularEmail,
-		Password:        regularPass,
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
+		Email:           email,
+		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -100,33 +79,21 @@ func TestDeleteUserByID_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respReg.GetTokenData())
 
-	regularToken := respReg.GetTokenData()
-	regularAccessToken := regularToken.GetAccessToken()
+	token := respReg.GetTokenData()
+	accessToken := token.GetAccessToken()
 
-	// Get regular user's ID
-	md = metadata.Pairs(appid.Header, cfg.AppID)
-	md.Append(jwtauth.AuthorizationHeader, regularAccessToken)
+	// Get user's ID
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
+	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	respUser, err := st.AuthClient.GetUser(ctx, &ssov1.GetUserRequest{})
+	respUser, err := st.UserService.GetUser(ctx, &userv1.GetUserRequest{})
 	require.NoError(t, err)
-	regularUserID := respUser.GetUser().GetId()
+	userID := respUser.GetUser().GetId()
 
-	// Try to delete regular user's data using admin token
-	md = metadata.Pairs(appid.Header, cfg.AppID)
-	md.Append(jwtauth.AuthorizationHeader, adminAccessToken)
-	ctx = metadata.NewOutgoingContext(ctx, md)
-
-	_, err = st.AuthClient.DeleteUserByID(ctx, &ssov1.DeleteUserByIDRequest{
-		UserId: regularUserID,
+	// Delete user by ID
+	_, err = st.UserService.DeleteUserByID(ctx, &userv1.DeleteUserByIDRequest{
+		UserId: userID,
 	})
-	require.NoError(t, err)
-
-	// Cleanup admin
-	md = metadata.Pairs(appid.Header, cfg.AppID)
-	md.Append(jwtauth.AuthorizationHeader, adminAccessToken)
-	ctx = metadata.NewOutgoingContext(ctx, md)
-
-	_, err = st.AuthClient.DeleteUser(ctx, &ssov1.DeleteUserRequest{})
 	require.NoError(t, err)
 }

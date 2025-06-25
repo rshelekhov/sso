@@ -3,14 +3,9 @@ issue-845-fix: true
 mockname: "{{.InterfaceName}}"
 outpkg: mocks
 packages:
-  github.com/rshelekhov/sso/internal/domain/service/appvalidator:
+  github.com/rshelekhov/sso/internal/domain/service/clientvalidator:
     config:
-      dir: internal/domain/service/appvalidator/mocks
-    interfaces:
-      Storage:
-  github.com/rshelekhov/sso/internal/domain/service/rbac:
-    config:
-      dir: internal/domain/service/rbac/mocks
+      dir: internal/domain/service/clientvalidator/mocks
     interfaces:
       Storage:
   github.com/rshelekhov/sso/internal/domain/service/session:
@@ -35,9 +30,9 @@ packages:
       dir: internal/domain/service/verification/mocks
     interfaces:
       Storage:
-  github.com/rshelekhov/sso/internal/domain/usecase/app:
+  github.com/rshelekhov/sso/internal/domain/usecase/client:
     config:
-      dir: internal/domain/usecase/app/mocks
+      dir: internal/domain/usecase/client/mocks
     interfaces:
       KeyManager:
       Storage:

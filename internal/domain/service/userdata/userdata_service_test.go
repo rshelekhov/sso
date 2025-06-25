@@ -15,7 +15,6 @@ import (
 )
 
 func TestUserDataService_GetUserByID(t *testing.T) {
-	appID := "test-app-id"
 	userID := "test-user-id"
 
 	tests := []struct {
@@ -29,12 +28,11 @@ func TestUserDataService_GetUserByID(t *testing.T) {
 			mockBehavior: func(userStorage *mocks.Storage) {
 				expectedUser := entity.User{
 					Email:     "test-email@gmail.com",
-					AppID:     appID,
 					Verified:  true,
 					UpdatedAt: time.Now(),
 				}
 				userStorage.EXPECT().
-					GetUserByID(context.Background(), appID, userID).
+					GetUserByID(context.Background(), userID).
 					Return(expectedUser, nil)
 			},
 			expectedError: nil,
@@ -43,7 +41,7 @@ func TestUserDataService_GetUserByID(t *testing.T) {
 			name: "Error - User not found",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserByID(context.Background(), appID, userID).
+					GetUserByID(context.Background(), userID).
 					Return(entity.User{}, storage.ErrUserNotFound)
 			},
 			expectedError: domain.ErrUserNotFound,
@@ -52,7 +50,7 @@ func TestUserDataService_GetUserByID(t *testing.T) {
 			name: "Error - Storage error",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserByID(context.Background(), appID, "test-user-id").
+					GetUserByID(context.Background(), "test-user-id").
 					Return(entity.User{}, errors.New("storage error"))
 			},
 			expectedError: errors.New("storage error"),
@@ -65,7 +63,7 @@ func TestUserDataService_GetUserByID(t *testing.T) {
 			tt.mockBehavior(mockStorage)
 
 			service := NewService(mockStorage)
-			user, err := service.GetUserByID(context.Background(), appID, userID)
+			user, err := service.GetUserByID(context.Background(), userID)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -80,7 +78,6 @@ func TestUserDataService_GetUserByID(t *testing.T) {
 }
 
 func TestUserDataService_GetUserByEmail(t *testing.T) {
-	appID := "test-app-id"
 	email := "test-email@gmail.com"
 
 	tests := []struct {
@@ -93,12 +90,11 @@ func TestUserDataService_GetUserByEmail(t *testing.T) {
 			mockBehavior: func(userStorage *mocks.Storage) {
 				expectedUser := entity.User{
 					Email:     email,
-					AppID:     appID,
 					Verified:  true,
 					UpdatedAt: time.Now(),
 				}
 				userStorage.EXPECT().
-					GetUserByEmail(context.Background(), appID, email).
+					GetUserByEmail(context.Background(), email).
 					Return(expectedUser, nil)
 			},
 			expectedError: nil,
@@ -107,7 +103,7 @@ func TestUserDataService_GetUserByEmail(t *testing.T) {
 			name: "Error - User not found",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserByEmail(context.Background(), appID, email).
+					GetUserByEmail(context.Background(), email).
 					Return(entity.User{}, storage.ErrUserNotFound)
 			},
 			expectedError: domain.ErrUserNotFound,
@@ -116,7 +112,7 @@ func TestUserDataService_GetUserByEmail(t *testing.T) {
 			name: "Error - Storage error",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserByEmail(context.Background(), appID, email).
+					GetUserByEmail(context.Background(), email).
 					Return(entity.User{}, errors.New("user storage error"))
 			},
 			expectedError: errors.New("user storage error"),
@@ -129,7 +125,7 @@ func TestUserDataService_GetUserByEmail(t *testing.T) {
 			tt.mockBehavior(mockStorage)
 
 			service := NewService(mockStorage)
-			user, err := service.GetUserByEmail(context.Background(), appID, email)
+			user, err := service.GetUserByEmail(context.Background(), email)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -145,7 +141,6 @@ func TestUserDataService_GetUserByEmail(t *testing.T) {
 
 func TestUserDataService_GetUserData(t *testing.T) {
 	ctx := context.Background()
-	appID := "test-app-id"
 	userID := "test-user-id"
 
 	tests := []struct {
@@ -156,12 +151,11 @@ func TestUserDataService_GetUserData(t *testing.T) {
 		{
 			name: "Success",
 			mockBehavior: func(userStorage *mocks.Storage) {
-				userStorage.EXPECT().GetUserData(ctx, appID, userID).
+				userStorage.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(entity.User{
 						ID:        userID,
 						Email:     "test-email@gmail.com",
-						AppID:     appID,
 						Verified:  true,
 						UpdatedAt: time.Now(),
 					}, nil)
@@ -171,7 +165,7 @@ func TestUserDataService_GetUserData(t *testing.T) {
 		{
 			name: "Error – User not found",
 			mockBehavior: func(userStorage *mocks.Storage) {
-				userStorage.EXPECT().GetUserData(ctx, appID, userID).
+				userStorage.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(entity.User{}, storage.ErrUserNotFound)
 			},
@@ -180,7 +174,7 @@ func TestUserDataService_GetUserData(t *testing.T) {
 		{
 			name: "Error – Storage error",
 			mockBehavior: func(userStorage *mocks.Storage) {
-				userStorage.EXPECT().GetUserData(ctx, appID, userID).
+				userStorage.EXPECT().GetUserData(ctx, userID).
 					Once().
 					Return(entity.User{}, fmt.Errorf("user storage error"))
 			},
@@ -195,7 +189,7 @@ func TestUserDataService_GetUserData(t *testing.T) {
 
 			service := NewService(mockStorage)
 
-			user, err := service.GetUserData(ctx, appID, userID)
+			user, err := service.GetUserData(ctx, userID)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -214,7 +208,6 @@ func TestUserDataService_UpdateUser(t *testing.T) {
 		ID:           "test-user-id",
 		Email:        "test-email@gmail.com",
 		PasswordHash: "password-hash",
-		AppID:        "test-app-id",
 	}
 
 	tests := []struct {
@@ -275,7 +268,6 @@ func TestUserDataService_UpdateUser(t *testing.T) {
 
 func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 	ctx := context.Background()
-	appID := "test-app-id"
 	email := "email@example.com"
 
 	tests := []struct {
@@ -287,7 +279,7 @@ func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 			name: "Success",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByEmail(ctx, appID, email).
+					GetUserStatusByEmail(ctx, email).
 					Return("active", nil)
 			},
 			expectedError: nil,
@@ -296,7 +288,7 @@ func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 			name: "Error — User not found",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByEmail(ctx, appID, email).
+					GetUserStatusByEmail(ctx, email).
 					Return("", storage.ErrUserNotFound)
 			},
 			expectedError: domain.ErrUserNotFound,
@@ -305,7 +297,7 @@ func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 			name: "Error - Storage error",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByEmail(ctx, appID, email).
+					GetUserStatusByEmail(ctx, email).
 					Return("", errors.New("user storage error"))
 			},
 			expectedError: errors.New("user storage error"),
@@ -321,7 +313,7 @@ func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 			var status string
 			var err error
 
-			status, err = service.GetUserStatusByEmail(ctx, appID, email)
+			status, err = service.GetUserStatusByEmail(ctx, email)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -337,7 +329,6 @@ func TestUserDataService_GetUserStatusByEmail(t *testing.T) {
 
 func TestUserDataService_GetUserStatusByID(t *testing.T) {
 	ctx := context.Background()
-	appID := "test-app-id"
 	userID := "test-user-id"
 
 	tests := []struct {
@@ -349,7 +340,7 @@ func TestUserDataService_GetUserStatusByID(t *testing.T) {
 			name: "Success",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByID(ctx, appID, userID).
+					GetUserStatusByID(ctx, userID).
 					Return("active", nil)
 			},
 			expectedError: nil,
@@ -358,7 +349,7 @@ func TestUserDataService_GetUserStatusByID(t *testing.T) {
 			name: "Error — User not found",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByID(ctx, appID, userID).
+					GetUserStatusByID(ctx, userID).
 					Return("", storage.ErrUserNotFound)
 			},
 			expectedError: domain.ErrUserNotFound,
@@ -367,7 +358,7 @@ func TestUserDataService_GetUserStatusByID(t *testing.T) {
 			name: "Error - Storage error",
 			mockBehavior: func(userStorage *mocks.Storage) {
 				userStorage.EXPECT().
-					GetUserStatusByID(ctx, appID, userID).
+					GetUserStatusByID(ctx, userID).
 					Return("", errors.New("user storage error"))
 			},
 			expectedError: errors.New("user storage error"),
@@ -383,7 +374,7 @@ func TestUserDataService_GetUserStatusByID(t *testing.T) {
 			var status string
 			var err error
 
-			status, err = service.GetUserStatusByID(ctx, appID, userID)
+			status, err = service.GetUserStatusByID(ctx, userID)
 
 			if tt.expectedError != nil {
 				require.Error(t, err)
@@ -400,7 +391,6 @@ func TestUserDataService_GetUserStatusByID(t *testing.T) {
 func TestUserDataService_DeleteUser(t *testing.T) {
 	deletedUser := entity.User{
 		ID:        "test-user-id",
-		AppID:     "test-app-id",
 		DeletedAt: time.Now(),
 	}
 

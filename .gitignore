@@ -8,7 +8,7 @@ config/.env
 /certs/*
 
 # Don't ignore this file (need for api tests)
-!/certs/app_test-app-id_private.pem
+!/certs/app_test-client-id_private.pem
 
 # Other
 .DS_Store

@@ -9,7 +9,7 @@ import (
 )
 
 type Querier interface {
-	MarkEmailVerified(ctx context.Context, arg MarkEmailVerifiedParams) error
+	MarkEmailVerified(ctx context.Context, id string) error
 	RegisterUser(ctx context.Context, arg RegisterUserParams) error
 	ReplaceSoftDeletedUser(ctx context.Context, arg ReplaceSoftDeletedUserParams) error
 }

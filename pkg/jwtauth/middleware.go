@@ -14,8 +14,8 @@ import (
 //
 // UnaryServerInterceptor will extract a JWT token from gRPC metadata using the authorization key.
 func (m *manager) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		appID, err := m.getAppIDFromGRPCMetadata(ctx)
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		clientID, err := m.getClientIDFromGRPCMetadata(ctx)
 		if err != nil {
 			return nil, status.Error(codes.Unauthenticated, err.Error())
 		}
@@ -29,7 +29,7 @@ func (m *manager) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 			return "", status.Error(codes.Unauthenticated, ErrTokenNotFound.Error())
 		}
 
-		if err := m.verifyToken(appID, token); err != nil {
+		if err := m.verifyToken(clientID, token); err != nil {
 			return "", status.Error(codes.Unauthenticated, err.Error())
 		}
 
@@ -48,13 +48,13 @@ func (m *manager) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 // The HTTPMiddleware always calls the next http handler in sequence.
 func (m *manager) HTTPMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		appID, err := m.getAppIDFromHTTPRequest(r)
+		clientID, err := m.getClientIDFromHTTPRequest(r)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		token, err := m.findAndVerifyToken(r, appID, m.ExtractTokenFromHTTP, m.ExtractTokenFromCookies)
+		token, err := m.findAndVerifyToken(r, clientID, m.ExtractTokenFromHTTP, m.ExtractTokenFromCookies)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
@@ -65,10 +65,10 @@ func (m *manager) HTTPMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// getAppIDFromGRPCMetadata returns the appID from the manager struct or from gRPC metadata
-func (m *manager) getAppIDFromGRPCMetadata(ctx context.Context) (string, error) {
-	if m.appID != "" {
-		return m.appID, nil
+// getClientIDFromGRPCMetadata returns the clientID from the manager struct or from gRPC metadata
+func (m *manager) getClientIDFromGRPCMetadata(ctx context.Context) (string, error) {
+	if m.clientID != "" {
+		return m.clientID, nil
 	}
 
 	md, ok := metadata.FromIncomingContext(ctx)
@@ -76,33 +76,33 @@ func (m *manager) getAppIDFromGRPCMetadata(ctx context.Context) (string, error) 
 		return "", ErrNoGRPCMetadata
 	}
 
-	values := md.Get(AppIDHeader)
+	values := md.Get(ClientIDHeader)
 	if len(values) == 0 {
-		return "", ErrAppIDHeaderNotFoundInGRPCMetadata
+		return "", ErrClientIDHeaderNotFoundInGRPCMetadata
 	}
 
 	return values[0], nil
 }
 
-// getAppIDFromHTTPRequest returns the appID from the manager struct or from the http request
-func (m *manager) getAppIDFromHTTPRequest(r *http.Request) (string, error) {
-	if m.appID != "" {
-		return m.appID, nil
+// getClientIDFromHTTPRequest returns the clientID from the manager struct or from the http request
+func (m *manager) getClientIDFromHTTPRequest(r *http.Request) (string, error) {
+	if m.clientID != "" {
+		return m.clientID, nil
 	}
 
-	appID := r.Header.Get(AppIDHeader)
-	if appID == "" {
-		return "", ErrAppIDHeaderNotFoundInHTTPRequest
+	clientID := r.Header.Get(ClientIDHeader)
+	if clientID == "" {
+		return "", ErrClientIDHeaderNotFoundInHTTPRequest
 	}
 
-	return appID, nil
+	return clientID, nil
 }
 
 // findAndVerifyToken searches for a JWT token using the provided search functions (header and cookie).
 // Returns the found token string or an error if no valid token is found.
 func (m *manager) findAndVerifyToken(
 	r *http.Request,
-	appID string,
+	clientID string,
 	findTokenFns ...func(r *http.Request) (string, error),
 ) (string, error) {
 	var tokenString string
@@ -118,7 +118,7 @@ func (m *manager) findAndVerifyToken(
 		return "", ErrTokenNotFound
 	}
 
-	if err := m.verifyToken(appID, tokenString); err != nil {
+	if err := m.verifyToken(clientID, tokenString); err != nil {
 		return "", err
 	}
 

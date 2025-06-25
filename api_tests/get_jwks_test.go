@@ -3,9 +3,9 @@ package api_tests
 import (
 	"testing"
 
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 )
@@ -13,11 +13,11 @@ import (
 func TestGetJWKS_HappyPath(t *testing.T) {
 	ctx, st := suite.New(t)
 
-	// Add appID to gRPC metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	// Add clientID to gRPC metadata
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
-	resp, err := st.AuthClient.GetJWKS(ctx, &ssov1.GetJWKSRequest{})
+	resp, err := st.AuthService.GetJWKS(ctx, &authv1.GetJWKSRequest{})
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.GetJwks())
 	require.NotEmpty(t, resp.GetJwks()[0])

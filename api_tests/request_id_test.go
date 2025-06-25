@@ -5,9 +5,9 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/rshelekhov/jwtauth"
-	ssov1 "github.com/rshelekhov/sso-protos/gen/go/sso"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/appid"
+	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/requestid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
@@ -23,18 +23,18 @@ func TestRequestID_HappyPath(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Create metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	md.Append(requestid.Header, "requestID #1 from the client side")
 
 	// Create context with metadata
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -49,13 +49,13 @@ func TestRequestID_HappyPath(t *testing.T) {
 	require.NotEmpty(t, accessToken)
 
 	// Create context for Logout request
-	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Logout user
-	_, err = st.AuthClient.Logout(ctx, &ssov1.LogoutRequest{
-		UserDeviceData: &ssov1.UserDeviceData{
+	_, err = st.AuthService.Logout(ctx, &authv1.LogoutRequest{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -64,12 +64,12 @@ func TestRequestID_HappyPath(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
 
 func TestRequestID_EmptyRequestID(t *testing.T) {
@@ -82,18 +82,18 @@ func TestRequestID_EmptyRequestID(t *testing.T) {
 	ip := gofakeit.IPv4Address()
 
 	// Create metadata
-	md := metadata.Pairs(appid.Header, cfg.AppID)
+	md := metadata.Pairs(clientid.Header, cfg.ClientID)
 	md.Append(requestid.Header, emptyValue)
 
 	// Create context with metadata
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Register user
-	respReg, err := st.AuthClient.RegisterUser(ctx, &ssov1.RegisterUserRequest{
+	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
 		VerificationUrl: cfg.VerificationURL,
-		UserDeviceData: &ssov1.UserDeviceData{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -108,14 +108,14 @@ func TestRequestID_EmptyRequestID(t *testing.T) {
 	require.NotEmpty(t, accessToken)
 
 	// Create context for Logout request
-	md = metadata.Pairs(appid.Header, cfg.AppID)
+	md = metadata.Pairs(clientid.Header, cfg.ClientID)
 	md.Append(jwtauth.AuthorizationHeader, accessToken)
 	md.Append(requestid.Header, emptyValue)
 	ctx = metadata.NewOutgoingContext(ctx, md)
 
 	// Logout user
-	_, err = st.AuthClient.Logout(ctx, &ssov1.LogoutRequest{
-		UserDeviceData: &ssov1.UserDeviceData{
+	_, err = st.AuthService.Logout(ctx, &authv1.LogoutRequest{
+		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
 			Ip:        ip,
 		},
@@ -124,10 +124,10 @@ func TestRequestID_EmptyRequestID(t *testing.T) {
 
 	// Cleanup database after test
 	params := cleanupParams{
-		t:     t,
-		st:    st,
-		appID: cfg.AppID,
-		token: token,
+		t:        t,
+		st:       st,
+		clientID: cfg.ClientID,
+		token:    token,
 	}
-	cleanup(params, cfg.AppID)
+	cleanup(params, cfg.ClientID)
 }
