@@ -14,22 +14,22 @@ const (
 )
 
 type KeyStorage struct {
-	Type  KeyStorageType `mapstructure:"KEY_STORAGE_TYPE" endDefault:"local"`
-	Local *KeyStorageLocalParams
-	S3    *KeyStorageS3Params
+	Type  KeyStorageType         `yaml:"Type" default:"local"`
+	Local *KeyStorageLocalParams `yaml:"Local"`
+	S3    *KeyStorageS3Params    `yaml:"S3"`
 }
 
 type KeyStorageLocalParams struct {
-	Path string `mapstructure:"KEY_STORAGE_LOCAL_PATH" envDefault:"./certs"`
+	Path string `yaml:"Path" default:"./certs"`
 }
 
 type KeyStorageS3Params struct {
-	Region         string `mapstructure:"KEY_STORAGE_S3_REGION"`
-	Bucket         string `mapstructure:"KEY_STORAGE_S3_BUCKET"`
-	AccessKey      string `mapstructure:"KEY_STORAGE_S3_ACCESS_KEY"`
-	SecretKey      string `mapstructure:"KEY_STORAGE_S3_SECRET_KEY"`
-	PrivateKeyPath string `mapstructure:"KEY_STORAGE_S3_PRIVATE_KEY_PATH"`
-	Endpoint       string `mapstructure:"KEY_STORAGE_S3_ENDPOINT"`
+	Region         string `yaml:"Region"`
+	Bucket         string `yaml:"Bucket"`
+	AccessKey      string `yaml:"AccessKey"`
+	SecretKey      string `yaml:"SecretKey"`
+	PrivateKeyPath string `yaml:"PrivateKeyPath"`
+	Endpoint       string `yaml:"Endpoint"`
 }
 
 func ToKeyStorageConfig(ks KeyStorage) (key.Config, error) {

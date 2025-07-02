@@ -1,4 +1,4 @@
-CONFIG_PATH ?= ./config/.env
+CONFIG_PATH ?= ./config/config.yaml
 SERVER_PORT ?= 44044
 
 # Supported types: postgres, mongo

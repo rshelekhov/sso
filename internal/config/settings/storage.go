@@ -17,24 +17,24 @@ const (
 )
 
 type Storage struct {
-	Type     StorageType `mapstructure:"DB_TYPE"`
-	Mongo    *MongoParams
-	Postgres *PostgresParams
+	Type     StorageType     `yaml:"Type"`
+	Mongo    *MongoParams    `yaml:"Mongo"`
+	Postgres *PostgresParams `yaml:"Postgres"`
 }
 
 type MongoParams struct {
-	URI     string        `mapstructure:"DB_MONGO_URI"`
-	DBName  string        `mapstructure:"DB_MONGO_NAME"`
-	Timeout time.Duration `mapstructure:"DB_MONGO_TIMEOUT" envDefault:"30s"`
+	URI     string        `yaml:"URI"`
+	DBName  string        `yaml:"DBName"`
+	Timeout time.Duration `yaml:"Timeout" default:"30s"`
 }
 
 type PostgresParams struct {
-	ConnURL      string        `mapstructure:"DB_POSTGRES_CONN_URL"`
-	ConnPoolSize int           `mapstructure:"DB_POSTGRES_CONN_POOL_SIZE" envDefault:"10"`
-	ReadTimeout  time.Duration `mapstructure:"DB_POSTGRES_READ_TIMEOUT" envDefault:"5s"`
-	WriteTimeout time.Duration `mapstructure:"DB_POSTGRES_WRITE_TIMEOUT" envDefault:"5s"`
-	IdleTimeout  time.Duration `mapstructure:"DB_POSTGRES_IDLE_TIMEOUT" envDefault:"60s"`
-	DialTimeout  time.Duration `mapstructure:"DB_POSTGRES_DIAL_TIMEOUT" envDefault:"10s"`
+	ConnURL      string        `yaml:"ConnURL"`
+	ConnPoolSize int           `yaml:"ConnPoolSize" default:"10"`
+	ReadTimeout  time.Duration `yaml:"ReadTimeout" default:"5s"`
+	WriteTimeout time.Duration `yaml:"WriteTimeout" default:"5s"`
+	IdleTimeout  time.Duration `yaml:"IdleTimeout" default:"60s"`
+	DialTimeout  time.Duration `yaml:"DialTimeout" default:"10s"`
 }
 
 func ToStorageConfig(s Storage) (storage.Config, error) {

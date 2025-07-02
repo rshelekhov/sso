@@ -1,0 +1,89 @@
+# SSO Configuration in YAML format
+# This file will be automatically found by config loader
+
+# Application environment
+AppEnv: "local"
+
+# gRPC Server settings
+GRPCServer:
+  Host: "localhost"
+  Port: "44044"
+  Timeout: "30s"
+  RetriesCount: 3
+
+# Storage configuration
+Storage:
+  Type: "postgres"
+  Postgres:
+    ConnURL: "postgres://root:password@localhost:5432/sso_dev?sslmode=disable"
+    ConnPoolSize: 10
+    ReadTimeout: "5s"
+    WriteTimeout: "5s"
+    IdleTimeout: "60s"
+    DialTimeout: "10s"
+  Mongo:
+    URI: "mongodb+srv://root:password@cluster0.ocbs0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    DBName: "sso"
+    Timeout: "30s"
+
+# Redis Cache settings
+Cache:
+  Redis:
+    Host: "localhost"
+    Port: 6379
+    Password: ""
+    DB: 0
+    PoolSize: 10
+    MinIdleConns: 5
+    SessionTTL: "24h"
+    RevokedTokenTTL: "24h"
+
+# JWT configuration
+JWT:
+  Issuer: "sso"
+  SigningMethod: "RS256"
+  JWKSURL: "http://localhost:8081/.well-known/jwks.json"
+  JWKSTTL: "24h"
+  AccessTokenTTL: "15m"
+  RefreshTokenTTL: "720h"
+  RefreshTokenCookieDomain: ""
+  RefreshTokenCookiePath: "/"
+
+# Password hashing configuration
+PasswordHash:
+  Type: "argon2"
+  SaltLength: 24
+  Pepper: "red-hot-chili-peppers"
+  Argon:
+    Time: 2
+    Memory: 24576
+    Parallelism: 2
+    KeyLength: 24
+  Bcrypt:
+    Cost: 10
+
+# Key storage configuration
+KeyStorage:
+  Type: "local"
+  Local:
+    Path: "./certs"
+  S3:
+    Region: ""
+    Bucket: ""
+    AccessKey: ""
+    SecretKey: ""
+    PrivateKeyPath: ""
+    Endpoint: ""
+
+# Mail service configuration (types: mock or mailgun)
+MailService:
+  Type: "mock"
+  TemplatesPath: "./static/email_templates"
+  Mailgun:
+    Domain: "your-domain.com"
+    PrivateAPIKey: ""
+    Sender: "noreply@your-domain.com"
+
+# Verification service configuration
+VerificationService:
+  TokenExpiryTime: "24h"

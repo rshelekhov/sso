@@ -6,13 +6,14 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/rshelekhov/golib/config"
 	"github.com/rshelekhov/sso/internal/app"
-	"github.com/rshelekhov/sso/internal/config"
+	appConfig "github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/lib/logger"
 )
 
 func main() {
-	cfg := config.MustLoad()
+	cfg := config.MustLoad[appConfig.ServerSettings]()
 
 	log := logger.SetupLogger(cfg.AppEnv)
 

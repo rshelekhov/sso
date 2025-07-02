@@ -6,11 +6,11 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
-	"github.com/rshelekhov/jwtauth"
 	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"github.com/rshelekhov/sso/api_tests/suite"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
+	"github.com/rshelekhov/sso/pkg/jwtauth"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
 )

@@ -9,7 +9,8 @@ import (
 	"flag"
 	"log/slog"
 
-	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/golib/config"
+	appConfig "github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/domain/usecase/client"
@@ -24,8 +25,11 @@ func main() {
 
 	flag.StringVar(&appName, "name", appName, "Name of the app")
 	flag.StringVar(&appName, "n", appName, "Name of the app")
+	flag.Parse()
 
-	cfg := config.MustLoad()
+	cfg := config.MustLoad[appConfig.ServerSettings](
+		config.WithSkipFlags(true),
+	)
 
 	log := logger.SetupLogger(cfg.AppEnv)
 	if appName == "" {

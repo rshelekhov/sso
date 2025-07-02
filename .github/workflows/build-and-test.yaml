@@ -51,10 +51,10 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Create .env file
+      - name: Create config file
         run: |
           set -x
-          echo "${{ secrets.ENV_CONFIG_TEST }}" > ./config/.env
+          echo "${{ secrets.CONFIG_TEST_YAML }}" > ./config/config.yaml
 
       - name: Create config with grpc methods
         run: |
