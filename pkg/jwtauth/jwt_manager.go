@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rshelekhov/jwtauth/cache"
+	"github.com/rshelekhov/sso/pkg/jwtauth/cache"
 	"google.golang.org/grpc/metadata"
 )
 

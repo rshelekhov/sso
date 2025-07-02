@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rshelekhov/jwtauth"
-
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/golang-jwt/jwt/v5"
 	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
@@ -17,6 +15,7 @@ import (
 	"github.com/rshelekhov/sso/internal/controller/grpc"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
+	"github.com/rshelekhov/sso/pkg/jwtauth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/metadata"
