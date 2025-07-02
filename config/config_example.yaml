@@ -1,8 +1,13 @@
 # SSO Configuration in YAML format
 # This file will be automatically found by config loader
 
-# Application environment
-AppEnv: "local"
+# App settings
+App:
+  Env: "local"
+  ServiceName: "sso"
+  ServiceVersion: "1.0.0"
+  EnableMetrics: true
+  OTLPEndpoint: "http://localhost:4317"
 
 # gRPC Server settings
 GRPCServer:

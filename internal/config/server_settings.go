@@ -5,7 +5,7 @@ import (
 )
 
 type ServerSettings struct {
-	AppEnv              string                       `yaml:"AppEnv"`
+	App                 settings.App                 `yaml:"App"`
 	GRPCServer          settings.GRPCServer          `yaml:"GRPCServer"`
 	Storage             settings.Storage             `yaml:"Storage"`
 	Cache               settings.Cache               `yaml:"Cache"`

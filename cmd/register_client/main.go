@@ -8,6 +8,7 @@ import (
 	"context"
 	"flag"
 	"log/slog"
+	"os"
 
 	"github.com/rshelekhov/golib/config"
 	appConfig "github.com/rshelekhov/sso/internal/config"
@@ -17,7 +18,6 @@ import (
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	appDB "github.com/rshelekhov/sso/internal/infrastructure/storage/client"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
-	"github.com/rshelekhov/sso/internal/lib/logger"
 )
 
 func main() {
@@ -31,7 +31,11 @@ func main() {
 		config.WithSkipFlags(true),
 	)
 
-	log := logger.SetupLogger(cfg.AppEnv)
+	log := slog.New(slog.Handler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelInfo,
+		AddSource: true,
+	})))
+
 	if appName == "" {
 		// I'm fine with panic for now, as it's an auxiliary utility.
 		panic("app name is required")
