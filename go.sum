@@ -73,8 +73,6 @@ github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0 h1:pRhl55Yx1eC7BZ1N+BBWwnKaMyD8uC+34TLdndZMAKk=
-github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0/go.mod h1:XKMd7iuf/RGPSMJ/U4HP0zS2Z9Fh8Ps9a+6X26m/tmI=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1 h1:X5VWvz21y3gzm9Nw/kaUeku/1+uBhcekkmy4IkffJww=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1/go.mod h1:Zanoh4+gvIgluNqcfMVTJueD4wSS5hT7zTt4Mrutd90=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
@@ -158,6 +156,8 @@ github.com/rshelekhov/golib/config v1.2.0 h1:TxJTT/Z6l0Ej0CqznhR2WhY8MX3J9mCMZzE
 github.com/rshelekhov/golib/config v1.2.0/go.mod h1:5NcCUObYR9KWaXUCntvl4My6tUJ5+FLJ3ytYY8tKZKs=
 github.com/rshelekhov/golib/observability v1.3.4 h1:hUvLoRDyH0ApFkCV46F360FnGOA3yv/oqHS7gwHNPDc=
 github.com/rshelekhov/golib/observability v1.3.4/go.mod h1:cIyUgsuBmYqX7pdB7rnaGrPrHEcbf8wEBKi32P3MBr4=
+github.com/rshelekhov/golib/server v1.0.0 h1:QW5TxPLgef752vAGLt/t6uwMDzLlX+fepiDqVr+WrxE=
+github.com/rshelekhov/golib/server v1.0.0/go.mod h1:36slksgY3+ujEDW5op43YVBH0ZxQLoKx/tT4e5QJk0k=
 github.com/rshelekhov/sso-protos v0.3.3 h1:dcZmXKoSKmkmCwHxMk6F1d81javAzmh7/cqReENi1EM=
 github.com/rshelekhov/sso-protos v0.3.3/go.mod h1:+1CtdHjjBbGQOuMRoL/SFZErCHcuBe8dwfFIsu5n/2A=
 github.com/segmentio/ksuid v1.0.4 h1:sBo2BdShXjmcugAMwjugoGUdUV0pcxY5mW4xKRn3v4c=

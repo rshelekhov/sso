@@ -9,12 +9,12 @@ require (
 	github.com/cristalhq/aconfig/aconfigdotenv v0.17.1
 	github.com/cristalhq/aconfig/aconfigyaml v0.17.1
 	github.com/golang-migrate/migrate/v4 v4.17.0
-	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/mailgun/mailgun-go/v4 v4.12.0
 	github.com/redis/go-redis/v9 v9.7.1
 	github.com/rshelekhov/golib/config v1.2.0
 	github.com/rshelekhov/golib/observability v1.3.4
+	github.com/rshelekhov/golib/server v1.0.0
 	github.com/rshelekhov/sso-protos v0.3.3
 	github.com/segmentio/ksuid v1.0.4
 	github.com/stretchr/testify v1.10.0

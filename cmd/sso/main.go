@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -55,17 +56,36 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	errChan := make(chan error, 1)
+
 	go func() {
-		application.GRPCServer.MustRun()
+		log.Info("starting servers")
+		if err := application.Run(ctx); err != nil {
+			errChan <- err
+		}
 	}()
 
-	// Graceful shutdown
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	sign := <-stop
-	log.Info("shutting down...", slog.String("signal", sign.String()))
+	var shutdownReason string
+	select {
+	case sig := <-sigCh:
+		shutdownReason = fmt.Sprintf("signal %s", sig.String())
+		log.Info("received signal, shutting down", slog.String("signal", sig.String()))
+		cancel()
+	case err := <-errChan:
+		shutdownReason = fmt.Sprintf("application error: %v", err)
+		log.Error("application error, shutting down", slog.String("error", err.Error()))
+	case <-ctx.Done():
+		shutdownReason = "context cancelled"
+		log.Info("context cancelled, shutting down")
+	}
 
+	log.Info("cleaning up resources", slog.String("reason", shutdownReason))
 	if err := application.Stop(); err != nil {
 		log.Error("failed to stop application", slog.String("error", err.Error()))
 		os.Exit(1)
