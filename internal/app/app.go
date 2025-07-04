@@ -25,12 +25,12 @@ func (a *App) Run(ctx context.Context) error {
 	return a.Server.Run(ctx, a.SSOService)
 }
 
-func (a *App) Stop() error {
+func (a *App) Stop(ctx context.Context) error {
 	const method = "app.Stop"
 
 	a.Server.Shutdown()
 
-	if err := a.dbConn.Close(); err != nil {
+	if err := a.dbConn.Close(ctx); err != nil {
 		return fmt.Errorf("%s:failed to close database connection: %w", method, err)
 	}
 

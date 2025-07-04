@@ -9,6 +9,7 @@ import (
 	"flag"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/rshelekhov/golib/config"
 	appConfig "github.com/rshelekhov/sso/internal/config"
@@ -70,12 +71,10 @@ func main() {
 }
 
 func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
-	storageConfig, err := settings.ToStorageConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	dbConnection, err := storage.NewDBConnection(storageConfig)
+	dbConnection, err := storage.NewDBConnection(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}

@@ -86,7 +86,7 @@ func main() {
 	}
 
 	log.Info("cleaning up resources", slog.String("reason", shutdownReason))
-	if err := application.Stop(); err != nil {
+	if err := application.Stop(ctx); err != nil {
 		log.Error("failed to stop application", slog.String("error", err.Error()))
 		os.Exit(1)
 	}

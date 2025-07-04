@@ -279,12 +279,10 @@ func (b *Builder) createServerApp() (*server.App, error) {
 }
 
 func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
-	storageConfig, err := settings.ToStorageConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	dbConnection, err := storage.NewDBConnection(storageConfig)
+	dbConnection, err := storage.NewDBConnection(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -293,9 +291,10 @@ func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
 }
 
 func newRedisConnection(cfg settings.RedisParams) (*storage.RedisConnection, error) {
-	redisConfig := settings.ToRedisConfig(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	redisConnection, err := storage.NewRedisConnection(redisConfig)
+	redisConnection, err := storage.NewRedisConnection(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
