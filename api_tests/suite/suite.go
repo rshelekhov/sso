@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/rshelekhov/golib/config"
 	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
@@ -90,12 +91,10 @@ func grpcAddress(cfg *appConfig.ServerSettings) string {
 }
 
 func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
-	storageConfig, err := settings.ToStorageConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	dbConnection, err := storage.NewDBConnection(storageConfig)
+	dbConnection, err := storage.NewDBConnection(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
