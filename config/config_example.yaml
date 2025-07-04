@@ -18,7 +18,7 @@ GRPCServer:
 
 # Storage configuration
 Storage:
-  Type: "postgres"
+  Type: "mongo" # postgres or mongo
   Postgres:
     ConnURL: "postgres://root:password@localhost:5432/sso_dev?sslmode=disable"
     ConnPoolSize: 10
@@ -27,8 +27,8 @@ Storage:
     IdleTimeout: "60s"
     DialTimeout: "10s"
   Mongo:
-    URI: "mongodb+srv://root:password@cluster0.ocbs0.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-    DBName: "sso"
+    URI: "mongodb://localhost:27017"
+    DBName: "sso_dev"
     Timeout: "30s"
 
 # Redis Cache settings
