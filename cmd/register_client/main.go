@@ -88,7 +88,10 @@ func newKeyStorage(cfg settings.KeyStorage) (token.KeyStorage, error) {
 		return nil, err
 	}
 
-	keyStorage, err := key.NewStorage(keyStorageConfig)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	keyStorage, err := key.NewStorage(ctx, keyStorageConfig)
 	if err != nil {
 		return nil, err
 	}

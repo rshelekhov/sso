@@ -16,6 +16,7 @@ require (
 	github.com/rshelekhov/golib/db/mongo v1.0.2
 	github.com/rshelekhov/golib/db/postgres/pgxv5 v1.1.0
 	github.com/rshelekhov/golib/db/redis v1.0.0
+	github.com/rshelekhov/golib/db/s3 v1.0.0
 	github.com/rshelekhov/golib/observability v1.3.4
 	github.com/rshelekhov/golib/server v1.0.0
 	github.com/rshelekhov/sso-protos v0.3.3

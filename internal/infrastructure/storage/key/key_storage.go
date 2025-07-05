@@ -1,6 +1,7 @@
 package key
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -14,12 +15,12 @@ var (
 	ErrS3KeyStorageSettingsEmpty    = errors.New("s3 key storage settings are empty")
 )
 
-func NewStorage(cfg Config) (token.KeyStorage, error) {
+func NewStorage(ctx context.Context, cfg Config) (token.KeyStorage, error) {
 	switch cfg.Type {
 	case StorageTypeLocal:
 		return newLocalKeyStorage(cfg)
 	case StorageTypeS3:
-		return newS3KeyStorage(cfg)
+		return newS3KeyStorage(ctx, cfg)
 	default:
 		return nil, fmt.Errorf("unknown key storage type: %s", cfg.Type)
 	}
@@ -37,7 +38,7 @@ func newLocalKeyStorage(cfg Config) (token.KeyStorage, error) {
 	return fs.NewKeyStorage(localConfig)
 }
 
-func newS3KeyStorage(cfg Config) (token.KeyStorage, error) {
+func newS3KeyStorage(ctx context.Context, cfg Config) (token.KeyStorage, error) {
 	if cfg.S3 == nil {
 		return nil, ErrS3KeyStorageSettingsEmpty
 	}
@@ -51,7 +52,7 @@ func newS3KeyStorage(cfg Config) (token.KeyStorage, error) {
 		Endpoint:       cfg.S3.Endpoint,
 	}
 
-	return s3.NewKeyStorage(s3Config)
+	return s3.NewKeyStorage(ctx, s3Config)
 }
 
 type StorageType string

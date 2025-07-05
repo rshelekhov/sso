@@ -196,6 +196,8 @@ github.com/rshelekhov/golib/db/postgres/pgxv5 v1.1.0 h1:eFDQpLhHFg7lFyRsVe1W9o2Q
 github.com/rshelekhov/golib/db/postgres/pgxv5 v1.1.0/go.mod h1:01vS8viITT5M5aeobkFJ+zdfaNwN7PM71xmhAlR25fs=
 github.com/rshelekhov/golib/db/redis v1.0.0 h1:ayuqb1P9c8yqFZLp29WlquLKHiUiKGUGp0NFlWt0I80=
 github.com/rshelekhov/golib/db/redis v1.0.0/go.mod h1:7VN/pmC5Dkbu4FMXjSjMPdFDmAe4bD398oz5Hgwqf8g=
+github.com/rshelekhov/golib/db/s3 v1.0.0 h1:YQY42ZF4F+ZT3YeyQRJ2f29Fvpgaln5ysWx1Bi56JBg=
+github.com/rshelekhov/golib/db/s3 v1.0.0/go.mod h1:UmStXC8524m4hCIc5hqUfi5BHTM5bxH1FJ8GT14+gmw=
 github.com/rshelekhov/golib/observability v1.3.4 h1:hUvLoRDyH0ApFkCV46F360FnGOA3yv/oqHS7gwHNPDc=
 github.com/rshelekhov/golib/observability v1.3.4/go.mod h1:cIyUgsuBmYqX7pdB7rnaGrPrHEcbf8wEBKi32P3MBr4=
 github.com/rshelekhov/golib/server v1.0.0 h1:QW5TxPLgef752vAGLt/t6uwMDzLlX+fepiDqVr+WrxE=
