@@ -37,7 +37,7 @@ func newMongoStorage(dbConn *storage.DBConnection) (Storage, error) {
 		return nil, ErrMongoClientStorageSettingsEmpty
 	}
 
-	return mongoStorage.NewClientStorage(dbConn.Mongo.Connection.Database(), dbConn.Mongo.Timeout)
+	return mongoStorage.NewClientStorage(dbConn.Mongo.Database(), dbConn.Mongo.Timeout)
 }
 
 func newPostgresStorage(dbConn *storage.DBConnection) (Storage, error) {
@@ -45,5 +45,5 @@ func newPostgresStorage(dbConn *storage.DBConnection) (Storage, error) {
 		return nil, ErrPostgresClientStorageSettingsEmpty
 	}
 
-	return pgStorage.NewClientStorage(dbConn.Postgres.Connection.Pool()), nil
+	return pgStorage.NewClientStorage(dbConn.Postgres.Pool()), nil
 }

@@ -53,7 +53,7 @@ func main() {
 	application, err := app.New(log, cfg)
 	if err != nil {
 		log.Error("failed to initialize application", slog.String("error", err.Error()))
-		os.Exit(1)
+		return
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -82,13 +82,14 @@ func main() {
 		log.Error("application error, shutting down", slog.String("error", err.Error()))
 	case <-ctx.Done():
 		shutdownReason = "context cancelled"
+
 		log.Info("context cancelled, shutting down")
 	}
 
 	log.Info("cleaning up resources", slog.String("reason", shutdownReason))
 	if err := application.Stop(ctx); err != nil {
 		log.Error("failed to stop application", slog.String("error", err.Error()))
-		os.Exit(1)
+		return
 	}
 
 	log.Info("graceful shutdown completed")

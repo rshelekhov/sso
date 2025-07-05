@@ -36,7 +36,7 @@ func newMongoStorage(dbConn *storage.DBConnection) (session.DeviceStorage, error
 		return nil, ErrMongoDeviceStorageSettingsEmpty
 	}
 
-	return mongoStorage.NewDeviceStorage(dbConn.Mongo.Connection.Database(), dbConn.Mongo.Timeout)
+	return mongoStorage.NewDeviceStorage(dbConn.Mongo.Database(), dbConn.Mongo.Timeout)
 }
 
 func newPostgresStorage(dbConn *storage.DBConnection, txMgr transaction.PostgresManager) (session.DeviceStorage, error) {
@@ -44,5 +44,5 @@ func newPostgresStorage(dbConn *storage.DBConnection, txMgr transaction.Postgres
 		return nil, ErrPostgresDeviceStorageSettingsEmpty
 	}
 
-	return pgStorage.NewDeviceStorage(dbConn.Postgres.Connection.Pool(), txMgr), nil
+	return pgStorage.NewDeviceStorage(dbConn.Postgres.Pool(), txMgr), nil
 }

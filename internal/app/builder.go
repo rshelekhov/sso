@@ -262,6 +262,7 @@ func (b *Builder) createServerApp() (*server.App, error) {
 		server.LoggingUnaryInterceptor(b.logger),
 		server.RecoveryUnaryInterceptor(b.logger),
 	}
+
 	interceptors = append(interceptors, b.ssoService.GetCustomInterceptors()...)
 
 	app, err := server.NewApp(
