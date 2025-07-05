@@ -50,9 +50,14 @@ func NewDBConnection(ctx context.Context, cfg settings.Storage) (*DBConnection, 
 func newMongoStorage(ctx context.Context, cfg *settings.MongoParams) (*DBConnection, error) {
 	const method = "storage.newMongoStorage"
 
-	conn, err := mongoLib.NewConnection(ctx, cfg.URI, cfg.DBName)
+	connection, err := mongoLib.NewConnection(ctx, cfg.URI, cfg.DBName)
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to create new mongodb storage: %w", method, err)
+	}
+
+	conn, ok := connection.(*mongoLib.Connection)
+	if !ok {
+		return nil, fmt.Errorf("%s: expected *mongoLib.Connection, got %T", method, conn)
 	}
 
 	if err = initializeCollection(conn.Database()); err != nil {
@@ -62,7 +67,7 @@ func newMongoStorage(ctx context.Context, cfg *settings.MongoParams) (*DBConnect
 	return &DBConnection{
 		Type: TypeMongo,
 		Mongo: &Mongo{
-			Connection: conn.(*mongoLib.Connection),
+			Connection: conn,
 			Timeout:    cfg.Timeout,
 		},
 	}, nil
