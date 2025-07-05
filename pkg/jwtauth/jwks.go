@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rshelekhov/jwtauth/cache"
+	"github.com/rshelekhov/sso/pkg/jwtauth/cache"
 )
 
 // JWK represents a JSON Web Key structure containing the necessary fields

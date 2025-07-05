@@ -1,4 +1,4 @@
-CONFIG_PATH ?= ./config/.env
+CONFIG_PATH ?= ./config/config.yaml
 SERVER_PORT ?= 44044
 
 # Supported types: postgres, mongo
@@ -6,7 +6,7 @@ DB_TYPE ?= postgres
 
 # Don't forget to set POSTGRESQL_URL or MONGO_URL with your credentials
 POSTGRESQL_URL ?= postgres://root:password@localhost:5432/sso_dev?sslmode=disable
-MONGO_URL ?= mongodb://root:password@localhost:27017/sso_dev
+MONGO_URL ?= mongodb://localhost:27017/sso_dev
 
 .PHONY: setup-dev setup-dev-with-postgres migrate-postgres migrate-postgres-down db-postgres-insert db-mongo-insert run-server stop-server build test-all-app test-api lint
 
@@ -75,9 +75,9 @@ db-postgres-insert:
 # Insert test data in mongo only if not already inserted
 db-mongo-insert:
 	@echo "Checking if test data needs to be inserted into MongoDB..."
-	@if mongo $(MONGO_URL) --quiet --eval 'db.clients.findOne({_id: "test-client-id"})' | grep -q "null"; then \
+	@if [ "$$(mongosh "$(MONGO_URL)" --quiet --eval 'db.clients.countDocuments({_id: "test-client-id"})')" = "0" ]; then \
 		echo "Inserting test data into MongoDB..."; \
-		mongo $(MONGO_URL) --eval 'db.clients.insertOne({_id: "test-client-id", name: "test", secret: "test-secret", status: 1, created_at: new Date(), updated_at: new Date()})'; \
+		mongosh "$(MONGO_URL)" --eval 'db.clients.insertOne({_id: "test-client-id", name: "test", secret: "test-secret", status: 1, created_at: new Date(), updated_at: new Date()})'; \
 		echo "Test data inserted."; \
 	else \
 		echo "Test data already exists in MongoDB. No need to insert."; \
@@ -111,12 +111,12 @@ build:
 # Run tests
 test-all-app: setup-dev run-server
 	@echo "Running tests..."
-	@go test -v -timeout 60s -parallel=1 ./...
+	@go test -v -timeout 300s -parallel=4 ./...
 	@echo "Tests completed."
 
 test-api: setup-dev run-server
 	@echo "Running tests..."
-	@go test -v -timeout 60s -parallel=1 ./api_tests
+	@go test -v -timeout 300s -parallel=4 ./api_tests
 	@echo "Tests completed."
 
 

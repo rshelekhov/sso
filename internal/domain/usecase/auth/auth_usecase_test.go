@@ -17,7 +17,7 @@ import (
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/domain/usecase/auth/mocks"
-	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogdiscard"
+	"github.com/rshelekhov/sso/internal/lib/logger/slogdiscard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

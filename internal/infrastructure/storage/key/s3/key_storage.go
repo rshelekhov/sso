@@ -2,10 +2,11 @@ package s3
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
-	storage "github.com/rshelekhov/sso/pkg/storage/s3"
+	s3lib "github.com/rshelekhov/golib/db/s3"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -17,19 +18,20 @@ type KeyStorage struct {
 	PrivateKeyPath string
 }
 
-func NewKeyStorage(cfg Config) (*KeyStorage, error) {
-	s3Client, err := storage.NewS3Client(
-		cfg.Region,
-		cfg.Endpoint,
-		cfg.AccessKey,
-		cfg.SecretKey,
+func NewKeyStorage(ctx context.Context, cfg Config) (*KeyStorage, error) {
+	const op = "storage.key.s3.NewKeyStorage"
+
+	conn, err := s3lib.NewConnection(ctx,
+		s3lib.WithRegion(cfg.Region),
+		s3lib.WithEndpoint(cfg.Endpoint),
+		s3lib.WithCredentials(cfg.AccessKey, cfg.SecretKey),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: failed to create s3 connection: %w", op, err)
 	}
 
 	return &KeyStorage{
-		Client:         s3Client,
+		Client:         conn.Client(),
 		Bucket:         cfg.Bucket,
 		PrivateKeyPath: cfg.PrivateKeyPath,
 	}, nil

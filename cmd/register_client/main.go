@@ -8,15 +8,17 @@ import (
 	"context"
 	"flag"
 	"log/slog"
+	"os"
+	"time"
 
-	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/golib/config"
+	appConfig "github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/domain/usecase/client"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	appDB "github.com/rshelekhov/sso/internal/infrastructure/storage/client"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
-	"github.com/rshelekhov/sso/internal/lib/logger"
 )
 
 func main() {
@@ -24,10 +26,17 @@ func main() {
 
 	flag.StringVar(&appName, "name", appName, "Name of the app")
 	flag.StringVar(&appName, "n", appName, "Name of the app")
+	flag.Parse()
 
-	cfg := config.MustLoad()
+	cfg := config.MustLoad[appConfig.ServerSettings](
+		config.WithSkipFlags(true),
+	)
 
-	log := logger.SetupLogger(cfg.AppEnv)
+	log := slog.New(slog.Handler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelInfo,
+		AddSource: true,
+	})))
+
 	if appName == "" {
 		// I'm fine with panic for now, as it's an auxiliary utility.
 		panic("app name is required")
@@ -62,12 +71,10 @@ func main() {
 }
 
 func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
-	storageConfig, err := settings.ToStorageConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	dbConnection, err := storage.NewDBConnection(storageConfig)
+	dbConnection, err := storage.NewDBConnection(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +88,10 @@ func newKeyStorage(cfg settings.KeyStorage) (token.KeyStorage, error) {
 		return nil, err
 	}
 
-	keyStorage, err := key.NewStorage(keyStorageConfig)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	keyStorage, err := key.NewStorage(ctx, keyStorageConfig)
 	if err != nil {
 		return nil, err
 	}

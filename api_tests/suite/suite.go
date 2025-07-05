@@ -6,12 +6,14 @@ import (
 	"net"
 	"os"
 	"testing"
+	"time"
 
+	"github.com/rshelekhov/golib/config"
 	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	clientv1 "github.com/rshelekhov/sso-protos/gen/go/api/client/v1"
 	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	testStorage "github.com/rshelekhov/sso/api_tests/suite/storage"
-	"github.com/rshelekhov/sso/internal/config"
+	appConfig "github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"google.golang.org/grpc"
@@ -20,7 +22,7 @@ import (
 
 type Suite struct {
 	*testing.T
-	Cfg                     *config.ServerSettings
+	Cfg                     *appConfig.ServerSettings
 	AuthService             authv1.AuthServiceClient
 	UserService             userv1.UserServiceClient
 	ClientManagementService clientv1.ClientManagementServiceClient
@@ -30,7 +32,7 @@ type Suite struct {
 const (
 	//nolint:staticcheck
 	CONFIG_PATH       = "CONFIG_PATH"
-	defaultConfigPath = "../config/.env"
+	defaultConfigPath = "../config/config.yaml"
 	grpcHost          = "localhost"
 )
 
@@ -39,7 +41,10 @@ func New(t *testing.T) (context.Context, *Suite) {
 	t.Helper()
 	t.Parallel()
 
-	cfg := config.MustLoadPath(configPath())
+	cfg := config.MustLoad[appConfig.ServerSettings](
+		config.WithSkipFlags(true),
+		config.WithFiles([]string{configPath()}),
+	)
 
 	ctx, cancelCtx := context.WithTimeout(context.Background(), cfg.GRPCServer.Timeout)
 
@@ -81,17 +86,15 @@ func configPath() string {
 	return defaultConfigPath
 }
 
-func grpcAddress(cfg *config.ServerSettings) string {
+func grpcAddress(cfg *appConfig.ServerSettings) string {
 	return net.JoinHostPort(grpcHost, cfg.GRPCServer.Port)
 }
 
 func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
-	storageConfig, err := settings.ToStorageConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	dbConnection, err := storage.NewDBConnection(storageConfig)
+	dbConnection, err := storage.NewDBConnection(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}

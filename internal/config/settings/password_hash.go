@@ -16,22 +16,22 @@ const (
 )
 
 type PasswordHashParams struct {
-	Type       PasswordHashType `mapstructure:"PASSWORD_HASH_TYPE" envDefault:"default"`
-	SaltLength uint32           `mapstructure:"PASSWORD_HASH_SALT_LENGTH" envDefault:"24"`
-	Pepper     string           `mapstructure:"PASSWORD_HASH_PEPPER" envDefault:"red-hot-chili-peppers"`
-	Argon      *PasswordHashArgon2Params
-	Bcrypt     *PasswordHashBcryptParams
+	Type       PasswordHashType          `yaml:"Type" default:"argon2"`
+	SaltLength uint32                    `yaml:"SaltLength" default:"24"`
+	Pepper     string                    `yaml:"Pepper" default:"red-hot-chili-peppers"`
+	Argon      *PasswordHashArgon2Params `yaml:"Argon"`
+	Bcrypt     *PasswordHashBcryptParams `yaml:"Bcrypt"`
 }
 
 type PasswordHashArgon2Params struct {
-	Time        uint32 `mapstructure:"PASSWORD_HASH_ARGON2_TIME" envDefault:"2"`
-	Memory      uint32 `mapstructure:"PASSWORD_HASH_ARGON2_MEMORY" envDefault:"24576"` // 24 * 1024
-	Parallelism uint8  `mapstructure:"PASSWORD_HASH_ARGON2_PARALLELISM" envDefault:"2"`
-	KeyLength   uint32 `mapstructure:"PASSWORD_HASH_ARGON2_KEY_LENGTH" envDefault:"24"`
+	Time        uint32 `yaml:"Time" default:"2"`
+	Memory      uint32 `yaml:"Memory" default:"24576"`
+	Parallelism uint8  `yaml:"Parallelism" default:"2"`
+	KeyLength   uint32 `yaml:"KeyLength" default:"24"`
 }
 
 type PasswordHashBcryptParams struct {
-	Cost int `mapstructure:"PASSWORD_HASH_BCRYPT_COST" envDefault:"10"`
+	Cost int `yaml:"Cost" default:"10"`
 }
 
 func ToPasswordHashConfig(params PasswordHashParams) (token.PasswordHashParams, error) {

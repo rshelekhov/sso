@@ -10,7 +10,8 @@ import (
 	"fmt"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/golib/config"
+	appConfig "github.com/rshelekhov/sso/internal/config"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -19,10 +20,12 @@ import (
 func main() {
 	var migrationsPath string
 
-	cfg := config.MustLoad()
-
 	flag.StringVar(&migrationsPath, "migrations-path", "./migrations", "path to migrations")
 	flag.Parse()
+
+	cfg := config.MustLoad[appConfig.ServerSettings](
+		config.WithSkipFlags(true),
+	)
 
 	if migrationsPath == "" {
 		// I'm fine with panic for now, as it's an auxiliary utility.

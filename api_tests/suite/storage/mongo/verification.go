@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	mongoLib "github.com/rshelekhov/golib/db/mongo"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type TestVerificationStorage struct {
@@ -18,10 +19,10 @@ type TestVerificationStorage struct {
 
 const verificationTokensCollectionName = "verification_tokens"
 
-func NewTestStorage(db *mongo.Database, timeout time.Duration) (*TestVerificationStorage, error) {
+func NewTestStorage(conn *mongoLib.Connection, timeout time.Duration) (*TestVerificationStorage, error) {
 	const op = "api_tests.suite.storage.verification.mongo.NewTestStorage"
 
-	if db == nil {
+	if conn == nil {
 		return nil, fmt.Errorf("%s: database connection is nil", op)
 	}
 
@@ -29,7 +30,7 @@ func NewTestStorage(db *mongo.Database, timeout time.Duration) (*TestVerificatio
 		return nil, fmt.Errorf("%s: ivnalid timeout value: %v", op, timeout)
 	}
 
-	coll := db.Collection(verificationTokensCollectionName)
+	coll := conn.Database().Collection(verificationTokensCollectionName)
 
 	return &TestVerificationStorage{
 		coll:    coll,
