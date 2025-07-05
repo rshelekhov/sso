@@ -80,14 +80,19 @@ func main() {
 	case err := <-errChan:
 		shutdownReason = fmt.Sprintf("application error: %v", err)
 		log.Error("application error, shutting down", slog.String("error", err.Error()))
+		cancel()
 	case <-ctx.Done():
 		shutdownReason = "context cancelled"
-
 		log.Info("context cancelled, shutting down")
 	}
 
 	log.Info("cleaning up resources", slog.String("reason", shutdownReason))
-	if err := application.Stop(ctx); err != nil {
+
+	// Use a fresh context for cleanup to avoid cancelled context issues
+	stopCtx, stopCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer stopCancel()
+
+	if err := application.Stop(stopCtx); err != nil {
 		log.Error("failed to stop application", slog.String("error", err.Error()))
 		return
 	}
