@@ -54,12 +54,16 @@ jobs:
       - name: Create config file
         run: |
           set -x
-          echo "${{ secrets.CONFIG_TEST_YAML }}" > ./config/config.yaml
+          cat > ./config/config.yaml << 'EOF'
+          ${{ secrets.CONFIG_TEST_YAML }}
+          EOF
 
       - name: Create config with grpc methods
         run: |
           set -x
-          echo "${{ secrets.GRPC_METHODS_YAML }}" > ./config/grpc_methods.yaml
+          cat > ./config/grpc_methods.yaml << 'EOF'
+          ${{ secrets.GRPC_METHODS_YAML }}
+          EOF
 
       - name: Wait for PostgreSQL to be ready
         run: sleep 10
