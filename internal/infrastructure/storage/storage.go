@@ -57,7 +57,7 @@ func newMongoStorage(ctx context.Context, cfg *settings.MongoParams) (*DBConnect
 
 	conn, ok := connection.(*mongoLib.Connection)
 	if !ok {
-		return nil, fmt.Errorf("%s: expected *mongoLib.Connection, got %T", method, conn)
+		return nil, fmt.Errorf("%s: expected *mongoLib.Connection, got %T", method, connection)
 	}
 
 	if err = initializeCollection(conn.Database()); err != nil {

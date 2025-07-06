@@ -83,6 +83,7 @@ func main() {
 		cancel()
 	case <-ctx.Done():
 		shutdownReason = "context cancelled"
+
 		log.Info("context cancelled, shutting down")
 	}
 
