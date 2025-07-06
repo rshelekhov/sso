@@ -15,15 +15,15 @@ const (
 )
 
 type MailService struct {
-	Type          MailServiceType `mapstructure:"EMAIL_SERVICE_TYPE" envDefault:"mock"`
-	TemplatesPath string          `mapstructure:"EMAIL_TEMPLATES_PATH" envDefault:"./static/email_templates"`
-	Mailgun       *MailgunParams
+	Type          MailServiceType `yaml:"Type" default:"mock"`
+	TemplatesPath string          `yaml:"TemplatesPath" default:"./static/email_templates"`
+	Mailgun       *MailgunParams  `yaml:"Mailgun"`
 }
 
 type MailgunParams struct {
-	Domain        string `mapstructure:"EMAIL_MAILGUN_DOMAIN"`
-	PrivateAPIKey string `mapstructure:"EMAIL_MAILGUN_PRIVATE_API_KEY"`
-	Sender        string `mapstructure:"EMAIL_SENDER"`
+	Domain        string `yaml:"Domain"`
+	PrivateAPIKey string `yaml:"PrivateAPIKey"`
+	Sender        string `yaml:"Sender"`
 }
 
 func ToMailConfig(cfg MailService) (mail.Config, error) {

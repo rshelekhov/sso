@@ -8,14 +8,14 @@ import (
 )
 
 type JWT struct {
-	Issuer                   string            `mapstructure:"JWT_ISSUER" envDefault:"sso"`
-	SigningMethod            SigningMethodType `mapstructure:"JWT_SIGNING_METHOD" envDefault:"RS256"`
-	JWKSURL                  string            `mapstructure:"JWT_JWKS_URL"`
-	JWKSTTL                  time.Duration     `mapstructure:"JWT_JWKS_TTL" envDefault:"24h"`
-	AccessTokenTTL           time.Duration     `mapstructure:"JWT_ACCESS_TOKEN_TTL" envDefault:"15m"`
-	RefreshTokenTTL          time.Duration     `mapstructure:"JWT_REFRESH_TOKEN_TTL" envDefault:"720h"`
-	RefreshTokenCookieDomain string            `mapstructure:"JWT_REFRESH_TOKEN_COOKIE_DOMAIN"`
-	RefreshTokenCookiePath   string            `mapstructure:"JWT_REFRESH_TOKEN_COOKIE_PATH"`
+	Issuer                   string            `yaml:"Issuer" default:"sso"`
+	SigningMethod            SigningMethodType `yaml:"SigningMethod" default:"RS256"`
+	JWKSURL                  string            `yaml:"JWKSURL"`
+	JWKSTTL                  time.Duration     `yaml:"JWKSTTL" default:"24h"`
+	AccessTokenTTL           time.Duration     `yaml:"AccessTokenTTL" default:"15m"`
+	RefreshTokenTTL          time.Duration     `yaml:"RefreshTokenTTL" default:"720h"`
+	RefreshTokenCookieDomain string            `yaml:"RefreshTokenCookieDomain"`
+	RefreshTokenCookiePath   string            `yaml:"RefreshTokenCookiePath"`
 }
 
 type SigningMethodType string

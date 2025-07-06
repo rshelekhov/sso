@@ -9,7 +9,7 @@ import (
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/domain/usecase/client/mocks"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
-	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogdiscard"
+	"github.com/rshelekhov/sso/internal/lib/logger/slogdiscard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

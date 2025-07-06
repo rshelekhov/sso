@@ -5,21 +5,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	mongoLib "github.com/rshelekhov/golib/db/mongo"
+	postgresLib "github.com/rshelekhov/golib/db/postgres/pgxv5"
+	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/mongo/common"
-	mongoStorage "github.com/rshelekhov/sso/pkg/storage/mongo"
-	pgStorage "github.com/rshelekhov/sso/pkg/storage/postgres"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// TODO: refactor this code, split to separate files
-
 type DBConnection struct {
 	Type     Type
-	Postgres *Postgres
 	Mongo    *Mongo
+	Postgres *Postgres
 }
 
 type Type string
@@ -29,53 +27,56 @@ const (
 	TypePostgres Type = "postgres"
 )
 
-type Postgres struct {
-	Pool *pgxpool.Pool
-}
-
 type Mongo struct {
-	Database *mongo.Database
-	Client   *mongo.Client
-	Timeout  time.Duration
+	*mongoLib.Connection
+	Timeout time.Duration
 }
 
-func NewDBConnection(cfg Config) (*DBConnection, error) {
+type Postgres struct {
+	*postgresLib.Connection
+}
+
+func NewDBConnection(ctx context.Context, cfg settings.Storage) (*DBConnection, error) {
 	switch cfg.Type {
-	case TypeMongo:
-		return newMongoStorage(cfg)
-	case TypePostgres:
-		return newPostgresStorage(cfg)
+	case settings.StorageTypeMongo:
+		return newMongoStorage(ctx, cfg.Mongo)
+	case settings.StorageTypePostgres:
+		return newPostgresStorage(ctx, cfg.Postgres)
 	default:
 		return nil, fmt.Errorf("unknown storage type: %s", cfg.Type)
 	}
 }
 
-func newMongoStorage(cfg Config) (*DBConnection, error) {
+func newMongoStorage(ctx context.Context, cfg *settings.MongoParams) (*DBConnection, error) {
 	const method = "storage.newMongoStorage"
 
-	db, err := mongoStorage.New(cfg.Mongo)
+	connection, err := mongoLib.NewConnection(ctx, cfg.URI, cfg.DBName)
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to create new mongodb storage: %w", method, err)
 	}
 
-	if err = initializeCollection(db.Database); err != nil {
+	conn, ok := connection.(*mongoLib.Connection)
+	if !ok {
+		return nil, fmt.Errorf("%s: expected *mongoLib.Connection, got %T", method, connection)
+	}
+
+	if err = initializeCollection(conn.Database()); err != nil {
 		return nil, fmt.Errorf("%s: failed to initialize collections: %w", method, err)
 	}
 
 	return &DBConnection{
 		Type: TypeMongo,
 		Mongo: &Mongo{
-			Database: db.Database,
-			Client:   db.Client,
-			Timeout:  db.Timeout,
+			Connection: conn,
+			Timeout:    cfg.Timeout,
 		},
 	}, nil
 }
 
-func newPostgresStorage(cfg Config) (*DBConnection, error) {
+func newPostgresStorage(ctx context.Context, cfg *settings.PostgresParams) (*DBConnection, error) {
 	const method = "storage.newPostgresStorage"
 
-	pool, err := pgStorage.New(cfg.Postgres)
+	conn, err := postgresLib.NewConnectionPool(ctx, cfg.ConnURL)
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to create new postgres storage: %w", method, err)
 	}
@@ -83,7 +84,7 @@ func newPostgresStorage(cfg Config) (*DBConnection, error) {
 	return &DBConnection{
 		Type: TypePostgres,
 		Postgres: &Postgres{
-			Pool: pool,
+			Connection: conn,
 		},
 	}, nil
 }
@@ -131,20 +132,14 @@ func createUserIndexes(db *mongo.Database) error {
 	return nil
 }
 
-type Config struct {
-	Type     Type
-	Mongo    *mongoStorage.Config
-	Postgres *pgStorage.Config
-}
-
-func (d *DBConnection) Close() error {
+func (d *DBConnection) Close(ctx context.Context) error {
 	const method = "storage.DBConnection.Close"
 
 	switch d.Type {
 	case TypeMongo:
-		return mongoStorage.Close(d.Mongo.Client)
+		return d.Mongo.Close(ctx)
 	case TypePostgres:
-		pgStorage.Close(d.Postgres.Pool)
+		d.Postgres.Close()
 		return nil
 	default:
 		return fmt.Errorf("%s: unknown storage type: %s", method, d.Type)

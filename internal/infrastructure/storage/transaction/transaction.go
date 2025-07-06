@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	mongoLib "github.com/rshelekhov/golib/db/mongo"
+	postgresLib "github.com/rshelekhov/golib/db/postgres/pgxv5"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 )
 
@@ -20,13 +22,15 @@ type PostgresManager interface {
 func NewManager(dbConn *storage.DBConnection) (Manager, error) {
 	switch dbConn.Type {
 	case storage.TypeMongo:
+		txManager := mongoLib.NewTransactionManager(dbConn.Mongo.Connection)
 		return &MongoMgr{
-			client:  dbConn.Mongo.Client,
-			timeout: dbConn.Mongo.Timeout,
+			txManager: txManager,
+			timeout:   dbConn.Mongo.Timeout,
 		}, nil
 	case storage.TypePostgres:
+		txManager := postgresLib.NewTransactionManager(dbConn.Postgres.Connection)
 		return &PostgresMgr{
-			pool: dbConn.Postgres.Pool,
+			txManager: txManager,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown storage type: %s", dbConn.Type)

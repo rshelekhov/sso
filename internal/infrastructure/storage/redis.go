@@ -1,11 +1,13 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	redisStorage "github.com/rshelekhov/sso/pkg/storage/redis"
+	redisLib "github.com/rshelekhov/golib/db/redis"
+	"github.com/rshelekhov/sso/internal/config/settings"
 )
 
 type RedisConnection struct {
@@ -14,23 +16,24 @@ type RedisConnection struct {
 	RevokedTokenTTL time.Duration
 }
 
-func NewRedisConnection(cfg RedisConfig) (*RedisConnection, error) {
+func NewRedisConnection(ctx context.Context, cfg settings.RedisParams) (*RedisConnection, error) {
 	const method = "storage.NewRedisConnection"
 
-	client, err := redisStorage.New(cfg.Redis)
+	conn, err := redisLib.NewConnection(ctx,
+		redisLib.WithHost(cfg.Host),
+		redisLib.WithPort(cfg.Port),
+		redisLib.WithPassword(cfg.Password),
+		redisLib.WithDB(cfg.DB),
+		redisLib.WithPoolSize(cfg.PoolSize),
+		redisLib.WithMinIdleConns(cfg.MinIdleConns),
+	)
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to create redis client: %w", method, err)
+		return nil, fmt.Errorf("%s: failed to create redis connection: %w", method, err)
 	}
 
 	return &RedisConnection{
-		Client:          client,
+		Client:          conn.Client(),
 		SessionTTL:      cfg.SessionTTL,
 		RevokedTokenTTL: cfg.RevokedTokenTTL,
 	}, nil
-}
-
-type RedisConfig struct {
-	Redis           *redisStorage.Config
-	SessionTTL      time.Duration
-	RevokedTokenTTL time.Duration
 }

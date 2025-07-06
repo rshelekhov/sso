@@ -1,11 +1,13 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
+	"github.com/rshelekhov/golib/server"
 	jwksadapter "github.com/rshelekhov/sso/internal/adapter"
-	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/domain/service/clientvalidator"
@@ -27,6 +29,7 @@ import (
 	userDB "github.com/rshelekhov/sso/internal/infrastructure/storage/user"
 	verificationDB "github.com/rshelekhov/sso/internal/infrastructure/storage/verification"
 	"github.com/rshelekhov/sso/pkg/jwtauth"
+	"google.golang.org/grpc"
 )
 
 type Builder struct {
@@ -38,7 +41,7 @@ type Builder struct {
 	services   *Services
 	usecases   *Usecases
 	configs    *Configs
-	grpcServer *grpcapp.App
+	ssoService *SSOService
 }
 
 type Storages struct {
@@ -198,12 +201,8 @@ func (b *Builder) BuildUsecases() {
 	)
 }
 
-func (b *Builder) BuildGRPCServer() error {
-	b.logger.Info("building gRPC server")
-
-	// Initialize gRPC server
-	grpcApp := grpcapp.New(
-		b.cfg.GRPCServer.Port,
+func (b *Builder) BuildSSOService() {
+	b.ssoService = NewSSOService(
 		b.logger,
 		b.managers.jwt,
 		b.services.clientValidator,
@@ -213,10 +212,6 @@ func (b *Builder) BuildGRPCServer() error {
 		b.storages.redisConn.Client,
 		b.configs.gRPCMethodsConfig,
 	)
-
-	b.grpcServer = grpcApp
-
-	return nil
 }
 
 func (b *Builder) Build() (*App, error) {
@@ -238,24 +233,57 @@ func (b *Builder) Build() (*App, error) {
 	jwksProvider := jwtauth.NewLocalJWKSProvider(jwksAdapter)
 	b.managers.jwt = jwtauth.NewManager(jwksProvider)
 
-	err := b.BuildGRPCServer()
+	b.BuildSSOService()
+
+	serverApp, err := b.createServerApp()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create server app: %w", err)
 	}
 
 	return &App{
-		GRPCServer: b.grpcServer,
+		Server:     serverApp,
+		SSOService: b.ssoService,
 		dbConn:     b.storages.dbConn,
 	}, nil
 }
 
-func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
-	storageConfig, err := settings.ToStorageConfig(cfg)
-	if err != nil {
-		return nil, err
+func (b *Builder) createServerApp() (*server.App, error) {
+	grpcPort := b.cfg.GRPCServer.Port
+	if grpcPort == "" {
+		return nil, fmt.Errorf("gRPC port is not configured")
 	}
 
-	dbConnection, err := storage.NewDBConnection(storageConfig)
+	var port int
+	if _, err := fmt.Sscanf(grpcPort, "%d", &port); err != nil {
+		return nil, fmt.Errorf("invalid gRPC port: %w", err)
+	}
+
+	interceptors := []grpc.UnaryServerInterceptor{
+		server.LoggingUnaryInterceptor(b.logger),
+		server.RecoveryUnaryInterceptor(b.logger),
+	}
+
+	interceptors = append(interceptors, b.ssoService.GetCustomInterceptors()...)
+
+	app, err := server.NewApp(
+		context.Background(),
+		server.WithGRPCPort(port),
+		server.WithLogger(b.logger),
+		server.WithShutdownTimeout(10*time.Second),
+		server.WithUnaryInterceptors(interceptors...),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create server app: %w", err)
+	}
+
+	return app, nil
+}
+
+func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dbConnection, err := storage.NewDBConnection(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -264,9 +292,10 @@ func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
 }
 
 func newRedisConnection(cfg settings.RedisParams) (*storage.RedisConnection, error) {
-	redisConfig := settings.ToRedisConfig(cfg)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	redisConnection, err := storage.NewRedisConnection(redisConfig)
+	redisConnection, err := storage.NewRedisConnection(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +309,10 @@ func newKeyStorage(cfg settings.KeyStorage) (token.KeyStorage, error) {
 		return nil, err
 	}
 
-	keyStorage, err := key.NewStorage(keyStorageConfig)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	keyStorage, err := key.NewStorage(ctx, keyStorageConfig)
 	if err != nil {
 		return nil, err
 	}

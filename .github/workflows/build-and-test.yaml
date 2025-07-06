@@ -51,15 +51,19 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Create .env file
+      - name: Create config file
         run: |
           set -x
-          echo "${{ secrets.ENV_CONFIG_TEST }}" > ./config/.env
+          cat > ./config/config.yaml << 'EOF'
+          ${{ secrets.CONFIG_TEST_YAML }}
+          EOF
 
       - name: Create config with grpc methods
         run: |
           set -x
-          echo "${{ secrets.GRPC_METHODS_YAML }}" > ./config/grpc_methods.yaml
+          cat > ./config/grpc_methods.yaml << 'EOF'
+          ${{ secrets.GRPC_METHODS_YAML }}
+          EOF
 
       - name: Wait for PostgreSQL to be ready
         run: sleep 10

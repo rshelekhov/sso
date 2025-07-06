@@ -36,7 +36,7 @@ func newMongoStorage(dbConn *storage.DBConnection) (verification.Storage, error)
 		return nil, ErrMongoVerificationStorageSettingsEmpty
 	}
 
-	return mongoStorage.NewVerificationStorage(dbConn.Mongo.Database, dbConn.Mongo.Timeout)
+	return mongoStorage.NewVerificationStorage(dbConn.Mongo.Database(), dbConn.Mongo.Timeout)
 }
 
 func newPostgresStorage(dbConn *storage.DBConnection, txMgr transaction.PostgresManager) (verification.Storage, error) {
@@ -44,5 +44,5 @@ func newPostgresStorage(dbConn *storage.DBConnection, txMgr transaction.Postgres
 		return nil, ErrPostgresVerificationStorageSettingsEmpty
 	}
 
-	return pgStorage.NewVerificationStorage(dbConn.Postgres.Pool, txMgr), nil
+	return pgStorage.NewVerificationStorage(dbConn.Postgres.Pool(), txMgr), nil
 }
