@@ -1,127 +1,554 @@
 # gRPC SSO app
 
-Typically, the term “Auth” refers to services that are responsible only for authorization and authentication, while “SSO” (Single Sign-On) is a more general concept that includes working with permissions, providing user information, and more.
+A comprehensive authentication and identity management solution built with Go and modern observability stack.
 
-Of course, there are more precise definitions for these types of services, but in my practical experience, the boundaries have always been blurred or even erased.
+## Overview
 
-To clarify, I use the term SSO to describe a service that combines two important functions:
+This SSO (Single Sign-On) service combines authentication and user information management in a single, production-ready application. It includes both core authentication features and a complete observability stack for monitoring and debugging.
 
-1. Aauthentication
-2. Providing user information
+**Key Capabilities:**
 
-Currently, the application implements both functions.
+- **Authentication**: User registration, login, password management
+- **Multi-tenancy**: Support for multiple client applications
+- **Observability**: Comprehensive metrics, logs, and tracing
+- **Production-ready**: Docker Compose setup with all dependencies
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
 ### Prerequisites
 
-Backend is written in GO, so I suggest you have installed [Golang](https://golang.org).
+- **Docker** and **Docker Compose** (recommended)
+- **Go 1.21+** (for local development)
 
-If you use postgres you need to install [golang-migrate](https://github.com/golang-migrate/migrate) tool for running database migrations for postgres. And you need to have `psql` (PostgreSQL interactive terminal), because this tool is used in the commands described in the makefile.
+### Quick Start
 
-### Installing
-
-Add config file to `./config/.env` (see an example in the `./config/.env.example`).
-
-Set path to config:
+The fastest way to get everything running:
 
 ```bash
-export CONFIG_PATH=./config/.env
+# Clone the repository
+git clone https://github.com/rshelekhov/sso.git
+cd sso
+
+# Start the complete stack (SSO + databases + observability)
+docker-compose up -d
+
+# Check service status
+docker-compose ps
+
+# Access Grafana dashboard
+open http://localhost:3000  # admin/admin
 ```
 
-Set database type (supported types – postgres or mongo):
+### Alternative: Local Development
+
+For Go development without Docker:
+
+1. **Setup dependencies**: PostgreSQL, Redis, MinIO
+2. **Copy config**: `cp config/config.example.yaml config/config.yaml`
+3. **Set environment**: `export CONFIG_PATH=./config/config.yaml`
+4. **Run migrations**: `make migrate` (if you use postgres you need to install [golang-migrate](https://github.com/golang-migrate/migrate) tool for running database migrations for postgres. And you need to have `psql` (PostgreSQL interactive terminal), because this tool is used in the commands described in the makefile.)
+5. **Start server**: `make run-server`
+
+## Testing
+
+### Integration Tests
+
+Tests run against Docker Compose services:
 
 ```bash
-export DB_TYPE=postgres
+# Start test infrastructure
+docker-compose up -d postgres redis mongo minio otel-collector
+
+# Set test configuration
+export CONFIG_PATH=./config/config.test.yaml
+
+# Run API tests
+go test ./api_tests/... -v
+
+# Cleanup
+docker-compose down
 ```
 
-Set URL for Database:
+### Unit Tests
 
 ```bash
-export POSTGRESQL_URL='postgres://login:password@host:port/db_name?sslmode=disable'
-# or if you use mongo:
-export MONGO_URL='mongodb+srv://login:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=Cluster'
+# Run all unit tests
+go test ./internal/... -v
+
+# Run with coverage
+go test ./internal/... -v -cover
+
+# Run linters
+make lint
 ```
-
-By default, this app use port `44044`. Set `SERVER_PORT` environment variable with this or your value:
-
-```bash
-export SERVER_PORT=44044
-```
-
-Run migrations using `make migrate` command.
-
-Then run the app using make `run-server` command.
-
-## Running the tests
-
-For testing the functionality of the application, both unit tests for individual functions and end-to-end tests for checking the entire application are used.
-
-### Break down into end-to-end tests
-
-End-to-end tests are conducted using the black-box method. During the test run, a client is created that connects to the gRPC service and sends real requests to it.
-
-If you use S3 for key storage you need to copy `app_test-client-id_private.pem` from the `certs` folder and upload to your S3 bucket.
-
-Run tests — `make test-all-app` or `make test-api`. You'll run database migrations (or check if you did it before), insert test-app into database, run the server and then run tests.
-
-For more details you can see other commands in the `Makefile`.
-
-### And coding style tests
-
-This project uses linters to ensure code quality, consistency, and to catch potential issues such as code smells, bugs, or performance concerns early in the development process. Linters help maintain clean and efficient code by automatically checking it against predefined rules and best practices.
-
-Linters are managed using the library https://github.com/golangci/golangci-lint.
-
-To run the linters manually, use the command `make lint`.
-
-## Deployment
-
-To deploy the application on your server, you can download the latest image from Docker Hub directly to your server. To do this, you need to connect to the server via SSH and ensure that Docker is installed. Then, execute the following command:
-
-```
-docker pull rshelekhov/grpc-sso:latest
-```
-
-To run the container, you need to place a config file in a volume and set values for the `CONFIG_PATH` and `POSTGRESQL_URL` variables. Additionally, you need to specify the port in the docker run command parameters. Here’s an example command to run the container:
-
-```
-docker run -d \
-  -v ${PWD}/config/grpc-sso:/src/config \
-  -e CONFIG_PATH=/src/config/.env \
-  -e POSTGRESQL_URL=postgres://user:password@127.0.0.1:5432/sso_dev?sslmode=disable \
-  -p 44044:44044 \
-  --name sso-app \
-  grpc-sso:latest
-```
-
-Then you need to register your client app. It’s easier to do this now through a manual query to add a record in PostgreSQL. Additionally, there is a small CLI utility in the project for registering clients (see cmd/register_client). Since this is a pet project, a web interface for managing your instance has not been implemented yet.
-
-You can also check the settings for GitHub Actions in the `.github/workflows` folder to see how the application is deployed on dev server.
-
-## Features
-
-- modern
-  - `argon2` hash algorithm
-  - JWT tokens (token-based authentication)
-  - JWKS
-  - [dockerised](https://hub.docker.com/r/rshelekhov/grpc-sso)
-- developer friendly
-  - local instance for testing and debug
-  - postman collection with documentation
-  - extendable logic
-  - understandable errors and logs
 
 ## Built With
 
-- PostgresQL as a main database
-- S3 as a storage for pem files
-- Mailgun as an email service
-- [golang-migrate](https://github.com/golang-migrate/migrate) for the database migrations
-- [sqlc](https://github.com/sqlc-dev/sqlc) as the generator type-safe code from SQL
-- [viper](https://github.com/spf13/viper) as a complete configuration solution for Go applications including [12-Factor apps](https://12factor.net/#the_twelve_factors)
-- [log/slog](https://pkg.go.dev/log/slog) as the centralized Syslog logger
-- [ksuid](https://github.com/segmentio/ksuid) as the unique identifier
-- [golangci-lint](https://github.com/golangci/golangci-lint) as a Go linters runner
+### Core Technologies
+
+- **PostgreSQL** - Main database
+- **MongoDB** - Alternative database option
+- **Redis** - Session and cache storage
+- **MinIO** - S3-compatible object storage for PEM keys
+- **Mailgun** - Email service (with mock option)
+
+### Development & Build Tools
+
+- [golang-migrate](https://github.com/golang-migrate/migrate) - Database migrations
+- [sqlc](https://github.com/sqlc-dev/sqlc) - Type-safe SQL code generation
+- [viper](https://github.com/spf13/viper) - Configuration management
+- [log/slog](https://pkg.go.dev/log/slog) - Structured logging
+- [ksuid](https://github.com/segmentio/ksuid) - Unique identifiers
+- [golangci-lint](https://github.com/golangci/golangci-lint) - Code linting
+
+### Observability Stack
+
+- **OpenTelemetry Collector** - Telemetry data router and processor
+- **Prometheus** - Metrics collection and storage
+- **Grafana** - Unified observability dashboard
+- **Loki** - Log aggregation and search
+- **Tempo** - Distributed tracing
+- **Promtail** - Log collection agent
+
+### Security & Authentication
+
+- **Argon2** - Password hashing algorithm
+- **JWT** - Token-based authentication
+- **JWKS** - JSON Web Key Set for key rotation
+- **RS256** - RSA signature algorithm
+
+## Features
+
+### Core Authentication Features
+
+- User login and registration
+- Password management (reset, change)
+- Multiple authentication methods:
+  - Password-based login
+  - Magic link login (SMS/email) (not implemented yet)
+  - Passkey support (not implemented yet)
+  - OTP login using TOTP authentication (not implemented yet)
+- User profile management
+
+### Multi-tenancy Support
+
+- Create and manage multiple applications
+- Role-based access control (not implemented yet)
+
+### Authentication Flows
+
+- Built-in login app: Redirect-based flow with SPA hosted application
+- API-based: Direct HTTP requests or SDK integration with client applications
+
+## Quick Start with Docker Compose
+
+For the complete setup including observability stack, see the **[Quick Start Commands](#quick-start-commands)** section below.
+
+**TL;DR:**
+
+```bash
+# Start everything
+docker-compose up -d
+
+# Run tests
+export CONFIG_PATH=./config/config.test.yaml
+go test ./api_tests/... -v
+
+# Access Grafana
+open http://localhost:3000  # admin/admin
+```
+
+**Quick Commands**: See [COMMANDS.md](./COMMANDS.md) for a complete cheat sheet.
+
+### Verifying S3 (MinIO) Integration
+
+1. **Check MinIO initialization:**
+
+   ```bash
+   docker-compose logs minio-init
+   ```
+
+2. **Verify bucket creation:**
+
+   ```bash
+   # Access MinIO console at localhost:9001
+   # Login: minio_user / minio_password
+   # Check if 'sso-keys' bucket exists
+   ```
+
+3. **Test S3 connectivity from SSO:**
+   ```bash
+   # Check SSO logs for S3 operations
+   docker-compose logs sso | grep -i s3
+   ```
+
+### Verifying Logging Stack
+
+1. **Check Promtail is collecting logs:**
+
+   ```bash
+   # Promtail should be healthy
+   docker-compose ps promtail
+
+   # Check Promtail logs
+   docker-compose logs promtail
+   ```
+
+2. **Verify Loki is receiving logs:**
+
+   ```bash
+   # Query Loki directly (range query - last 30 minutes)
+   START=$(date -v-30M +%s)000000000
+   curl -G -s "http://localhost:3100/loki/api/v1/query_range" \
+     --data-urlencode 'query={job="docker"}' \
+     --data-urlencode "start=${START}" \
+     --data-urlencode 'limit=10' | jq '.data.result | length'
+
+   # Check specific service logs
+   curl -G -s "http://localhost:3100/loki/api/v1/query_range" \
+     --data-urlencode 'query={service="sso"}' \
+     --data-urlencode "start=${START}" \
+     --data-urlencode 'limit=5' | jq '.data.result[0].values[0][1]' 2>/dev/null || echo "No SSO logs yet"
+   ```
+
+3. **Access logs in Grafana:**
+   - Go to `localhost:3000`
+   - Login: admin/admin
+   - Navigate to Explore
+   - Select Loki datasource
+   - Query: `{service="sso"}` or `{service="postgres"}`
+
+### Troubleshooting
+
+#### S3/MinIO Issues
+
+```bash
+# Check MinIO health
+curl http://localhost:9000/minio/health/ready
+
+# Check bucket exists
+docker exec -it sso-minio-1 mc ls local/
+
+# Recreate MinIO initialization
+docker-compose up -d --force-recreate minio-init
+```
+
+#### Logging Issues
+
+```bash
+# Check Promtail configuration
+docker-compose exec promtail cat /etc/promtail/config.yaml
+
+# Check Docker socket access
+docker-compose exec promtail ls -la /var/run/docker.sock
+
+# Restart logging stack
+docker-compose restart promtail loki grafana
+```
+
+#### Container Logs Not Appearing
+
+```bash
+# Check container logging configuration
+docker inspect sso-sso-1 | grep -A 10 "LogConfig"
+
+# Check if labels are set
+docker inspect sso-sso-1 | grep -A 5 "Labels"
+```
+
+## Development Setup
+
+### Local Development
+
+For local development without Docker, see the development section below.
+
+### Database Migrations
+
+```bash
+# Run migrations
+docker-compose exec sso ./migrate up
+
+# Or run migrations tool directly
+go run cmd/migrate/main.go up
+```
+
+### Client Registration
+
+```bash
+# Register a new client
+docker-compose exec sso ./register_client \
+  --client-id="my-app" \
+  --client-secret="secret123" \
+  --redirect-uri="http://localhost:3000/callback"
+```
+
+## Configuration
+
+The application uses YAML configuration files:
+
+- `config/config.docker.yaml` - Docker environment
+- `config/config.example.yaml` - Template for local development
+- `config/config.test.yaml` - Test environment
+
+### Key Configuration Sections
+
+#### S3/MinIO Storage
+
+```yaml
+KeyStorage:
+  Type: "s3"
+  S3:
+    Region: "us-east-1"
+    Bucket: "sso-keys"
+    AccessKey: "minio_user"
+    SecretKey: "minio_password"
+    Endpoint: "minio:9000"
+```
+
+#### Logging
+
+The application outputs structured JSON logs to stdout, which are collected by Promtail and sent to Loki.
+
+## Architecture
+
+### System Overview
+
+```
+SSO Application (gRPC)
+  ↓ OTLP (OpenTelemetry Protocol)
+OpenTelemetry Collector (Central Hub)
+  ├─→ Prometheus (Metrics)
+  ├─→ Loki (Logs)
+  └─→ Tempo (Traces)
+  ↓ ↓ ↓
+Grafana (Unified Observability Dashboard)
+```
+
+### Telemetry Stack
+
+The application includes a comprehensive observability stack:
+
+**OpenTelemetry Collector**
+
+- Receives telemetry data from SSO app via OTLP (ports 4317/4318)
+- Processes, enriches, and routes data to appropriate backends
+- Provides correlation between metrics, logs, and traces
+
+**Metrics (Prometheus)**
+
+- Collects application and infrastructure metrics
+- SSO app metrics via OTLP → OTEL Collector → Prometheus
+- System metrics from exporters (Redis, PostgreSQL, etc.)
+- Available at: `http://localhost:9090`
+
+**Logs (Loki)**
+
+- Centralized log aggregation and storage
+- SSO structured logs via OTLP → OTEL Collector → Loki
+- Container logs via Promtail → Loki
+- Available at: `http://localhost:3100`
+
+**Traces (Tempo)**
+
+- Distributed request tracing
+- Shows complete request flow through the system
+- Generates service graphs and span metrics
+- Available at: `http://localhost:3200`
+
+**Grafana**
+
+- Unified observability dashboard
+- Connects to all telemetry backends
+- Pre-configured datasources for easy exploration
+- Available at: `http://localhost:3000` (admin/admin)
+
+### Configuration Files
+
+The application uses different configuration files for different environments:
+
+- **`config/config.docker.yaml`** - For Docker Compose deployment (internal service names)
+- **`config/config.test.yaml`** - For running tests locally against Docker services (localhost endpoints)
+- **`config/config.example.yaml`** - Template for local development
+
+Key differences:
+
+```yaml
+# config.docker.yaml (inside Docker network)
+OTLPEndpoint: "otel-collector:4317"
+Storage.Postgres.ConnURL: "postgres://...@postgres:5432/..."
+
+# config.test.yaml (from host to Docker)
+OTLPEndpoint: "localhost:4317"
+Storage.Postgres.ConnURL: "postgres://...@localhost:5432/..."
+```
+
+## Quick Start Commands
+
+### Development & Production
+
+**Start the complete stack:**
+
+```bash
+# Start all services (SSO + databases + observability)
+docker-compose up -d
+
+# Check service health
+docker-compose ps
+
+# View all logs
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f sso
+docker-compose logs -f otel-collector
+```
+
+**Stop and cleanup:**
+
+```bash
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (clean slate)
+docker-compose down -v
+```
+
+### Running Tests
+
+**Prerequisites for testing:**
+
+```bash
+# Start infrastructure services (without SSO app)
+docker-compose up -d postgres redis mongo minio loki prometheus otel-collector
+
+# Wait for services to be ready
+docker-compose ps
+```
+
+**Run tests:**
+
+```bash
+# Set test configuration
+export CONFIG_PATH=./config/config.test.yaml
+
+# Run API tests (integration tests against running Docker services)
+go test ./api_tests/... -v
+
+# Run unit tests
+go test ./internal/... -v
+
+# Run all tests
+make test-all
+```
+
+**Stop test infrastructure:**
+
+```bash
+# Stop only infrastructure (keep data)
+docker-compose stop
+
+# Or full cleanup
+docker-compose down -v
+```
+
+### Development Workflows
+
+**Rebuilding SSO application:**
+
+```bash
+# Rebuild and restart SSO service only
+docker-compose up -d --build sso
+
+# Force rebuild without cache
+docker-compose build --no-cache sso
+docker-compose up -d sso
+```
+
+**Accessing services:**
+
+- **SSO Application**: `localhost:44044` (gRPC)
+- **Grafana**: `localhost:3000` (admin/admin)
+- **Prometheus**: `localhost:9090`
+- **Loki**: `localhost:3100`
+- **MinIO Console**: `localhost:9001` (minio_user/minio_password)
+
+**Database operations:**
+
+```bash
+# Run migrations
+docker-compose exec sso ./migrate up
+
+# Register a client
+docker-compose exec sso ./register_client \
+  --client-id="test-app" \
+  --client-secret="secret123" \
+  --redirect-uri="http://localhost:3000/callback"
+
+# Connect to PostgreSQL
+docker-compose exec postgres psql -U sso_user -d sso_db
+```
+
+### Observability
+
+**Quick health checks:**
+
+```bash
+# Check if telemetry is working
+curl http://localhost:9090/api/v1/targets  # Prometheus targets
+curl http://localhost:3100/ready           # Loki readiness
+curl http://localhost:3200/ready           # Tempo readiness
+
+# Query logs via API
+curl -G "http://localhost:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={service="sso"}' \
+  --data-urlencode 'limit=5'
+```
+
+**Grafana Exploration:**
+
+1. Open `http://localhost:3000` (admin/admin)
+2. Go to **Explore**
+3. Select datasource:
+   - **Loki** for logs: `{service="sso"}`
+   - **Prometheus** for metrics: `http_requests_total`
+   - **Tempo** for traces: Search by service name
+
+## Troubleshooting
+
+### Common Issues
+
+**Services not starting:**
+
+```bash
+# Check Docker resources (need ~4GB RAM)
+docker system df
+docker system prune  # Clean up if needed
+
+# Check logs for specific issues
+docker-compose logs otel-collector
+docker-compose logs sso
+```
+
+**No telemetry data:**
+
+```bash
+# Verify OTEL Collector is receiving data
+docker-compose logs otel-collector | grep "Everything is ready"
+
+# Check SSO is sending telemetry
+docker-compose logs sso | grep -i otel
+
+# Verify configuration
+docker-compose exec sso cat /app/config.yaml | grep OTLPEndpoint
+```
+
+**Database connection issues:**
+
+```bash
+# For tests: ensure services are accessible on localhost
+curl http://localhost:5432  # Should connect to PostgreSQL
+redis-cli -h localhost ping  # Should return PONG
+
+# For Docker: check internal network connectivity
+docker-compose exec sso ping postgres
+```
