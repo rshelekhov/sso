@@ -7,34 +7,34 @@ App:
   ServiceName: "sso"
   ServiceVersion: "1.0.0"
   EnableMetrics: true
-  OTLPEndpoint: "http://localhost:4317"
+  OTLPEndpoint: "otel-collector:4317"
 
 # gRPC Server settings
 GRPCServer:
-  Host: "localhost"
+  Host: "0.0.0.0"
   Port: "44044"
   Timeout: "30s"
   RetriesCount: 3
 
 # Storage configuration
 Storage:
-  Type: "mongo" # postgres or mongo
+  Type: "postgres" # postgres or mongo
   Postgres:
-    ConnURL: "postgres://root:password@localhost:5432/sso_dev?sslmode=disable"
+    ConnURL: "postgres://sso_user:sso_password@postgres:5432/sso_db?sslmode=disable"
     ConnPoolSize: 10
     ReadTimeout: "5s"
     WriteTimeout: "5s"
     IdleTimeout: "60s"
     DialTimeout: "10s"
   Mongo:
-    URI: "mongodb://localhost:27017"
+    URI: "mongodb://mongo:27017"
     DBName: "sso_dev"
     Timeout: "30s"
 
 # Redis Cache settings
 Cache:
   Redis:
-    Host: "localhost"
+    Host: "redis"
     Port: 6379
     Password: ""
     DB: 0
@@ -47,7 +47,7 @@ Cache:
 JWT:
   Issuer: "sso"
   SigningMethod: "RS256"
-  JWKSURL: "http://localhost:8081/.well-known/jwks.json"
+  JWKSURL: "http://sso:8080/.well-known/jwks.json"
   JWKSTTL: "24h"
   AccessTokenTTL: "15m"
   RefreshTokenTTL: "720h"
@@ -69,25 +69,26 @@ PasswordHash:
 
 # Key storage configuration
 KeyStorage:
-  Type: "local"
+  Type: "s3"
   Local:
     Path: "./certs"
   S3:
-    Region: ""
-    Bucket: ""
-    AccessKey: ""
-    SecretKey: ""
-    PrivateKeyPath: ""
-    Endpoint: ""
+    Region: "us-east-1"
+    Bucket: "sso"
+    AccessKey: "minio_user"
+    SecretKey: "minio_password"
+    PrivateKeyPath: "keys/"
+    Endpoint: "minio:9000"
+    ForcePathStyle: true
 
 # Mail service configuration (types: mock or mailgun)
 MailService:
   Type: "mock"
   TemplatesPath: "./static/email_templates"
   Mailgun:
-    Domain: "your-domain.com"
+    Domain: ""
     PrivateAPIKey: ""
-    Sender: "noreply@your-domain.com"
+    Sender: ""
 
 # Verification service configuration
 VerificationService:

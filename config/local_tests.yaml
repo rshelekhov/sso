@@ -1,5 +1,5 @@
-# General test data
-test_issuer: sso
-test_client_id: test-client-id
-test_verification_url: reframedapp.com/verify-email/token=
-test_confirm_change_password_url: reframedapp.com/password/change?token=
+# Test configuration for API tests against Docker Compose
+test_issuer: "sso"
+test_client_id: "test-client-id"
+test_verification_url: "http://localhost:44044"
+test_confirm_change_password_url: "http://localhost:44044"
