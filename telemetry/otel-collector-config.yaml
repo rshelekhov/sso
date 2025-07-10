@@ -1,0 +1,79 @@
+# OpenTelemetry Collector Configuration for SSO Application
+# Receives traces and metrics from SSO app, routes to appropriate backends
+
+receivers:
+  # OTLP receiver - SSO application sends data here
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # Batch processor - groups data for efficient sending
+  batch:
+    timeout: 1s
+    send_batch_size: 512
+
+  # Memory limiter - protection from OOM
+  memory_limiter:
+    limit_mib: 256
+    check_interval: 1s
+
+  # Resource processor - adds metadata
+  resource:
+    attributes:
+      - key: environment
+        value: docker
+        action: upsert
+
+exporters:
+  # Tempo exporter - traces go to Tempo
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  # Prometheus exporter - metrics for Prometheus scraping
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    const_labels:
+      service: sso
+
+  # Loki exporter - logs go to Loki
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+    default_labels_enabled:
+      exporter: true
+      job: true
+
+  # Debug exporter - for debugging (visible in docker logs)
+  debug:
+    verbosity: detailed
+
+extensions:
+  # Health check extension - provides health check endpoint
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    # Traces: SSO app -> collector -> Tempo
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [otlp/tempo, debug]
+
+    # Metrics: SSO app -> collector -> Prometheus
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [prometheus, debug]
+
+    # Logs: SSO app -> collector -> Loki + console
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, resource]
+      exporters: [loki, debug]
