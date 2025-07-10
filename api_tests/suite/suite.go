@@ -41,10 +41,10 @@ func New(t *testing.T) (context.Context, *Suite) {
 	t.Helper()
 	t.Parallel()
 
-	cfg := config.MustLoad[appConfig.ServerSettings](
-		config.WithSkipFlags(true),
-		config.WithFiles([]string{configPath()}),
-	)
+	// Set CONFIG_PATH environment variable before loading config
+	os.Setenv("CONFIG_PATH", configPath())
+
+	cfg := config.MustLoad[appConfig.ServerSettings]()
 
 	ctx, cancelCtx := context.WithTimeout(context.Background(), cfg.GRPCServer.Timeout)
 
@@ -79,10 +79,24 @@ func New(t *testing.T) (context.Context, *Suite) {
 }
 
 func configPath() string {
+	configFile := "config/config.test.yaml"
+
 	if v := os.Getenv(CONFIG_PATH); v != "" {
-		return v
+		configFile = v
 	}
 
+	// Try direct path first
+	if _, err := os.Stat(configFile); err == nil {
+		return configFile
+	}
+
+	// If not found, try relative to parent directory (when running from api_tests)
+	parentPath := "../" + configFile
+	if _, err := os.Stat(parentPath); err == nil {
+		return parentPath
+	}
+
+	// Fallback to default
 	return defaultConfigPath
 }
 

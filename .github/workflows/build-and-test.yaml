@@ -10,69 +10,118 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:latest
-        env:
-          POSTGRES_USER: root
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: sso_dev
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:latest
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-server --test-memory 2"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: "1.23"
-
-      - name: Install golang-migrate
-        run: |
-          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-          export PATH=$PATH:$(go env GOPATH)/bin
-          which migrate
 
       - name: Install dependencies
         run: go mod download
 
-      - name: Create config file
+      - name: Start Docker infrastructure
         run: |
-          set -x
-          cat > ./config/config.yaml << 'EOF'
-          ${{ secrets.CONFIG_TEST_YAML }}
-          EOF
+          docker-compose -f docker-compose.ci.yaml up -d
+          echo "Waiting for services to be ready..."
+          sleep 30
 
-      - name: Create config with grpc methods
+      - name: Check service health
         run: |
-          set -x
-          cat > ./config/grpc_methods.yaml << 'EOF'
-          ${{ secrets.GRPC_METHODS_YAML }}
-          EOF
+          docker-compose -f docker-compose.ci.yaml ps
+          # Wait for all services to be healthy
+          timeout=300
+          interval=5
+          elapsed=0
+          while [ $elapsed -lt $timeout ]; do
+            if docker-compose -f docker-compose.ci.yaml ps | grep -E "(postgres|redis|minio)" | grep -q "healthy"; then
+              echo "Services are healthy!"
+              break
+            fi
+            echo "Waiting for services to be healthy... ($elapsed/$timeout seconds)"
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
 
-      - name: Wait for PostgreSQL to be ready
-        run: sleep 10
+      - name: Run database migrations
+        run: |
+          # Install golang-migrate
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          export PATH=$PATH:$(go env GOPATH)/bin
 
-      - name: Check PostgreSQL connection
-        run: pg_isready -h localhost -p 5432
+          # Run migrations
+          migrate -database "postgres://sso_user:sso_password@localhost:5432/sso_db?sslmode=disable" -path migrations up
 
-      - name: Run tests
-        run: make test-all-app
+      - name: Insert test data
+        run: |
+          # Install PostgreSQL client and netcat
+          sudo apt-get update && sudo apt-get install -y postgresql-client netcat
+
+          # Insert test client data
+          psql "postgres://sso_user:sso_password@localhost:5432/sso_db?sslmode=disable" -c "
+            INSERT INTO clients (id, name, secret, status, created_at, updated_at) 
+            VALUES ('test-client-id', 'test', 'test-secret', 1, NOW(), NOW()) 
+            ON CONFLICT (id) DO NOTHING;
+          "
+
+      - name: Wait for MinIO initialization
+        run: |
+          echo "Waiting for MinIO initialization to complete..."
+          timeout=60
+          interval=2
+          elapsed=0
+          while [ $elapsed -lt $timeout ]; do
+            if docker-compose -f docker-compose.ci.yaml logs minio-init | grep -q "MinIO initialization completed"; then
+              echo "MinIO initialization completed!"
+              break
+            fi
+            echo "Waiting for MinIO initialization... ($elapsed/$timeout seconds)"
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
+
+      - name: Run unit tests
+        run: |
+          go test -v -timeout 300s -parallel=4 ./internal/...
+
+      - name: Start SSO server
+        run: |
+          echo "Starting SSO server..."
+          CONFIG_PATH=./config/config.ci.yaml go run ./cmd/sso &
+          SERVER_PID=$!
+          echo "SSO_SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+
+          # Wait for server to start
+          timeout=60
+          interval=2
+          elapsed=0
+          while [ $elapsed -lt $timeout ]; do
+            if nc -z localhost 44044; then
+              echo "SSO server is ready!"
+              break
+            fi
+            echo "Waiting for SSO server... ($elapsed/$timeout seconds)"
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
+
+      - name: Run API tests
+        run: |
+          CONFIG_PATH=./config/config.ci.yaml go test -v -timeout 300s -parallel=4 ./api_tests
+
+      - name: Stop SSO server
+        if: always()
+        run: |
+          if [ -n "$SSO_SERVER_PID" ]; then
+            echo "Stopping SSO server (PID: $SSO_SERVER_PID)..."
+            kill $SSO_SERVER_PID || true
+          fi
+
+      - name: Stop Docker infrastructure
+        if: always()
+        run: |
+          docker-compose -f docker-compose.ci.yaml down -v
 
       - name: Notify results
         run: echo "Tests completed!"
