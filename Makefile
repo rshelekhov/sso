@@ -15,7 +15,7 @@ MONGO_URL ?= mongodb://localhost:27017/sso_dev
 
 # Docker test configuration
 DOCKER_TEST_CONFIG_PATH ?= ./config/config.test.yaml
-DOCKER_COMPOSE_SERVICES ?= postgres redis mongo minio otel-collector loki prometheus
+DOCKER_COMPOSE_SERVICES ?= postgres redis mongo minio minio-init otel-collector loki prometheus
 
 .PHONY: setup-dev setup-dev-with-postgres migrate-postgres migrate-postgres-down db-postgres-insert db-mongo-insert run-server stop-server build test-all-app test-api test-docker-setup test-docker-api test-docker-unit test-docker-all test-docker-cleanup test-docker-full test-docker-status help lint
 
@@ -152,14 +152,41 @@ test-docker-setup:
 		echo "Waiting for services... ($$i/30)"; \
 		sleep 2; \
 	done
+	@echo "Waiting for MinIO initialization to complete..."
+	@for i in {1..30}; do \
+		if docker-compose logs minio-init | grep -q "MinIO initialization completed"; then \
+			echo "MinIO initialization completed!"; \
+			break; \
+		fi; \
+		echo "Waiting for MinIO initialization... ($$i/30)"; \
+		sleep 2; \
+	done
 	@echo "Docker infrastructure setup completed."
 
 # Run API tests against Docker infrastructure
 test-docker-api:
 	@echo "Running API tests against Docker infrastructure..."
 	@echo "Using config: $(DOCKER_TEST_CONFIG_PATH)"
-	@CONFIG_PATH=$(DOCKER_TEST_CONFIG_PATH) go test -v -timeout 300s -parallel=4 ./api_tests
-	@echo "Docker API tests completed."
+	@echo "Starting SSO server for API tests..."
+	@CONFIG_PATH=$(DOCKER_TEST_CONFIG_PATH) go run ./cmd/sso &
+	@SERVER_PID=$$!; \
+	echo "Waiting for server to start..."; \
+	sleep 10; \
+	while ! nc -z localhost 44044; do \
+		echo "Waiting for server to be ready..."; \
+		sleep 1; \
+	done; \
+	echo "Running API tests..."; \
+	CONFIG_PATH=$(DOCKER_TEST_CONFIG_PATH) go test -v -timeout 300s -parallel=4 ./api_tests; \
+	TEST_RESULT=$$?; \
+	echo "Stopping SSO server..."; \
+	kill $$SERVER_PID 2>/dev/null || true; \
+	if [ $$TEST_RESULT -eq 0 ]; then \
+		echo "Docker API tests completed successfully."; \
+	else \
+		echo "Docker API tests failed."; \
+		exit $$TEST_RESULT; \
+	fi
 
 # Run unit tests (don't require Docker)
 test-docker-unit:
