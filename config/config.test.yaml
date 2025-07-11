@@ -3,7 +3,7 @@
 
 # App settings
 App:
-  Env: "test"
+  Env: "local"
   ServiceName: "sso"
   ServiceVersion: "1.0.0"
   EnableMetrics: true
@@ -78,7 +78,7 @@ KeyStorage:
     AccessKey: "minio_user"
     SecretKey: "minio_password"
     PrivateKeyPath: "keys/"
-    Endpoint: "minio:9000"
+    Endpoint: "localhost:9000"
     ForcePathStyle: true
 
 # Mail service configuration (types: mock or mailgun)
