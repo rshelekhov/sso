@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/rshelekhov/golib/config"
+	"github.com/cristalhq/aconfig"
+	"github.com/cristalhq/aconfig/aconfigdotenv"
+	"github.com/cristalhq/aconfig/aconfigyaml"
 	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	clientv1 "github.com/rshelekhov/sso-protos/gen/go/api/client/v1"
 	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
@@ -41,10 +43,7 @@ func New(t *testing.T) (context.Context, *Suite) {
 	t.Helper()
 	t.Parallel()
 
-	// Set CONFIG_PATH environment variable before loading config
-	os.Setenv("CONFIG_PATH", configPath())
-
-	cfg := config.MustLoad[appConfig.ServerSettings]()
+	cfg := mustLoadConfig(configPath())
 
 	ctx, cancelCtx := context.WithTimeout(context.Background(), cfg.GRPCServer.Timeout)
 
@@ -76,6 +75,29 @@ func New(t *testing.T) (context.Context, *Suite) {
 		ClientManagementService: clientv1.NewClientManagementServiceClient(cc),
 		Storage:                 testStorage,
 	}
+}
+
+// mustLoadConfig loads config directly from file path, avoiding environment variable race conditions
+func mustLoadConfig(configPath string) *appConfig.ServerSettings {
+	cfg := &appConfig.ServerSettings{}
+
+	loader := aconfig.LoaderFor(cfg, aconfig.Config{
+		Files:              []string{configPath},
+		AllowUnknownFields: true,
+		SkipFlags:          true,
+		FileDecoders: map[string]aconfig.FileDecoder{
+			".yaml": aconfigyaml.New(),
+			".yml":  aconfigyaml.New(),
+			".env":  aconfigdotenv.New(),
+		},
+	})
+
+	err := loader.Load()
+	if err != nil {
+		panic(fmt.Sprintf("error loading config file %s: %s", configPath, err))
+	}
+
+	return cfg
 }
 
 func configPath() string {
