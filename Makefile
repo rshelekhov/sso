@@ -140,12 +140,12 @@ test-api: setup-dev run-server
 # Setup Docker infrastructure for tests
 test-docker-setup:
 	@echo "Starting Docker infrastructure for tests..."
-	@docker-compose up -d $(DOCKER_COMPOSE_SERVICES)
+	@docker compose up -d $(DOCKER_COMPOSE_SERVICES)
 	@echo "Waiting for services to be ready..."
 	@sleep 10
 	@echo "Checking service readiness..."
 	@for i in {1..30}; do \
-		if docker-compose ps | grep -E "(postgres|redis)" | grep -q "Up"; then \
+		if docker compose ps | grep -E "(postgres|redis)" | grep -q "Up"; then \
 			echo "Services are ready!"; \
 			break; \
 		fi; \
@@ -154,7 +154,7 @@ test-docker-setup:
 	done
 	@echo "Waiting for MinIO initialization to complete..."
 	@for i in {1..30}; do \
-		if docker-compose logs minio-init | grep -q "MinIO initialization completed"; then \
+		if docker compose logs minio-init | grep -q "MinIO initialization completed"; then \
 			echo "MinIO initialization completed!"; \
 			break; \
 		fi; \
@@ -201,7 +201,7 @@ test-docker-all: test-docker-unit test-docker-api
 # Stop Docker infrastructure
 test-docker-cleanup:
 	@echo "Stopping Docker infrastructure..."
-	@docker-compose down
+	@docker compose down
 	@echo "Docker infrastructure stopped."
 
 # Full Docker test cycle: setup + test + cleanup
@@ -211,7 +211,7 @@ test-docker-full: test-docker-setup test-docker-all test-docker-cleanup
 # Check Docker infrastructure status
 test-docker-status:
 	@echo "Checking Docker infrastructure status..."
-	@docker-compose ps $(DOCKER_COMPOSE_SERVICES)
+	@docker compose ps $(DOCKER_COMPOSE_SERVICES)
 
 # ================================
 # CI/CD Commands
@@ -220,7 +220,7 @@ test-docker-status:
 # Run tests in CI environment using docker-compose.ci.yaml
 test-ci:
 	@echo "Running CI tests with minimal Docker infrastructure..."
-	@docker-compose -f docker-compose.ci.yaml up -d
+	@docker compose -f docker-compose.ci.yaml up -d
 	@echo "Waiting for services to be ready..."
 	@sleep 30
 	@echo "Running migrations..."
@@ -228,7 +228,7 @@ test-ci:
 	@echo "Setting up test client data..."
 	@psql "postgres://sso_user:sso_password@localhost:5432/sso_db" -c "INSERT INTO clients (id, name, secret, status, created_at, updated_at) VALUES ('test-client-id', 'test', 'test-secret', 1, NOW(), NOW()) ON CONFLICT DO NOTHING;" || true
 	@echo "Waiting for MinIO initialization to complete..."
-	@docker-compose -f docker-compose.ci.yaml logs minio-init | grep -q "MinIO initialization completed" || sleep 5
+	@docker compose -f docker-compose.ci.yaml logs minio-init | grep -q "MinIO initialization completed" || sleep 5
 	@echo "Running unit tests..."
 	@go test -v -timeout 300s -parallel=4 ./internal/...
 	@echo "Starting SSO server for API tests..."
@@ -246,7 +246,7 @@ test-ci:
 	echo "Stopping SSO server..."; \
 	kill $$SERVER_PID 2>/dev/null || true; \
 	echo "Cleaning up..."; \
-	docker-compose -f docker-compose.ci.yaml down -v; \
+	docker compose -f docker-compose.ci.yaml down -v; \
 	if [ $$TEST_RESULT -eq 0 ]; then \
 		echo "CI tests completed successfully."; \
 	else \

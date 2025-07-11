@@ -91,7 +91,7 @@ Collects logs from:
 
 ## Access Points
 
-After running `docker-compose up -d`:
+After running `docker compose up -d`:
 
 - **Grafana**: http://localhost:3000 (admin/admin)
 - **Prometheus**: http://localhost:9090
@@ -141,10 +141,10 @@ App:
 
 ```bash
 # Start observability stack
-docker-compose up -d prometheus loki tempo grafana otel-collector
+docker compose up -d prometheus loki tempo grafana otel-collector
 
 # Start SSO with telemetry
-docker-compose up -d sso
+docker compose up -d sso
 
 # View in Grafana
 open http://localhost:3000
@@ -154,13 +154,13 @@ open http://localhost:3000
 
 ```bash
 # Check OTEL Collector is receiving data
-docker-compose logs otel-collector | grep "Everything is ready"
+docker compose logs otel-collector | grep "Everything is ready"
 
 # Check specific pipeline logs
-docker-compose logs otel-collector | grep -E "(loki|prometheus|tempo)"
+docker compose logs otel-collector | grep -E "(loki|prometheus|tempo)"
 
 # Verify SSO is sending data
-docker-compose logs sso | grep -i otel
+docker compose logs sso | grep -i otel
 ```
 
 ### Query Examples
@@ -227,10 +227,10 @@ Place JSON files in `grafana/provisioning/dashboards/`
 
 ```bash
 # Check OTEL Collector Loki exporter
-docker-compose logs otel-collector | grep loki
+docker compose logs otel-collector | grep loki
 
 # Verify SSO is sending logs via OTLP
-docker-compose logs sso | grep -i log
+docker compose logs sso | grep -i log
 ```
 
 **Missing correlation between logs and traces:**

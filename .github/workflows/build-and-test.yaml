@@ -23,19 +23,19 @@ jobs:
 
       - name: Start Docker infrastructure
         run: |
-          docker-compose -f docker-compose.ci.yaml up -d
+          docker compose -f docker-compose.ci.yaml up -d
           echo "Waiting for services to be ready..."
           sleep 30
 
       - name: Check service health
         run: |
-          docker-compose -f docker-compose.ci.yaml ps
+          docker compose -f docker-compose.ci.yaml ps
           # Wait for all services to be healthy
           timeout=300
           interval=5
           elapsed=0
           while [ $elapsed -lt $timeout ]; do
-            if docker-compose -f docker-compose.ci.yaml ps | grep -E "(postgres|redis|minio)" | grep -q "healthy"; then
+            if docker compose -f docker-compose.ci.yaml ps | grep -E "(postgres|redis|minio)" | grep -q "healthy"; then
               echo "Services are healthy!"
               break
             fi
@@ -72,7 +72,7 @@ jobs:
           interval=2
           elapsed=0
           while [ $elapsed -lt $timeout ]; do
-            if docker-compose -f docker-compose.ci.yaml logs minio-init | grep -q "MinIO initialization completed"; then
+            if docker compose -f docker-compose.ci.yaml logs minio-init | grep -q "MinIO initialization completed"; then
               echo "MinIO initialization completed!"
               break
             fi
@@ -121,7 +121,7 @@ jobs:
       - name: Stop Docker infrastructure
         if: always()
         run: |
-          docker-compose -f docker-compose.ci.yaml down -v
+          docker compose -f docker-compose.ci.yaml down -v
 
       - name: Notify results
         run: echo "Tests completed!"

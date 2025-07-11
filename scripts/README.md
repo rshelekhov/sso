@@ -2,7 +2,7 @@
 
 ## minio-init.sh
 
-Script for initializing MinIO S3 storage on docker-compose startup.
+Script for initializing MinIO S3 storage on docker compose startup.
 
 ### What it does:
 
@@ -13,10 +13,10 @@ Script for initializing MinIO S3 storage on docker-compose startup.
 
 ### Usage:
 
-Script runs automatically through docker-compose service `minio-init`:
+Script runs automatically through docker compose service `minio-init`:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ### Structure in MinIO:
@@ -32,7 +32,7 @@ sso-keys/
 View initialization logs:
 
 ```bash
-docker-compose logs minio-init
+docker compose logs minio-init
 ```
 
 ### Requirements:

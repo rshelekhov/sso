@@ -30,10 +30,10 @@ git clone https://github.com/rshelekhov/sso.git
 cd sso
 
 # Start the complete stack (SSO + databases + observability)
-docker-compose up -d
+docker compose up -d
 
 # Check service status
-docker-compose ps
+docker compose ps
 
 # Access Grafana dashboard
 open http://localhost:3000  # admin/admin
@@ -57,7 +57,7 @@ Tests run against Docker Compose services:
 
 ```bash
 # Start test infrastructure
-docker-compose up -d postgres redis mongo minio otel-collector
+docker compose up -d postgres redis mongo minio otel-collector
 
 # Set test configuration
 export CONFIG_PATH=./config/config.test.yaml
@@ -66,7 +66,7 @@ export CONFIG_PATH=./config/config.test.yaml
 go test ./api_tests/... -v
 
 # Cleanup
-docker-compose down
+docker compose down
 ```
 
 ### Unit Tests
@@ -148,7 +148,7 @@ For the complete setup including observability stack, see the **[Quick Start Com
 
 ```bash
 # Start everything
-docker-compose up -d
+docker compose up -d
 
 # Run tests
 export CONFIG_PATH=./config/config.test.yaml
@@ -165,7 +165,7 @@ open http://localhost:3000  # admin/admin
 1. **Check MinIO initialization:**
 
    ```bash
-   docker-compose logs minio-init
+   docker compose logs minio-init
    ```
 
 2. **Verify bucket creation:**
@@ -179,7 +179,7 @@ open http://localhost:3000  # admin/admin
 3. **Test S3 connectivity from SSO:**
    ```bash
    # Check SSO logs for S3 operations
-   docker-compose logs sso | grep -i s3
+   docker compose logs sso | grep -i s3
    ```
 
 ### Verifying Logging Stack
@@ -188,10 +188,10 @@ open http://localhost:3000  # admin/admin
 
    ```bash
    # Promtail should be healthy
-   docker-compose ps promtail
+   docker compose ps promtail
 
    # Check Promtail logs
-   docker-compose logs promtail
+   docker compose logs promtail
    ```
 
 2. **Verify Loki is receiving logs:**
@@ -230,20 +230,20 @@ curl http://localhost:9000/minio/health/ready
 docker exec -it sso-minio-1 mc ls local/
 
 # Recreate MinIO initialization
-docker-compose up -d --force-recreate minio-init
+docker compose up -d --force-recreate minio-init
 ```
 
 #### Logging Issues
 
 ```bash
 # Check Promtail configuration
-docker-compose exec promtail cat /etc/promtail/config.yaml
+docker compose exec promtail cat /etc/promtail/config.yaml
 
 # Check Docker socket access
-docker-compose exec promtail ls -la /var/run/docker.sock
+docker compose exec promtail ls -la /var/run/docker.sock
 
 # Restart logging stack
-docker-compose restart promtail loki grafana
+docker compose restart promtail loki grafana
 ```
 
 #### Container Logs Not Appearing
@@ -266,7 +266,7 @@ For local development without Docker, see the development section below.
 
 ```bash
 # Run migrations
-docker-compose exec sso ./migrate up
+docker compose exec sso ./migrate up
 
 # Or run migrations tool directly
 go run cmd/migrate/main.go up
@@ -276,7 +276,7 @@ go run cmd/migrate/main.go up
 
 ```bash
 # Register a new client
-docker-compose exec sso ./register_client \
+docker compose exec sso ./register_client \
   --client-id="my-app" \
   --client-secret="secret123" \
   --redirect-uri="http://localhost:3000/callback"
@@ -390,27 +390,27 @@ Storage.Postgres.ConnURL: "postgres://...@localhost:5432/..."
 
 ```bash
 # Start all services (SSO + databases + observability)
-docker-compose up -d
+docker compose up -d
 
 # Check service health
-docker-compose ps
+docker compose ps
 
 # View all logs
-docker-compose logs -f
+docker compose logs -f
 
 # View specific service logs
-docker-compose logs -f sso
-docker-compose logs -f otel-collector
+docker compose logs -f sso
+docker compose logs -f otel-collector
 ```
 
 **Stop and cleanup:**
 
 ```bash
 # Stop all services
-docker-compose down
+docker compose down
 
 # Stop and remove volumes (clean slate)
-docker-compose down -v
+docker compose down -v
 ```
 
 ### Running Tests
@@ -419,10 +419,10 @@ docker-compose down -v
 
 ```bash
 # Start infrastructure services (without SSO app)
-docker-compose up -d postgres redis mongo minio loki prometheus otel-collector
+docker compose up -d postgres redis mongo minio loki prometheus otel-collector
 
 # Wait for services to be ready
-docker-compose ps
+docker compose ps
 ```
 
 **Run tests:**
@@ -445,10 +445,10 @@ make test-all
 
 ```bash
 # Stop only infrastructure (keep data)
-docker-compose stop
+docker compose stop
 
 # Or full cleanup
-docker-compose down -v
+docker compose down -v
 ```
 
 ### Development Workflows
@@ -457,11 +457,11 @@ docker-compose down -v
 
 ```bash
 # Rebuild and restart SSO service only
-docker-compose up -d --build sso
+docker compose up -d --build sso
 
 # Force rebuild without cache
-docker-compose build --no-cache sso
-docker-compose up -d sso
+docker compose build --no-cache sso
+docker compose up -d sso
 ```
 
 **Accessing services:**
@@ -476,16 +476,16 @@ docker-compose up -d sso
 
 ```bash
 # Run migrations
-docker-compose exec sso ./migrate up
+docker compose exec sso ./migrate up
 
 # Register a client
-docker-compose exec sso ./register_client \
+docker compose exec sso ./register_client \
   --client-id="test-app" \
   --client-secret="secret123" \
   --redirect-uri="http://localhost:3000/callback"
 
 # Connect to PostgreSQL
-docker-compose exec postgres psql -U sso_user -d sso_db
+docker compose exec postgres psql -U sso_user -d sso_db
 ```
 
 ### Observability
@@ -525,21 +525,21 @@ docker system df
 docker system prune  # Clean up if needed
 
 # Check logs for specific issues
-docker-compose logs otel-collector
-docker-compose logs sso
+docker compose logs otel-collector
+docker compose logs sso
 ```
 
 **No telemetry data:**
 
 ```bash
 # Verify OTEL Collector is receiving data
-docker-compose logs otel-collector | grep "Everything is ready"
+docker compose logs otel-collector | grep "Everything is ready"
 
 # Check SSO is sending telemetry
-docker-compose logs sso | grep -i otel
+docker compose logs sso | grep -i otel
 
 # Verify configuration
-docker-compose exec sso cat /app/config.yaml | grep OTLPEndpoint
+docker compose exec sso cat /app/config.yaml | grep OTLPEndpoint
 ```
 
 **Database connection issues:**
@@ -550,5 +550,5 @@ curl http://localhost:5432  # Should connect to PostgreSQL
 redis-cli -h localhost ping  # Should return PONG
 
 # For Docker: check internal network connectivity
-docker-compose exec sso ping postgres
+docker compose exec sso ping postgres
 ```
