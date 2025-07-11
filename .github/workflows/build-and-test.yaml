@@ -56,7 +56,7 @@ jobs:
       - name: Insert test data
         run: |
           # Install PostgreSQL client and netcat
-          sudo apt-get update && sudo apt-get install -y postgresql-client netcat
+          sudo apt-get update && sudo apt-get install -y postgresql-client netcat-openbsd
 
           # Insert test client data
           psql "postgres://sso_user:sso_password@localhost:5432/sso_db?sslmode=disable" -c "
