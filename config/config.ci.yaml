@@ -74,6 +74,7 @@ KeyStorage:
     PrivateKeyPath: "keys/"
     Endpoint: "localhost:9000"
     ForcePathStyle: true
+    DisableSSL: true # For MinIO
 
 # Mail service configuration
 MailService:

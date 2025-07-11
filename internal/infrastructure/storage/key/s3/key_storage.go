@@ -31,7 +31,7 @@ func NewKeyStorage(ctx context.Context, cfg Config) (*KeyStorage, error) {
 			s3lib.WithEndpoint(cfg.Endpoint),
 			s3lib.WithCredentials(cfg.AccessKey, cfg.SecretKey),
 			s3lib.WithForcePathStyle(true),
-			s3lib.WithDisableSSL(true), // Usually MinIO runs without SSL locally
+			s3lib.WithDisableSSL(cfg.DisableSSL),
 		)
 	} else {
 		// For AWS S3 (virtual-hosted-style URLs)
@@ -40,12 +40,14 @@ func NewKeyStorage(ctx context.Context, cfg Config) (*KeyStorage, error) {
 				s3lib.WithRegion(cfg.Region),
 				s3lib.WithEndpoint(cfg.Endpoint),
 				s3lib.WithCredentials(cfg.AccessKey, cfg.SecretKey),
+				s3lib.WithDisableSSL(cfg.DisableSSL),
 			)
 		} else {
 			// Default AWS S3 (no custom endpoint)
 			conn, err = s3lib.NewConnection(ctx,
 				s3lib.WithRegion(cfg.Region),
 				s3lib.WithCredentials(cfg.AccessKey, cfg.SecretKey),
+				s3lib.WithDisableSSL(cfg.DisableSSL),
 			)
 		}
 	}
@@ -69,6 +71,7 @@ type Config struct {
 	PrivateKeyPath string
 	Endpoint       string
 	ForcePathStyle bool
+	DisableSSL     bool
 }
 
 const privateKeyFilePathFormat = "%s/app_%s_private.pem"

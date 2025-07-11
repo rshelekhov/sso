@@ -80,6 +80,7 @@ KeyStorage:
     PrivateKeyPath: ""
     Endpoint: ""
     ForcePathStyle: false
+    DisableSSL: false # Set to true for MinIO
 
 # Mail service configuration (types: mock or mailgun)
 MailService:
