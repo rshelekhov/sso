@@ -13,46 +13,51 @@ import (
 	"github.com/rshelekhov/golib/observability"
 	"github.com/rshelekhov/sso/internal/app"
 	appConfig "github.com/rshelekhov/sso/internal/config"
+	"github.com/rshelekhov/sso/internal/config/settings"
 )
+
+func initObservability(cfg settings.App) (*slog.Logger, func(), error) {
+	if !cfg.EnableMetrics {
+		return slog.Default().With(slog.String("env", cfg.Env)), func() {}, nil
+	}
+
+	obsCfg, err := observability.NewConfig(
+		observability.ConfigParams{
+			Env:            cfg.Env,
+			ServiceName:    cfg.ServiceName,
+			ServiceVersion: cfg.ServiceVersion,
+			EnableMetrics:  cfg.EnableMetrics,
+			OTLPEndpoint:   cfg.OTLPEndpoint,
+		})
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create observability config: %w", err)
+	}
+
+	obs, err := observability.Init(context.Background(), obsCfg)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to init observability: %w", err)
+	}
+
+	shutdownFunc := func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := obs.Shutdown(ctx); err != nil {
+			slog.Error("failed to shutdown observability", slog.String("error", err.Error()))
+		}
+	}
+
+	return obs.Logger.With(slog.String("env", cfg.Env)), shutdownFunc, nil
+}
 
 func main() {
 	cfg := config.MustLoad[appConfig.ServerSettings]()
 
-	var log *slog.Logger
-
-	if cfg.App.EnableMetrics {
-		obsCfg, err := observability.NewConfig(
-			observability.ConfigParams{
-				Env:            cfg.App.Env,
-				ServiceName:    cfg.App.ServiceName,
-				ServiceVersion: cfg.App.ServiceVersion,
-				EnableMetrics:  cfg.App.EnableMetrics,
-				OTLPEndpoint:   cfg.App.OTLPEndpoint,
-			})
-		if err != nil {
-			slog.Error("failed to create observability config", slog.String("error", err.Error()))
-			os.Exit(1)
-		}
-
-		obs, err := observability.Init(context.Background(), obsCfg)
-		if err != nil {
-			slog.Error("failed to init observability", slog.String("error", err.Error()))
-			os.Exit(1)
-		}
-
-		defer func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			if err := obs.Shutdown(ctx); err != nil {
-				slog.Error("failed to shutdown observability", slog.String("error", err.Error()))
-			}
-		}()
-
-		log = obs.Logger.With(slog.String("env", cfg.App.Env))
-	} else {
-		// Use standard slog when metrics are disabled
-		log = slog.Default().With(slog.String("env", cfg.App.Env))
+	log, shutdownObs, err := initObservability(cfg.App)
+	if err != nil {
+		slog.Error("failed to initialize observability", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
+	defer shutdownObs()
 
 	log.Info("starting application")
 	log.Debug("logger debug mode enabled")
