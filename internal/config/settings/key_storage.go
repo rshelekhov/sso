@@ -30,6 +30,8 @@ type KeyStorageS3Params struct {
 	SecretKey      string `yaml:"SecretKey"`
 	PrivateKeyPath string `yaml:"PrivateKeyPath"`
 	Endpoint       string `yaml:"Endpoint"`
+	ForcePathStyle bool   `yaml:"ForcePathStyle"`
+	DisableSSL     bool   `yaml:"DisableSSL"`
 }
 
 func ToKeyStorageConfig(ks KeyStorage) (key.Config, error) {
@@ -82,5 +84,7 @@ func convertS3Params(params *KeyStorageS3Params) *key.StorageS3Params {
 		SecretKey:      params.SecretKey,
 		PrivateKeyPath: params.PrivateKeyPath,
 		Endpoint:       params.Endpoint,
+		ForcePathStyle: params.ForcePathStyle,
+		DisableSSL:     params.DisableSSL,
 	}
 }

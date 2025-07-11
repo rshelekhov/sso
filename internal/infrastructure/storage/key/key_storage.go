@@ -50,6 +50,8 @@ func newS3KeyStorage(ctx context.Context, cfg Config) (token.KeyStorage, error) 
 		SecretKey:      cfg.S3.SecretKey,
 		PrivateKeyPath: cfg.S3.PrivateKeyPath,
 		Endpoint:       cfg.S3.Endpoint,
+		ForcePathStyle: cfg.S3.ForcePathStyle,
+		DisableSSL:     cfg.S3.DisableSSL,
 	}
 
 	return s3.NewKeyStorage(ctx, s3Config)
@@ -79,4 +81,6 @@ type StorageS3Params struct {
 	SecretKey      string
 	PrivateKeyPath string
 	Endpoint       string
+	ForcePathStyle bool
+	DisableSSL     bool
 }

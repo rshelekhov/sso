@@ -3,7 +3,7 @@ module github.com/rshelekhov/sso
 go 1.24.2
 
 require (
-	github.com/aws/aws-sdk-go v1.54.19
+	github.com/aws/aws-sdk-go v1.55.7
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/cristalhq/aconfig v0.18.7
 	github.com/cristalhq/aconfig/aconfigdotenv v0.17.1
@@ -16,7 +16,7 @@ require (
 	github.com/rshelekhov/golib/db/mongo v1.0.2
 	github.com/rshelekhov/golib/db/postgres/pgxv5 v1.1.0
 	github.com/rshelekhov/golib/db/redis v1.0.0
-	github.com/rshelekhov/golib/db/s3 v1.0.0
+	github.com/rshelekhov/golib/db/s3 v1.1.0
 	github.com/rshelekhov/golib/observability v1.3.4
 	github.com/rshelekhov/golib/server v1.0.0
 	github.com/rshelekhov/sso-protos v0.3.3

@@ -1,0 +1,86 @@
+# SSO Configuration for CI/CD
+# This file is used in GitHub Actions with docker-compose.ci.yaml
+
+# App settings
+App:
+  Env: "test"
+  ServiceName: "sso"
+  ServiceVersion: "1.0.0"
+  EnableMetrics: false
+  OTLPEndpoint: ""
+
+# gRPC Server settings
+GRPCServer:
+  Host: "localhost"
+  Port: "44044"
+  Timeout: "30s"
+  RetriesCount: 3
+
+# Storage configuration
+Storage:
+  Type: "postgres"
+  Postgres:
+    ConnURL: "postgres://sso_user:sso_password@localhost:5432/sso_db?sslmode=disable"
+    ConnPoolSize: 10
+    ReadTimeout: "5s"
+    WriteTimeout: "5s"
+    IdleTimeout: "60s"
+    DialTimeout: "10s"
+
+# Redis Cache settings
+Cache:
+  Redis:
+    Host: "localhost"
+    Port: 6379
+    Password: ""
+    DB: 0
+    PoolSize: 10
+    MinIdleConns: 5
+    SessionTTL: "24h"
+    RevokedTokenTTL: "24h"
+
+# JWT configuration
+JWT:
+  Issuer: "sso"
+  SigningMethod: "RS256"
+  JWKSURL: "http://localhost:44044/.well-known/jwks.json"
+  JWKSTTL: "24h"
+  AccessTokenTTL: "15m"
+  RefreshTokenTTL: "720h"
+  RefreshTokenCookieDomain: ""
+  RefreshTokenCookiePath: "/"
+
+# Password hashing configuration
+PasswordHash:
+  Type: "argon2"
+  SaltLength: 24
+  Pepper: "red-hot-chili-peppers"
+  Argon:
+    Time: 2
+    Memory: 24576
+    Parallelism: 2
+    KeyLength: 24
+  Bcrypt:
+    Cost: 10
+
+# Key storage configuration
+KeyStorage:
+  Type: "s3"
+  S3:
+    Region: "us-east-1"
+    Bucket: "sso"
+    AccessKey: "minio_user"
+    SecretKey: "minio_password"
+    PrivateKeyPath: "keys/"
+    Endpoint: "localhost:9000"
+    ForcePathStyle: true
+    DisableSSL: true # For MinIO
+
+# Mail service configuration
+MailService:
+  Type: "mock"
+  TemplatesPath: "./static/email_templates"
+
+# Verification service configuration
+VerificationService:
+  TokenExpiryTime: "24h"

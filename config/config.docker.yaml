@@ -1,0 +1,96 @@
+# SSO Configuration in YAML format
+# This file will be automatically found by config loader
+
+# App settings
+App:
+  Env: "local"
+  ServiceName: "sso"
+  ServiceVersion: "1.0.0"
+  EnableMetrics: true
+  OTLPEndpoint: "otel-collector:4317"
+
+# gRPC Server settings
+GRPCServer:
+  Host: "0.0.0.0"
+  Port: "44044"
+  Timeout: "30s"
+  RetriesCount: 3
+
+# Storage configuration
+Storage:
+  Type: "postgres" # postgres or mongo
+  Postgres:
+    ConnURL: "postgres://sso_user:sso_password@postgres:5432/sso_db?sslmode=disable"
+    ConnPoolSize: 10
+    ReadTimeout: "5s"
+    WriteTimeout: "5s"
+    IdleTimeout: "60s"
+    DialTimeout: "10s"
+  Mongo:
+    URI: "mongodb://mongo:27017"
+    DBName: "sso_dev"
+    Timeout: "30s"
+
+# Redis Cache settings
+Cache:
+  Redis:
+    Host: "redis"
+    Port: 6379
+    Password: ""
+    DB: 0
+    PoolSize: 10
+    MinIdleConns: 5
+    SessionTTL: "24h"
+    RevokedTokenTTL: "24h"
+
+# JWT configuration
+JWT:
+  Issuer: "sso"
+  SigningMethod: "RS256"
+  JWKSURL: "http://sso:8080/.well-known/jwks.json"
+  JWKSTTL: "24h"
+  AccessTokenTTL: "15m"
+  RefreshTokenTTL: "720h"
+  RefreshTokenCookieDomain: ""
+  RefreshTokenCookiePath: "/"
+
+# Password hashing configuration
+PasswordHash:
+  Type: "argon2"
+  SaltLength: 24
+  Pepper: "red-hot-chili-peppers"
+  Argon:
+    Time: 2
+    Memory: 24576
+    Parallelism: 2
+    KeyLength: 24
+  Bcrypt:
+    Cost: 10
+
+# Key storage configuration
+KeyStorage:
+  Type: "s3"
+  Local:
+    Path: "./certs"
+  S3:
+    Region: "us-east-1"
+    Bucket: "sso"
+    AccessKey: "minio_user"
+    SecretKey: "minio_password"
+    PrivateKeyPath: "keys/"
+    Endpoint: "minio:9000"
+    ForcePathStyle: true
+    DisableSSL: true # For MinIO
+
+# Mail service configuration (types: mock or mailgun)
+MailService:
+  Type: "mock"
+  TemplatesPath: "./static/email_templates"
+  Mailgun:
+    Domain: ""
+    PrivateAPIKey: ""
+    Sender: ""
+
+# Verification service configuration
+VerificationService:
+  TokenExpiryTime: "24h"

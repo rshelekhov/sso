@@ -1,5 +1,5 @@
-# SSO Configuration in YAML format
-# This file will be automatically found by config loader
+# SSO Configuration for API tests against Docker Compose
+# This file is used when running tests locally against Docker containers
 
 # App settings
 App:
@@ -7,7 +7,7 @@ App:
   ServiceName: "sso"
   ServiceVersion: "1.0.0"
   EnableMetrics: true
-  OTLPEndpoint: "http://localhost:4317"
+  OTLPEndpoint: "localhost:4317"
 
 # gRPC Server settings
 GRPCServer:
@@ -18,9 +18,9 @@ GRPCServer:
 
 # Storage configuration
 Storage:
-  Type: "mongo" # postgres or mongo
+  Type: "postgres" # postgres or mongo
   Postgres:
-    ConnURL: "postgres://root:password@localhost:5432/sso_dev?sslmode=disable"
+    ConnURL: "postgres://sso_user:sso_password@localhost:5432/sso_db?sslmode=disable"
     ConnPoolSize: 10
     ReadTimeout: "5s"
     WriteTimeout: "5s"
@@ -47,7 +47,7 @@ Cache:
 JWT:
   Issuer: "sso"
   SigningMethod: "RS256"
-  JWKSURL: "http://localhost:8081/.well-known/jwks.json"
+  JWKSURL: "http://localhost:44044/.well-known/jwks.json"
   JWKSTTL: "24h"
   AccessTokenTTL: "15m"
   RefreshTokenTTL: "720h"
@@ -69,25 +69,27 @@ PasswordHash:
 
 # Key storage configuration
 KeyStorage:
-  Type: "local"
+  Type: "s3"
   Local:
     Path: "./certs"
   S3:
-    Region: ""
-    Bucket: ""
-    AccessKey: ""
-    SecretKey: ""
-    PrivateKeyPath: ""
-    Endpoint: ""
+    Region: "us-east-1"
+    Bucket: "sso"
+    AccessKey: "minio_user"
+    SecretKey: "minio_password"
+    PrivateKeyPath: "keys/"
+    Endpoint: "localhost:9000"
+    ForcePathStyle: true
+    DisableSSL: true # For MinIO
 
 # Mail service configuration (types: mock or mailgun)
 MailService:
   Type: "mock"
   TemplatesPath: "./static/email_templates"
   Mailgun:
-    Domain: "your-domain.com"
+    Domain: ""
     PrivateAPIKey: ""
-    Sender: "noreply@your-domain.com"
+    Sender: ""
 
 # Verification service configuration
 VerificationService:
