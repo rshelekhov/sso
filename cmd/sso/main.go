@@ -23,11 +23,12 @@ func initObservability(cfg settings.App) (*slog.Logger, func(), error) {
 
 	obsCfg, err := observability.NewConfig(
 		observability.ConfigParams{
-			Env:            cfg.Env,
-			ServiceName:    cfg.ServiceName,
-			ServiceVersion: cfg.ServiceVersion,
-			EnableMetrics:  cfg.EnableMetrics,
-			OTLPEndpoint:   cfg.OTLPEndpoint,
+			Env:               cfg.Env,
+			ServiceName:       cfg.ServiceName,
+			ServiceVersion:    cfg.ServiceVersion,
+			EnableMetrics:     cfg.EnableMetrics,
+			OTLPEndpoint:      cfg.OTLPEndpoint,
+			OTLPTransportType: cfg.OTLPTransportType,
 		})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create observability config: %w", err)

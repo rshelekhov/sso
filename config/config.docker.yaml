@@ -3,11 +3,12 @@
 
 # App settings
 App:
-  Env: "local"
+  Env: "dev"
   ServiceName: "sso"
   ServiceVersion: "1.0.0"
   EnableMetrics: true
   OTLPEndpoint: "otel-collector:4317"
+  OTLPTransportType: "grpc"
 
 # gRPC Server settings
 GRPCServer:
@@ -47,7 +48,6 @@ Cache:
 JWT:
   Issuer: "sso"
   SigningMethod: "RS256"
-  JWKSURL: "http://sso:8080/.well-known/jwks.json"
   JWKSTTL: "24h"
   AccessTokenTTL: "15m"
   RefreshTokenTTL: "720h"

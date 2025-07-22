@@ -43,7 +43,6 @@ Cache:
 JWT:
   Issuer: "sso"
   SigningMethod: "RS256"
-  JWKSURL: "http://localhost:44044/.well-known/jwks.json"
   JWKSTTL: "24h"
   AccessTokenTTL: "15m"
   RefreshTokenTTL: "720h"
