@@ -1,0 +1,77 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "SSO Service Dashboard",
+    "tags": ["sso"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Database Operations Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(db_client_operation_duration_milliseconds_count{service=\"sso\"}[5m])",
+            "legendFormat": "{{pgx_operation_type}}"
+          }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Database Operation Duration (95th percentile)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(db_client_operation_duration_milliseconds_bucket{service=\"sso\"}[5m]))",
+            "legendFormat": "{{pgx_operation_type}} - 95th percentile"
+          }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Database Errors",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(db_client_operation_errors_total{service=\"sso\"}[5m])",
+            "legendFormat": "{{pgx_operation_type}} errors"
+          }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "errors/sec"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Service Logs",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{service=\"sso\"}"
+          }
+        ],
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "5s"
+  }
+}
