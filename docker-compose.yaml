@@ -16,8 +16,8 @@ services:
         condition: service_healthy
       loki:
         condition: service_healthy
-      otel-collector:
-        condition: service_healthy
+      # otel-collector:
+      #   condition: service_healthy
     environment:
       CONFIG_PATH: /app/config.yaml
     volumes:
@@ -213,11 +213,27 @@ services:
       - ./telemetry/tempo-config.yaml:/etc/tempo/config.yaml
     ports:
       - "3200:3200"
+      - "9096:9096" # OTLP gRPC receiver
+      - "9097:9097" # OTLP HTTP receiver
     command: --config.file=/etc/tempo/config.yaml
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3200/ready",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # OpenTelemetry Collector - routes observability data
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.112.0
+    image: otel/opentelemetry-collector-contrib:0.128.0
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - ./telemetry/otel-collector-config.yaml:/etc/otel-collector-config.yaml
@@ -228,21 +244,15 @@ services:
       - "13133:13133" # Health check endpoint
     depends_on:
       tempo:
-        condition: service_started
-      prometheus:
         condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "/otelcol-contrib",
-          "validate",
-          "--config=/etc/otel-collector-config.yaml",
-        ]
-      interval: 15s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      loki:
+        condition: service_healthy
+    # healthcheck:
+    #   test: ["CMD", "nc", "-z", "localhost", "13133"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 10s
 
   grafana:
     image: grafana/grafana:12.0.2

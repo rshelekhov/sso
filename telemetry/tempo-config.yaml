@@ -8,9 +8,9 @@ distributor:
     otlp:
       protocols:
         grpc:
-          endpoint: 0.0.0.0:4317
+          endpoint: 0.0.0.0:9096
         http:
-          endpoint: 0.0.0.0:4318
+          endpoint: 0.0.0.0:9097
 
 ingester:
   max_block_duration: 5m
@@ -18,14 +18,6 @@ ingester:
 compactor:
   compaction:
     block_retention: 1h
-
-metrics_generator:
-  registry:
-    external_labels:
-      source: tempo
-      cluster: docker-compose
-  storage:
-    path: /tmp/tempo/generator/wal
 
 storage:
   trace:
@@ -42,7 +34,40 @@ query_frontend:
   trace_by_id:
     duration_slo: 5s
 
-overrides:
-  defaults:
-    metrics_generator:
-      processors: [service-graphs, span-metrics]
+# Metrics generator configuration
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      cluster: docker-compose
+  storage:
+    path: /tmp/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+  processor:
+    # Service graphs processor
+    service_graphs:
+      histogram_buckets: [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
+      dimensions: [service.name, service.namespace]
+    # Span metrics processor
+    span_metrics:
+      histogram_buckets:
+        [
+          0.002,
+          0.005,
+          0.01,
+          0.025,
+          0.05,
+          0.075,
+          0.1,
+          0.25,
+          0.5,
+          0.75,
+          1.0,
+          2.5,
+          5.0,
+          7.5,
+          10.0,
+        ]
+      dimensions: [service.name, operation, span.kind, status.code]

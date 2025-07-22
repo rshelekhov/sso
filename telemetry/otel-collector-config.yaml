@@ -31,7 +31,7 @@ processors:
 exporters:
   # Tempo exporter - traces go to Tempo
   otlp/tempo:
-    endpoint: tempo:4317
+    endpoint: tempo:9096
     tls:
       insecure: true
 
@@ -51,6 +51,8 @@ exporters:
   # Debug exporter - for debugging (visible in docker logs)
   debug:
     verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
 
 extensions:
   # Health check extension - provides health check endpoint
@@ -63,17 +65,17 @@ service:
     # Traces: SSO app -> collector -> Tempo
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, batch, resource]
+      processors: [memory_limiter, resource, batch]
       exporters: [otlp/tempo, debug]
 
     # Metrics: SSO app -> collector -> Prometheus
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter, batch, resource]
+      processors: [memory_limiter, resource, batch]
       exporters: [prometheus, debug]
 
-    # Logs: SSO app -> collector -> Loki + console
+    # Logs: SSO app -> collector -> Loki
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, batch, resource]
+      processors: [memory_limiter, resource, batch]
       exporters: [loki, debug]
