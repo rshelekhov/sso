@@ -8,15 +8,13 @@ import (
 )
 
 type JWT struct {
-	Issuer        string            `yaml:"Issuer" default:"sso"`
-	SigningMethod SigningMethodType `yaml:"SigningMethod" default:"RS256"`
-	// TODO: check if JWKS URL is used in the code
-	JWKSURL                  string        `yaml:"JWKSURL"`
-	JWKSTTL                  time.Duration `yaml:"JWKSTTL" default:"24h"`
-	AccessTokenTTL           time.Duration `yaml:"AccessTokenTTL" default:"15m"`
-	RefreshTokenTTL          time.Duration `yaml:"RefreshTokenTTL" default:"720h"`
-	RefreshTokenCookieDomain string        `yaml:"RefreshTokenCookieDomain"`
-	RefreshTokenCookiePath   string        `yaml:"RefreshTokenCookiePath"`
+	Issuer                   string            `yaml:"Issuer" default:"sso"`
+	SigningMethod            SigningMethodType `yaml:"SigningMethod" default:"RS256"`
+	JWKSTTL                  time.Duration     `yaml:"JWKSTTL" default:"24h"`
+	AccessTokenTTL           time.Duration     `yaml:"AccessTokenTTL" default:"15m"`
+	RefreshTokenTTL          time.Duration     `yaml:"RefreshTokenTTL" default:"720h"`
+	RefreshTokenCookieDomain string            `yaml:"RefreshTokenCookieDomain"`
+	RefreshTokenCookiePath   string            `yaml:"RefreshTokenCookiePath"`
 }
 
 type SigningMethodType string
