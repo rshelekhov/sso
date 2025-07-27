@@ -9,7 +9,6 @@ SERVER_PORT ?= 44044
 DB_TYPE ?= postgres
 POSTGRESQL_URL ?= postgres://root:password@localhost:5432/sso_dev?sslmode=disable
 # MONGO_URL ?= mongodb://localhost:27017/sso_dev
-DOCKER_TEST_CONFIG_PATH ?= ./config/config.test.yaml
 DOCKER_COMPOSE_SERVICES ?= postgres redis minio minio-init otel-collector loki prometheus tempo grafana promtail # add mongo if you want to test with mongo
 
 .PHONY: help build setup-dev run stop test-local test-docker test-docker-clean test-ci lint observability obs-check
@@ -59,14 +58,10 @@ test-docker:
 	@echo "Starting Docker test environment..."
 	@docker compose up -d $(DOCKER_COMPOSE_SERVICES)
 	@sleep 15
-	@$(MAKE) _docker-setup
-	@echo "Running tests with observability..."
-	@CONFIG_PATH=$(DOCKER_TEST_CONFIG_PATH) go run ./cmd/sso &
-	@SERVER_PID=$$!; sleep 10; \
-	go test -v -timeout 300s ./internal/... ./api_tests; \
-	TEST_RESULT=$$?; kill $$SERVER_PID 2>/dev/null || true; \
-	echo "Tests completed. Grafana: http://localhost:3000 (admin/admin)"; \
-	exit $$TEST_RESULT
+	@echo "Building and running tests in Docker..."
+	@docker build --target tester -t sso-test .
+	@docker run --network sso_default sso-test
+	@echo "Tests completed. Grafana: http://localhost:3000 (admin/admin)"
 
 # Stop Docker test environment  
 test-docker-clean:

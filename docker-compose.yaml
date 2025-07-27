@@ -16,8 +16,8 @@ services:
         condition: service_healthy
       loki:
         condition: service_healthy
-      # otel-collector:
-      #   condition: service_healthy
+      otel-collector:
+        condition: service_started
     environment:
       CONFIG_PATH: /app/config.yaml
     volumes:
@@ -213,8 +213,6 @@ services:
       - ./telemetry/tempo-config.yaml:/etc/tempo/config.yaml
     ports:
       - "3200:3200"
-      - "9096:9096" # OTLP gRPC receiver
-      - "9097:9097" # OTLP HTTP receiver
     command: --config.file=/etc/tempo/config.yaml
     healthcheck:
       test:
@@ -241,18 +239,15 @@ services:
       - "4317:4317" # OTLP gRPC receiver (for SSO app)
       - "4318:4318" # OTLP HTTP receiver
       - "8889:8889" # Prometheus metrics export
+      - "8888:8888" # Collector metrics
       - "13133:13133" # Health check endpoint
     depends_on:
       tempo:
         condition: service_healthy
       loki:
         condition: service_healthy
-    # healthcheck:
-    #   test: ["CMD", "nc", "-z", "localhost", "13133"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 10s
+      prometheus:
+        condition: service_healthy
 
   grafana:
     image: grafana/grafana:12.0.2
