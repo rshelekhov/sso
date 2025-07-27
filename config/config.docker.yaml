@@ -7,6 +7,7 @@ App:
   ServiceName: "sso"
   ServiceVersion: "1.0.0"
   EnableMetrics: true
+  EnableTracing: true
   OTLPEndpoint: "otel-collector:4317"
   OTLPTransportType: "grpc"
 
