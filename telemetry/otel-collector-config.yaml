@@ -13,8 +13,17 @@ receivers:
 processors:
   # Batch processor - groups data for efficient sending
   batch:
-    timeout: 1s
-    send_batch_size: 512
+    timeout: 10s
+    send_batch_size: 128
+    send_batch_max_size: 256
+
+  filter/reduce_logs:
+    logs:
+      exclude:
+        match_type: regexp
+        bodies:
+          - "^DEBUG.*"
+          - "^TRACE.*"
 
   # Memory limiter - protection from OOM
   memory_limiter:
@@ -59,8 +68,21 @@ extensions:
   health_check:
     endpoint: 0.0.0.0:13133
 
+  # Add pprof for debugging
+  pprof:
+    endpoint: 0.0.0.0:1777
+
 service:
-  extensions: [health_check]
+  telemetry:
+    logs:
+      level: debug
+      initial_fields:
+        service: otel-collector
+    metrics:
+      level: detailed
+
+  extensions: [health_check, pprof]
+
   pipelines:
     # Traces: SSO app -> collector -> Tempo
     traces:
@@ -77,5 +99,5 @@ service:
     # Logs: SSO app -> collector -> Loki
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, resource, batch]
+      processors: [memory_limiter, filter/reduce_logs, resource, batch]
       exporters: [loki, debug]
