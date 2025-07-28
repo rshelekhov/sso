@@ -47,6 +47,7 @@ func initObservability(cfg settings.App) (*slog.Logger, func(), error) {
 			if err := obs.TracerProvider.ForceFlush(ctx); err != nil {
 				slog.Warn("failed to flush traces", slog.String("error", err.Error()))
 			}
+
 			cancel()
 		}
 
