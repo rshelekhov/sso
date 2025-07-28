@@ -7,7 +7,9 @@ App:
   ServiceName: "sso"
   ServiceVersion: "1.0.0"
   EnableMetrics: false
+  EnableTracing: false
   OTLPEndpoint: ""
+  OTLPTransportType: "grpc"
 
 # gRPC Server settings
 GRPCServer:
