@@ -24,7 +24,7 @@ import (
 )
 
 func TestAuthUsecase_Login(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	clientID := "test-client-id"
 	userID := "test-user-id"
@@ -289,7 +289,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 
 			auth := NewUsecase(log, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, txMgr, db)
 
-			tokens, err := auth.Login(ctx, clientID, tt.reqData)
+			tokens, err := auth.Login(context.Background(), clientID, tt.reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -302,7 +302,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 }
 
 func TestAuthUsecase_RegisterUser(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	clientID := "test-client-id"
 	email := "test@example.com"
@@ -792,7 +792,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 
 			auth := NewUsecase(log, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, txMgr, db)
 
-			tokens, err := auth.RegisterUser(ctx, clientID, tt.reqData, tt.endpoint)
+			tokens, err := auth.RegisterUser(context.Background(), clientID, tt.reqData, tt.endpoint)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())

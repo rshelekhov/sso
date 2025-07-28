@@ -175,7 +175,7 @@ func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entit
 
 	newUser := entity.NewUser(reqData.Email, hash)
 
-	authTokenData := entity.SessionTokens{}
+	var tokens entity.SessionTokens
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		userStatus, err := u.userMgr.GetUserStatusByEmail(txCtx, newUser.Email)
@@ -183,22 +183,11 @@ func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entit
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByEmail, err)
 		}
 
-		switch userStatus {
-		case entity.UserStatusActive.String():
-			return domain.ErrUserAlreadyExists
-		case entity.UserStatusSoftDeleted.String():
-			if err = u.storage.ReplaceSoftDeletedUser(txCtx, newUser); err != nil {
-				return fmt.Errorf("%w: %w", domain.ErrFailedToReplaceSoftDeletedUser, err)
-			}
-		case entity.UserStatusNotFound.String():
-			if err = u.storage.RegisterUser(txCtx, newUser); err != nil {
-				return fmt.Errorf("%w: %w", domain.ErrFailedToRegisterUser, err)
-			}
-		default:
-			return fmt.Errorf("%w: %s", domain.ErrUnknownUserStatus, userStatus)
+		if err := u.handleUserStatus(txCtx, userStatus, newUser); err != nil {
+			return err
 		}
 
-		sessionReqData := entity.SessionRequestData{
+		sessionReq := entity.SessionRequestData{
 			UserID:   newUser.ID,
 			ClientID: clientID,
 			UserDevice: entity.UserDeviceRequestData{
@@ -207,18 +196,13 @@ func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entit
 			},
 		}
 
-		authTokenData, err = u.sessionMgr.CreateSession(txCtx, sessionReqData)
+		tokens, err = u.sessionMgr.CreateSession(txCtx, sessionReq)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
 		}
 
-		tokenData, err := u.verificationMgr.CreateToken(txCtx, newUser, verifyEmailEndpoint, entity.TokenTypeVerifyEmail)
-		if err != nil {
-			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateVerificationToken, err)
-		}
-
-		if err = u.sendEmailWithToken(txCtx, tokenData, entity.EmailTemplateTypeVerifyEmail); err != nil {
-			return fmt.Errorf("%w: %w", domain.ErrFailedToSendVerificationEmail, err)
+		if err := u.createAndSendVerificationToken(txCtx, newUser, verifyEmailEndpoint); err != nil {
+			return err
 		}
 
 		return nil
@@ -231,7 +215,38 @@ func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entit
 		slog.String("userID", newUser.ID),
 	)
 
-	return authTokenData, nil
+	return tokens, nil
+}
+
+func (u *Auth) handleUserStatus(ctx context.Context, status string, user entity.User) error {
+	switch status {
+	case entity.UserStatusActive.String():
+		return domain.ErrUserAlreadyExists
+	case entity.UserStatusSoftDeleted.String():
+		if err := u.storage.ReplaceSoftDeletedUser(ctx, user); err != nil {
+			return fmt.Errorf("%w: %w", domain.ErrFailedToReplaceSoftDeletedUser, err)
+		}
+	case entity.UserStatusNotFound.String():
+		if err := u.storage.RegisterUser(ctx, user); err != nil {
+			return fmt.Errorf("%w: %w", domain.ErrFailedToRegisterUser, err)
+		}
+	default:
+		return fmt.Errorf("%w: %s", domain.ErrUnknownUserStatus, status)
+	}
+	return nil
+}
+
+func (u *Auth) createAndSendVerificationToken(ctx context.Context, user entity.User, endpoint string) error {
+	tokenData, err := u.verificationMgr.CreateToken(ctx, user, endpoint, entity.TokenTypeVerifyEmail)
+	if err != nil {
+		return fmt.Errorf("%w: %w", domain.ErrFailedToCreateVerificationToken, err)
+	}
+
+	if err := u.sendEmailWithToken(ctx, tokenData, entity.EmailTemplateTypeVerifyEmail); err != nil {
+		return fmt.Errorf("%w: %w", domain.ErrFailedToSendVerificationEmail, err)
+	}
+
+	return nil
 }
 
 func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) (entity.VerificationResult, error) {

@@ -7,7 +7,9 @@ App:
   ServiceName: "sso"
   ServiceVersion: "1.0.0"
   EnableMetrics: true
-  OTLPEndpoint: "http://localhost:4317"
+  EnableTracing: true
+  OTLPEndpoint: "localhost:4317"
+  OTLPTransportType: "grpc"
 
 # gRPC Server settings
 GRPCServer:
@@ -47,7 +49,6 @@ Cache:
 JWT:
   Issuer: "sso"
   SigningMethod: "RS256"
-  JWKSURL: "http://localhost:8081/.well-known/jwks.json"
   JWKSTTL: "24h"
   AccessTokenTTL: "15m"
   RefreshTokenTTL: "720h"

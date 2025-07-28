@@ -47,7 +47,7 @@ SSO App → OTEL Collector → Tempo → Grafana
 - **Exporters**:
   - Prometheus (metrics on port 8889)
   - Loki (logs to http://loki:3100)
-  - Tempo (traces to tempo:4317)
+  - Tempo (traces to tempo:9096)
   - Debug (console output)
 
 #### `prometheus.yml` - Metrics Collection
@@ -70,7 +70,7 @@ Scrapes metrics from:
 
 #### `tempo-config.yaml` - Trace Storage
 
-- OTLP receiver: ports 4317 (gRPC), 4318 (HTTP)
+- OTLP receiver: ports 9096 (gRPC), 9097 (HTTP)
 - Storage: Local filesystem (`/tmp/tempo`)
 - Features: Service graphs, span metrics
 - Integration: Forwards metrics to Prometheus
@@ -140,14 +140,32 @@ App:
 ### Quick Start
 
 ```bash
-# Start observability stack
-docker compose up -d prometheus loki tempo grafana otel-collector
+# Start observability stack (order matters!)
+docker compose up -d prometheus loki tempo
+docker compose up -d otel-collector
+docker compose up -d grafana
 
 # Start SSO with telemetry
 docker compose up -d sso
 
+# Check everything is working
+./scripts/check-observability.sh
+
 # View in Grafana
 open http://localhost:3000
+```
+
+### Alternative: Start Everything
+
+```bash
+# Start all services at once
+docker compose up -d
+
+# Wait for services to be ready (30-60 seconds)
+sleep 60
+
+# Check health
+./scripts/check-observability.sh
 ```
 
 ### Debugging Telemetry

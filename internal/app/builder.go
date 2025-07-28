@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/rshelekhov/golib/observability/tracing"
 	"github.com/rshelekhov/golib/server"
 	jwksadapter "github.com/rshelekhov/sso/internal/adapter"
 	"github.com/rshelekhov/sso/internal/config"
@@ -265,12 +266,15 @@ func (b *Builder) createServerApp() (*server.App, error) {
 
 	interceptors = append(interceptors, b.ssoService.GetCustomInterceptors()...)
 
+	statsHandler := tracing.GRPCServerStatsHandler()
+
 	app, err := server.NewApp(
 		context.Background(),
 		server.WithGRPCPort(port),
 		server.WithLogger(b.logger),
 		server.WithShutdownTimeout(10*time.Second),
 		server.WithUnaryInterceptors(interceptors...),
+		server.WithStatsHandler(statsHandler),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create server app: %w", err)
