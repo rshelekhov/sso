@@ -11,7 +11,7 @@ POSTGRESQL_URL ?= postgres://root:password@localhost:5432/sso_dev?sslmode=disabl
 # MONGO_URL ?= mongodb://localhost:27017/sso_dev
 DOCKER_COMPOSE_SERVICES ?= postgres redis minio minio-init otel-collector loki prometheus tempo grafana promtail # add mongo if you want to test with mongo
 
-.PHONY: help build setup-dev run stop test-local test-docker test-docker-clean test-ci lint observability obs-check
+.PHONY: help build setup-dev run stop test-local test-docker test-docker-clean lint observability obs-check
 
 # ================================
 # Main Commands
@@ -67,18 +67,6 @@ test-docker:
 test-docker-clean:
 	@docker compose down
 
-# CI tests (minimal Docker setup)
-test-ci:
-	@docker compose -f docker-compose.ci.yaml up -d
-	@sleep 20
-	@$(MAKE) _docker-setup
-	@go test -v -timeout 300s ./internal/...
-	@CONFIG_PATH=./config/config.ci.yaml go run ./cmd/sso &
-	@SERVER_PID=$$!; sleep 10; \
-	CONFIG_PATH=./config/config.ci.yaml go test -v -timeout 300s ./api_tests; \
-	TEST_RESULT=$$?; kill $$SERVER_PID 2>/dev/null || true; \
-	docker compose -f docker-compose.ci.yaml down -v; exit $$TEST_RESULT
-
 # ================================
 # Observability  
 # ================================
@@ -128,7 +116,6 @@ help:
 	@echo "  test-local        - Local tests (setup + run + test)"
 	@echo "  test-docker       - Docker tests with full observability stack"
 	@echo "  test-docker-clean - Stop Docker environment"
-	@echo "  test-ci           - CI tests (minimal Docker)"
 	@echo ""
 	@echo "Observability:"
 	@echo "  observability     - Start observability stack"
@@ -163,13 +150,3 @@ _setup-mongo:
 	@if [ "$$(mongosh "$(MONGO_URL)" --quiet --eval 'db.clients.countDocuments({_id: "test-client-id"})')" = "0" ]; then \
 		mongosh "$(MONGO_URL)" --eval 'db.clients.insertOne({_id: "test-client-id", name: "test", secret: "test-secret", status: 1, created_at: new Date(), updated_at: new Date()})'; \
 	fi
-
-_docker-setup:
-	@migrate -database "postgres://sso_user:sso_password@localhost:5432/sso_db?sslmode=disable" -path migrations up || true
-	@psql "postgres://sso_user:sso_password@localhost:5432/sso_db" -c "INSERT INTO clients (id, name, secret, status, created_at, updated_at) VALUES ('test-client-id', 'test', 'test-secret', 1, NOW(), NOW()) ON CONFLICT DO NOTHING;" || true
-	@for i in {1..30}; do \
-		if docker compose logs minio-init | grep -q "MinIO initialization completed"; then break; fi; \
-		echo "Waiting for MinIO... ($$i/30)"; sleep 2; \
-	done
-
-.DEFAULT_GOAL := help
