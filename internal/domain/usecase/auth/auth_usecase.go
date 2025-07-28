@@ -175,29 +175,9 @@ func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entit
 
 	newUser := entity.NewUser(reqData.Email, hash)
 
-	tokens, err := u.registerUserInTransaction(ctx, clientID, newUser, reqData, verifyEmailEndpoint)
-	if err != nil {
-		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", newUser.ID))
-		return entity.SessionTokens{}, err
-	}
-
-	log.Info("user and tokens created, verification email sent",
-		slog.String("userID", newUser.ID),
-	)
-
-	return tokens, nil
-}
-
-func (u *Auth) registerUserInTransaction(
-	ctx context.Context,
-	clientID string,
-	newUser entity.User,
-	reqData *entity.UserRequestData,
-	verifyEmailEndpoint string,
-) (entity.SessionTokens, error) {
 	var tokens entity.SessionTokens
 
-	err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
+	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		userStatus, err := u.userMgr.GetUserStatusByEmail(txCtx, newUser.Email)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByEmail, err)
@@ -226,9 +206,16 @@ func (u *Auth) registerUserInTransaction(
 		}
 
 		return nil
-	})
+	}); err != nil {
+		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", newUser.ID))
+		return entity.SessionTokens{}, err
+	}
 
-	return tokens, err
+	log.Info("user and tokens created, verification email sent",
+		slog.String("userID", newUser.ID),
+	)
+
+	return tokens, nil
 }
 
 func (u *Auth) handleUserStatus(ctx context.Context, status string, user entity.User) error {
