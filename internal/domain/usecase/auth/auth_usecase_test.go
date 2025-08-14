@@ -805,7 +805,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 }
 
 func TestAuthUsecase_VerifyEmail(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	userID := "test-user-id"
 	endpoint := "https://example.com/verify"
@@ -1081,7 +1081,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 
 			auth := NewUsecase(log, nil, nil, mailService, nil, verificationMgr, txMgr, db)
 
-			_, err := auth.VerifyEmail(ctx, tokenStr)
+			_, err := auth.VerifyEmail(context.Background(), tokenStr)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1093,7 +1093,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 }
 
 func TestAuthUsecase_ResetPassword(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	clientID := "test-client-id"
 	endpoint := "https://example.com/change-password"
@@ -1226,7 +1226,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 
 			auth := NewUsecase(log, nil, userMgr, mailService, nil, verificationMgr, nil, nil)
 
-			err := auth.ResetPassword(ctx, clientID, reqData, endpoint)
+			err := auth.ResetPassword(context.Background(), clientID, reqData, endpoint)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1238,7 +1238,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 }
 
 func TestAuthUsecase_ChangePassword(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	userID := "test-user-id"
 	clientID := "test-client-id"
@@ -1683,7 +1683,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 
 			auth := NewUsecase(log, nil, userMgr, mailService, tokenMgr, verificationMgr, txMgr, nil)
 
-			_, err := auth.ChangePassword(ctx, clientID, reqData)
+			_, err := auth.ChangePassword(context.Background(), clientID, reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1695,7 +1695,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 }
 
 func TestAuthUsecase_LogoutUser(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	clientID := "test-client-id"
 	userID := "test-user-id"
@@ -1805,7 +1805,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 
 			auth := NewUsecase(log, sessionMgr, nil, nil, tokenMgr, nil, nil, nil)
 
-			err := auth.LogoutUser(ctx, clientID, &userDeviceReqData)
+			err := auth.LogoutUser(context.Background(), clientID, &userDeviceReqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1817,7 +1817,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 }
 
 func TestAuthUsecase_RefreshTokens(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	userID := "test-user-id"
 	clientID := "test-client-id"
@@ -1989,7 +1989,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 
 			auth := NewUsecase(log, sessionMgr, nil, nil, nil, nil, nil, nil)
 
-			sessionTokens, err := auth.RefreshTokens(ctx, clientID, &reqData)
+			sessionTokens, err := auth.RefreshTokens(context.Background(), clientID, &reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
