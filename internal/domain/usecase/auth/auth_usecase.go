@@ -714,15 +714,12 @@ func (u *Auth) verifyPassword(ctx context.Context, userData entity.User, passwor
 
 	getUserDataSpan.End()
 
-	ctx, passwordMatchSpan := tracing.StartSpan(ctx, "password_match")
+	span.AddEvent("verifying_password")
 	matched, err := u.tokenMgr.PasswordMatch(userData.PasswordHash, password)
 	if err != nil {
-		tracing.RecordError(passwordMatchSpan, err)
-		passwordMatchSpan.End()
+		tracing.RecordError(span, err)
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToCheckPasswordHashMatch, err)
 	}
-
-	passwordMatchSpan.End()
 
 	if !matched {
 		return domain.ErrInvalidCredentials
