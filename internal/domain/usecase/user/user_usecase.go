@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/rshelekhov/golib/observability/tracing"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/lib/e"
@@ -90,26 +91,45 @@ func NewUsecase(
 func (u *User) GetUser(ctx context.Context, clientID string) (entity.User, error) {
 	const method = "usecase.User.GetUser"
 
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+	)
+
 	log := u.log.With(slog.String("method", method))
 
+	ctx, extractUserIDSpan := tracing.StartSpan(ctx, "extract_user_id_from_token")
 	userID, err := u.identityMgr.ExtractUserIDFromTokenInContext(ctx, clientID)
 	if err != nil {
+		tracing.RecordError(extractUserIDSpan, err)
+		extractUserIDSpan.End()
+
 		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return entity.User{}, domain.ErrFailedToExtractUserIDFromContext
 	}
 
+	extractUserIDSpan.End()
+
+	ctx, getUserByIDSpan := tracing.StartSpan(ctx, "get_user_by_id")
 	userData, err := u.userMgr.GetUserByID(ctx, userID)
 	if err != nil {
+		tracing.RecordError(getUserByIDSpan, err)
+		getUserByIDSpan.End()
+
 		if errors.Is(err, domain.ErrUserNotFound) {
-			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
+			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.String("user.id", userID))
 			return entity.User{}, domain.ErrUserNotFound
 		}
 
-		e.LogError(ctx, log, domain.ErrFailedToGetUser, err, slog.Any("userID", userID))
+		e.LogError(ctx, log, domain.ErrFailedToGetUser, err, slog.String("user.id", userID))
 		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToGetUserByID, err)
 	}
 
-	log.Info("user received own data", slog.String("userID", userID))
+	getUserByIDSpan.End()
+
+	log.Info("user received own data", slog.String("user.id", userID))
 
 	return userData, nil
 }
@@ -117,20 +137,34 @@ func (u *User) GetUser(ctx context.Context, clientID string) (entity.User, error
 func (u *User) GetUserByID(ctx context.Context, clientID, userID string) (entity.User, error) {
 	const method = "usecase.User.GetUserByID"
 
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+		tracing.String("user.id", userID),
+	)
+
 	log := u.log.With(slog.String("method", method))
 
+	ctx, getUserByIDSpan := tracing.StartSpan(ctx, "get_user_by_id")
 	userData, err := u.userMgr.GetUserByID(ctx, userID)
 	if err != nil {
+		tracing.RecordError(getUserByIDSpan, err)
+		getUserByIDSpan.End()
+
 		if errors.Is(err, domain.ErrUserNotFound) {
-			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
+			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.String("user.id", userID))
 			return entity.User{}, domain.ErrUserNotFound
 		}
 
-		e.LogError(ctx, log, domain.ErrFailedToGetUser, err, slog.Any("userID", userID))
+		e.LogError(ctx, log, domain.ErrFailedToGetUser, err, slog.String("user.id", userID))
 		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToGetUserByID, err)
 	}
 
-	log.Info("user found by ID", slog.String("userID", userID))
+	getUserByIDSpan.End()
+
+	log.Info("user found by ID", slog.String("user.id", userID))
 
 	return userData, nil
 }
@@ -138,32 +172,57 @@ func (u *User) GetUserByID(ctx context.Context, clientID, userID string) (entity
 func (u *User) UpdateUser(ctx context.Context, clientID string, data entity.UserRequestData) (entity.User, error) {
 	const method = "usecase.User.UpdateUser"
 
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+	)
+
 	log := u.log.With(slog.String("method", method))
 
+	ctx, extractUserIDSpan := tracing.StartSpan(ctx, "extract_user_id_from_token")
 	userID, err := u.identityMgr.ExtractUserIDFromTokenInContext(ctx, clientID)
 	if err != nil {
+		tracing.RecordError(extractUserIDSpan, err)
+		extractUserIDSpan.End()
+
 		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return entity.User{}, domain.ErrFailedToExtractUserIDFromContext
 	}
 
+	extractUserIDSpan.End()
+
+	ctx, getUserDataSpan := tracing.StartSpan(ctx, "get_user_data")
 	userDataFromDB, err := u.userMgr.GetUserData(ctx, userID)
 	if err != nil {
+		tracing.RecordError(getUserDataSpan, err)
+		getUserDataSpan.End()
+
 		if errors.Is(err, domain.ErrUserNotFound) {
-			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("userID", userID))
+			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.String("user.id", userID))
 			return entity.User{}, domain.ErrUserNotFound
 		}
 
-		e.LogError(ctx, log, domain.ErrFailedToGetUserData, err, slog.Any("userID", userID))
+		e.LogError(ctx, log, domain.ErrFailedToGetUserData, err, slog.String("user.id", userID))
 		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
 	}
 
+	getUserDataSpan.End()
+
+	ctx, updateUserFieldsSpan := tracing.StartSpan(ctx, "update_user_fields")
 	updatedUser, err := u.updateUserFields(ctx, data, userDataFromDB)
 	if err != nil {
-		e.LogError(ctx, log, domain.ErrFailedToUpdateUser, err, slog.Any("userID", userID))
+		tracing.RecordError(updateUserFieldsSpan, err)
+		updateUserFieldsSpan.End()
+
+		e.LogError(ctx, log, domain.ErrFailedToUpdateUser, err, slog.String("user.id", userID))
 		return entity.User{}, fmt.Errorf("%w: %w", domain.ErrFailedToUpdateUser, err)
 	}
 
-	log.Info("user updated", slog.String("userID", userID))
+	updateUserFieldsSpan.End()
+
+	log.Info("user updated", slog.String("user.id", userID))
 
 	return updatedUser, nil
 }
@@ -171,13 +230,26 @@ func (u *User) UpdateUser(ctx context.Context, clientID string, data entity.User
 func (u *User) DeleteUser(ctx context.Context, clientID string) error {
 	const method = "usecase.User.DeleteUser"
 
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+	)
+
 	log := u.log.With(slog.String("method", method))
 
+	ctx, extractUserIDSpan := tracing.StartSpan(ctx, "extract_user_id_from_token")
 	userID, err := u.identityMgr.ExtractUserIDFromTokenInContext(ctx, clientID)
 	if err != nil {
+		tracing.RecordError(extractUserIDSpan, err)
+		extractUserIDSpan.End()
+
 		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return domain.ErrFailedToExtractUserIDFromContext
 	}
+
+	extractUserIDSpan.End()
 
 	userData := entity.User{
 		ID:        userID,
@@ -185,10 +257,18 @@ func (u *User) DeleteUser(ctx context.Context, clientID string) error {
 	}
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
+		txCtx, txSpan := tracing.StartSpan(txCtx, "transaction")
+		defer txSpan.End()
+
+		txCtx, getUserStatusByIDSpan := tracing.StartSpan(txCtx, "get_user_status_by_id")
 		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.ID)
 		if err != nil {
+			tracing.RecordError(getUserStatusByIDSpan, err)
+			getUserStatusByIDSpan.End()
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByID, err)
 		}
+
+		getUserStatusByIDSpan.End()
 
 		switch userStatus {
 		case entity.UserStatusActive.String():
@@ -202,17 +282,26 @@ func (u *User) DeleteUser(ctx context.Context, clientID string) error {
 			return fmt.Errorf("%w: %s", domain.ErrUnknownUserStatus, userStatus)
 		}
 	}); err != nil {
-		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", userData.ID))
+		tracing.RecordError(span, err)
+		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.String("user.id", userData.ID))
 		return err
 	}
 
-	log.Info("user soft-deleted", slog.String("userID", userData.ID))
+	log.Info("user soft-deleted", slog.String("user.id", userData.ID))
 
 	return nil
 }
 
 func (u *User) DeleteUserByID(ctx context.Context, clientID, userID string) error {
 	const method = "usecase.User.DeleteUserByID"
+
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+		tracing.String("user.id", userID),
+	)
 
 	log := u.log.With(slog.String("method", method))
 
@@ -222,10 +311,18 @@ func (u *User) DeleteUserByID(ctx context.Context, clientID, userID string) erro
 	}
 
 	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
+		txCtx, txSpan := tracing.StartSpan(txCtx, "transaction")
+		defer txSpan.End()
+
+		txCtx, getUserStatusByIDSpan := tracing.StartSpan(txCtx, "get_user_status_by_id")
 		userStatus, err := u.userMgr.GetUserStatusByID(txCtx, userData.ID)
 		if err != nil {
+			tracing.RecordError(getUserStatusByIDSpan, err)
+			getUserStatusByIDSpan.End()
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByID, err)
 		}
+
+		getUserStatusByIDSpan.End()
 
 		switch userStatus {
 		case entity.UserStatusActive.String():
@@ -239,11 +336,12 @@ func (u *User) DeleteUserByID(ctx context.Context, clientID, userID string) erro
 			return fmt.Errorf("%w: %s", domain.ErrUnknownUserStatus, userStatus)
 		}
 	}); err != nil {
-		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", userData.ID))
+		tracing.RecordError(span, err)
+		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.String("user.id", userData.ID))
 		return err
 	}
 
-	log.Info("user soft-deleted by ID", slog.String("userID", userData.ID))
+	log.Info("user soft-deleted by ID", slog.String("user.id", userData.ID))
 
 	return nil
 }
