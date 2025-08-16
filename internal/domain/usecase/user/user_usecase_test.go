@@ -16,7 +16,7 @@ import (
 )
 
 func TestUserUsecase_GetUser(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 	clientID := "test-app-id"
 	userID := "test-user-id"
 
@@ -98,7 +98,7 @@ func TestUserUsecase_GetUser(t *testing.T) {
 
 			userUsecase := NewUsecase(log, nil, nil, userMgr, nil, identityMgr, nil, nil)
 
-			userData, err := userUsecase.GetUser(ctx, clientID)
+			userData, err := userUsecase.GetUser(context.Background(), clientID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -111,7 +111,7 @@ func TestUserUsecase_GetUser(t *testing.T) {
 }
 
 func TestUserUsecase_GetUserByID(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 	clientID := "test-app-id"
 	userID := "test-user-id"
 
@@ -170,7 +170,7 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 
 			userUsecase := NewUsecase(log, nil, nil, userMgr, nil, nil, nil, nil)
 
-			userData, err := userUsecase.GetUserByID(ctx, clientID, userID)
+			userData, err := userUsecase.GetUserByID(context.Background(), clientID, userID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -183,7 +183,7 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 }
 
 func TestUserUsecase_UpdateUser(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.Anything
 	clientID := "test-app-id"
 	userID := "test-user-id"
 	currentEmail := "old@example.com"
@@ -604,7 +604,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 
 			userUsecase := NewUsecase(log, nil, nil, userMgr, passwordMgr, identityMgr, nil, nil)
 
-			updatedUser, err := userUsecase.UpdateUser(ctx, clientID, tt.reqData)
+			updatedUser, err := userUsecase.UpdateUser(context.Background(), clientID, tt.reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -617,7 +617,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 }
 
 func TestUserUsecase_DeleteUser(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 	clientID := "test-app-id"
 	userID := "test-user-id"
 
@@ -931,7 +931,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 
 			userUsecase := NewUsecase(log, nil, sessionMgr, userMgr, nil, identityMgr, verificationMgr, txMgr)
 
-			err := userUsecase.DeleteUser(ctx, clientID)
+			err := userUsecase.DeleteUser(context.Background(), clientID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -943,7 +943,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 }
 
 func TestUserUsecase_DeleteUserByID(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 	clientID := "test-app-id"
 	userID := "test-user-id"
 
@@ -1195,7 +1195,7 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 
 			userUsecase := NewUsecase(log, nil, sessionMgr, userMgr, nil, nil, verificationMgr, txMgr)
 
-			err := userUsecase.DeleteUserByID(ctx, clientID, userID)
+			err := userUsecase.DeleteUserByID(context.Background(), clientID, userID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
