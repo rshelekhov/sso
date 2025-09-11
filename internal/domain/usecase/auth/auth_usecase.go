@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/rshelekhov/golib/observability/tracing"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/infrastructure/service/mail"
@@ -102,13 +103,26 @@ func NewUsecase(
 func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserRequestData) (entity.SessionTokens, error) {
 	const method = "usecase.Auth.Login"
 
-	log := u.log.With(
-		slog.String("method", method),
-		slog.String("email", reqData.Email),
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+		tracing.String("user.email", reqData.Email),
 	)
 
+	log := u.log.With(
+		slog.String("method", method),
+		slog.String("client.id", clientID),
+		slog.String("user.email", reqData.Email),
+	)
+
+	ctx, getUserByEmailSpan := tracing.StartSpan(ctx, "get_user_by_email")
 	userData, err := u.userMgr.GetUserByEmail(ctx, reqData.Email)
 	if err != nil {
+		tracing.RecordError(getUserByEmailSpan, err)
+		getUserByEmailSpan.End()
+
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.LogError(ctx, log, domain.ErrUserNotFound, err)
 			return entity.SessionTokens{}, domain.ErrUserNotFound
@@ -118,15 +132,23 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 		return entity.SessionTokens{}, domain.ErrFailedToGetUserByEmail
 	}
 
+	getUserByEmailSpan.End()
+
+	ctx, verifyPasswordSpan := tracing.StartSpan(ctx, "verify_password")
 	if err = u.verifyPassword(ctx, userData, reqData.Password); err != nil {
+		tracing.RecordError(verifyPasswordSpan, err)
+		verifyPasswordSpan.End()
+
 		if errors.Is(err, domain.ErrInvalidCredentials) {
-			e.LogError(ctx, log, domain.ErrInvalidCredentials, err, slog.Any("userID", userData.ID))
+			e.LogError(ctx, log, domain.ErrInvalidCredentials, err, slog.String("user.id", userData.ID))
 			return entity.SessionTokens{}, domain.ErrInvalidCredentials
 		}
 
-		e.LogError(ctx, log, domain.ErrFailedToVerifyPassword, err, slog.Any("userID", userData.ID))
+		e.LogError(ctx, log, domain.ErrFailedToVerifyPassword, err, slog.String("user.id", userData.ID))
 		return entity.SessionTokens{}, domain.ErrFailedToVerifyPassword
 	}
+
+	verifyPasswordSpan.End()
 
 	sessionReqData := entity.SessionRequestData{
 		UserID:   userData.ID,
@@ -140,6 +162,10 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 	tokenData := entity.SessionTokens{}
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
+		txCtx, transactionSpan := tracing.StartSpan(txCtx, "transaction")
+		tracing.EndSpanOnError(transactionSpan, &err)
+
+		transactionSpan.AddEvent("Creating session")
 		tokenData, err = u.sessionMgr.CreateSession(txCtx, sessionReqData)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
@@ -147,12 +173,13 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 
 		return nil
 	}); err != nil {
-		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", userData.ID))
+		tracing.RecordError(span, err)
+		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.String("user.id", userData.ID))
 		return entity.SessionTokens{}, err
 	}
 
 	log.Info("user authenticated, tokens created",
-		slog.String("userID", userData.ID),
+		slog.String("user.id", userData.ID),
 	)
 
 	return tokenData, nil
@@ -162,9 +189,18 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entity.UserRequestData, verifyEmailEndpoint string) (entity.SessionTokens, error) {
 	const method = "usecase.Auth.RegisterUser"
 
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+		tracing.String("user.email", reqData.Email),
+	)
+
 	log := u.log.With(
 		slog.String("method", method),
-		slog.String("email", reqData.Email),
+		slog.String("client.id", clientID),
+		slog.String("user.email", reqData.Email),
 	)
 
 	hash, err := u.tokenMgr.HashPassword(reqData.Password)
@@ -178,6 +214,9 @@ func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entit
 	var tokens entity.SessionTokens
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
+		txCtx, transactionSpan := tracing.StartSpan(txCtx, "transaction")
+		tracing.EndSpanOnError(transactionSpan, &err)
+
 		userStatus, err := u.userMgr.GetUserStatusByEmail(txCtx, newUser.Email)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserStatusByEmail, err)
@@ -196,23 +235,26 @@ func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entit
 			},
 		}
 
+		transactionSpan.AddEvent("Creating session")
 		tokens, err = u.sessionMgr.CreateSession(txCtx, sessionReq)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
 		}
 
+		transactionSpan.AddEvent("Creating and sending verification email with token")
 		if err := u.createAndSendVerificationToken(txCtx, newUser, verifyEmailEndpoint); err != nil {
 			return err
 		}
 
 		return nil
 	}); err != nil {
-		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", newUser.ID))
+		tracing.RecordError(span, err)
+		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.String("user.id", newUser.ID))
 		return entity.SessionTokens{}, err
 	}
 
 	log.Info("user and tokens created, verification email sent",
-		slog.String("userID", newUser.ID),
+		slog.String("user.id", newUser.ID),
 	)
 
 	return tokens, nil
@@ -252,13 +294,20 @@ func (u *Auth) createAndSendVerificationToken(ctx context.Context, user entity.U
 func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) (entity.VerificationResult, error) {
 	const method = "usecase.Auth.VerifyEmail"
 
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
 	log := u.log.With(
 		slog.String("method", method),
 	)
 
 	result := entity.VerificationResult{}
 
-	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
+	var err error
+	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
+		txCtx, transactionSpan := tracing.StartSpan(txCtx, "transaction")
+		tracing.EndSpanOnError(transactionSpan, &err)
+
 		tokenData, err := u.handleTokenProcessing(txCtx, verificationToken, entity.EmailTemplateTypeVerifyEmail)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToProcessToken, err)
@@ -266,7 +315,9 @@ func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) (entit
 
 		if tokenData.Token != verificationToken {
 			result.TokenExpired = true
-			log.Info("token expired, a new email with a new token has been sent to the user", slog.Any("userID", tokenData.UserID))
+			transactionSpan.AddEvent("Token expired, a new email with a new token has been sent to the user")
+
+			log.Info("token expired, a new email with a new token has been sent to the user", slog.String("user.id", tokenData.UserID))
 			return nil
 		}
 
@@ -274,10 +325,11 @@ func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) (entit
 			return fmt.Errorf("%w: %w", domain.ErrFailedToMarkEmailVerified, err)
 		}
 
-		log.Info("email verified", slog.String("userID", tokenData.UserID))
+		log.Info("email verified", slog.String("user.id", tokenData.UserID))
 		return nil
 	}); err != nil {
-		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("verificationToken", verificationToken))
+		tracing.RecordError(span, err)
+		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.String("verificationToken", verificationToken))
 		return entity.VerificationResult{}, err
 	}
 
@@ -287,36 +339,58 @@ func (u *Auth) VerifyEmail(ctx context.Context, verificationToken string) (entit
 func (u *Auth) ResetPassword(ctx context.Context, clientID string, reqData *entity.ResetPasswordRequestData, changePasswordEndpoint string) error {
 	const method = "usecase.Auth.ResetPassword"
 
-	log := u.log.With(
-		slog.String("method", method),
-		slog.String("email", reqData.Email),
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+		tracing.String("user.email", reqData.Email),
 	)
 
+	log := u.log.With(
+		slog.String("method", method),
+		slog.String("client.id", clientID),
+		slog.String("user.email", reqData.Email),
+	)
+
+	ctx, getUserByEmailSpan := tracing.StartSpan(ctx, "get_user_by_email")
 	userData, err := u.userMgr.GetUserByEmail(ctx, reqData.Email)
 	if err != nil {
+		tracing.RecordError(getUserByEmailSpan, err)
+		getUserByEmailSpan.End()
+
 		if errors.Is(err, storage.ErrUserNotFound) {
-			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.Any("email", reqData.Email))
+			e.LogError(ctx, log, domain.ErrUserNotFound, err, slog.String("email", reqData.Email))
 			return domain.ErrUserNotFound
 		}
 
-		e.LogError(ctx, u.log, domain.ErrFailedToGetUserByEmail, err, slog.Any("email", reqData.Email))
+		e.LogError(ctx, u.log, domain.ErrFailedToGetUserByEmail, err, slog.String("email", reqData.Email))
 		return domain.ErrFailedToGetUserByEmail
 	}
 
+	getUserByEmailSpan.End()
+
+	ctx, createVerificationTokenSpan := tracing.StartSpan(ctx, "create_verification_token")
 	tokenData, err := u.verificationMgr.CreateToken(ctx, userData, changePasswordEndpoint, entity.TokenTypeResetPassword)
 	if err != nil {
+		tracing.RecordError(createVerificationTokenSpan, err)
+		createVerificationTokenSpan.End()
+
 		e.LogError(ctx, log, domain.ErrFailedToCreateVerificationToken, err)
 		return domain.ErrFailedToCreateVerificationToken
 	}
 
+	createVerificationTokenSpan.End()
+
+	span.AddEvent("Sending reset password email with token")
 	if err = u.sendEmailWithToken(ctx, tokenData, entity.EmailTemplateTypeResetPassword); err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToSendResetPasswordEmail, err)
 		return domain.ErrFailedToSendResetPasswordEmail
 	}
 
 	log.Info("reset password email sent",
-		slog.String("userID", userData.ID),
-		slog.String("email", reqData.Email),
+		slog.String("user.id", userData.ID),
+		slog.String("user.email", reqData.Email),
 	)
 
 	return nil
@@ -325,13 +399,24 @@ func (u *Auth) ResetPassword(ctx context.Context, clientID string, reqData *enti
 func (u *Auth) ChangePassword(ctx context.Context, clientID string, reqData *entity.ChangePasswordRequestData) (entity.ChangingPasswordResult, error) {
 	const method = "usecase.Auth.ChangePassword"
 
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+	)
+
 	log := u.log.With(
 		slog.String("method", method),
 	)
 
 	result := entity.ChangingPasswordResult{}
 
-	if err := u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
+	var err error
+	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
+		txCtx, transactionSpan := tracing.StartSpan(txCtx, method+".transaction")
+		tracing.EndSpanOnError(transactionSpan, &err)
+
 		tokenData, err := u.handleTokenProcessing(txCtx, reqData.ResetPasswordToken, entity.EmailTemplateTypeResetPassword)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToProcessToken, err)
@@ -339,10 +424,13 @@ func (u *Auth) ChangePassword(ctx context.Context, clientID string, reqData *ent
 
 		if tokenData.Token != reqData.ResetPasswordToken {
 			result.TokenExpired = true
-			log.Info("token expired, a new email with a new token has been sent to the user", slog.Any("userID", tokenData.UserID))
+			transactionSpan.AddEvent("Token expired, a new email with a new token has been sent to the user")
+
+			log.Info("token expired, a new email with a new token has been sent to the user", slog.String("user.id", tokenData.UserID))
 			return nil
 		}
 
+		transactionSpan.AddEvent("Getting user data")
 		userDataFromDB, err := u.userMgr.GetUserData(txCtx, tokenData.UserID)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
@@ -352,11 +440,12 @@ func (u *Auth) ChangePassword(ctx context.Context, clientID string, reqData *ent
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCheckPasswordHashAndUpdate, err)
 		}
 
-		log.Info("password changed", slog.String("userID", userDataFromDB.ID))
+		log.Info("password changed", slog.String("user.id", userDataFromDB.ID))
 
 		return nil
 	}); err != nil {
-		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("token", reqData.ResetPasswordToken))
+		tracing.RecordError(span, err)
+		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.String("token", reqData.ResetPasswordToken))
 		return entity.ChangingPasswordResult{}, err
 	}
 
@@ -366,15 +455,31 @@ func (u *Auth) ChangePassword(ctx context.Context, clientID string, reqData *ent
 func (u *Auth) LogoutUser(ctx context.Context, clientID string, reqData *entity.UserDeviceRequestData) error {
 	const method = "usecase.Auth.LogoutUser"
 
-	log := u.log.With(
-		slog.String("method", method),
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+		tracing.String("user.device.user_agent", reqData.UserAgent),
 	)
 
+	log := u.log.With(
+		slog.String("method", method),
+		slog.String("client.id", clientID),
+		slog.String("user.device.user_agent", reqData.UserAgent),
+	)
+
+	ctx, extractUserIDSpan := tracing.StartSpan(ctx, "extract_user_id_from_token")
 	userID, err := u.tokenMgr.ExtractUserIDFromTokenInContext(ctx, clientID)
 	if err != nil {
+		tracing.RecordError(extractUserIDSpan, err)
+		extractUserIDSpan.End()
+
 		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
 		return domain.ErrFailedToExtractUserIDFromContext
 	}
+
+	extractUserIDSpan.End()
 
 	sessionReqData := entity.SessionRequestData{
 		UserID:   userID,
@@ -386,8 +491,12 @@ func (u *Auth) LogoutUser(ctx context.Context, clientID string, reqData *entity.
 	}
 
 	// Check if the device exists
+	ctx, getUserDeviceIDSpan := tracing.StartSpan(ctx, "get_user_device_id")
 	sessionReqData.DeviceID, err = u.sessionMgr.GetUserDeviceID(ctx, userID, reqData.UserAgent)
 	if err != nil {
+		tracing.RecordError(getUserDeviceIDSpan, err)
+		getUserDeviceIDSpan.End()
+
 		if errors.Is(err, domain.ErrUserDeviceNotFound) {
 			e.LogError(ctx, log, domain.ErrUserDeviceNotFound, err)
 			return domain.ErrUserDeviceNotFound
@@ -397,14 +506,22 @@ func (u *Auth) LogoutUser(ctx context.Context, clientID string, reqData *entity.
 		return domain.ErrFailedToGetDeviceID
 	}
 
+	getUserDeviceIDSpan.End()
+
+	ctx, deleteSessionSpan := tracing.StartSpan(ctx, "delete_session")
 	if err = u.sessionMgr.DeleteSession(ctx, sessionReqData); err != nil {
+		tracing.RecordError(deleteSessionSpan, err)
+		deleteSessionSpan.End()
+
 		e.LogError(ctx, log, domain.ErrFailedToDeleteSession, err)
 		return domain.ErrFailedToDeleteSession
 	}
 
+	deleteSessionSpan.End()
+
 	log.Info("user logged out",
-		slog.String("userID", sessionReqData.UserID),
-		slog.String("deviceID", sessionReqData.DeviceID),
+		slog.String("user.id", sessionReqData.UserID),
+		slog.String("user.device.id", sessionReqData.DeviceID),
 	)
 
 	return nil
@@ -413,26 +530,52 @@ func (u *Auth) LogoutUser(ctx context.Context, clientID string, reqData *entity.
 func (u *Auth) RefreshTokens(ctx context.Context, clientID string, reqData *entity.RefreshTokenRequestData) (entity.SessionTokens, error) {
 	const method = "usecase.Auth.RefreshTokens"
 
-	log := u.log.With(
-		slog.String("method", method),
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+		tracing.String("user.device.user_agent", reqData.UserDevice.UserAgent),
 	)
 
+	log := u.log.With(
+		slog.String("method", method),
+		slog.String("client.id", clientID),
+		slog.String("user.device.user_agent", reqData.UserDevice.UserAgent),
+	)
+
+	ctx, getSessionByRefreshTokenSpan := tracing.StartSpan(ctx, "get_session_by_refresh_token")
 	userSession, err := u.sessionMgr.GetSessionByRefreshToken(ctx, reqData.RefreshToken)
 
 	switch {
 	case errors.Is(err, domain.ErrSessionNotFound):
+		tracing.RecordError(getSessionByRefreshTokenSpan, err)
+		getSessionByRefreshTokenSpan.End()
+
 		e.LogError(ctx, log, domain.ErrSessionNotFound, err)
 		return entity.SessionTokens{}, domain.ErrSessionNotFound
 	case errors.Is(err, domain.ErrSessionExpired):
+		tracing.RecordError(getSessionByRefreshTokenSpan, err)
+		getSessionByRefreshTokenSpan.End()
+
 		e.LogError(ctx, log, domain.ErrSessionExpired, err)
 		return entity.SessionTokens{}, domain.ErrSessionExpired
 	case err != nil:
+		tracing.RecordError(getSessionByRefreshTokenSpan, err)
+		getSessionByRefreshTokenSpan.End()
+
 		e.LogError(ctx, log, domain.ErrFailedToGetSessionByRefreshToken, err)
 		return entity.SessionTokens{}, domain.ErrFailedToGetSessionByRefreshToken
 	}
 
+	getSessionByRefreshTokenSpan.End()
+
+	ctx, getUserDeviceIDSpan := tracing.StartSpan(ctx, "get_user_device_id")
 	_, err = u.sessionMgr.GetUserDeviceID(ctx, userSession.UserID, reqData.UserDevice.UserAgent)
 	if err != nil {
+		tracing.RecordError(getUserDeviceIDSpan, err)
+		getUserDeviceIDSpan.End()
+
 		if errors.Is(err, domain.ErrUserDeviceNotFound) {
 			e.LogError(ctx, log, domain.ErrUserDeviceNotFound, err)
 			return entity.SessionTokens{}, domain.ErrUserDeviceNotFound
@@ -442,10 +585,18 @@ func (u *Auth) RefreshTokens(ctx context.Context, clientID string, reqData *enti
 		return entity.SessionTokens{}, domain.ErrFailedToGetDeviceID
 	}
 
+	getUserDeviceIDSpan.End()
+
+	ctx, deleteRefreshTokenSpan := tracing.StartSpan(ctx, "delete_refresh_token")
 	if err = u.sessionMgr.DeleteRefreshToken(ctx, reqData.RefreshToken); err != nil {
+		tracing.RecordError(deleteRefreshTokenSpan, err)
+		deleteRefreshTokenSpan.End()
+
 		e.LogError(ctx, log, domain.ErrFailedToDeleteRefreshToken, err)
 		return entity.SessionTokens{}, domain.ErrFailedToDeleteRefreshToken
 	}
+
+	deleteRefreshTokenSpan.End()
 
 	sessionReqData := entity.SessionRequestData{
 		UserID:   userSession.UserID,
@@ -456,13 +607,19 @@ func (u *Auth) RefreshTokens(ctx context.Context, clientID string, reqData *enti
 		},
 	}
 
+	ctx, createSessionSpan := tracing.StartSpan(ctx, "create_session")
 	tokenData, err := u.sessionMgr.CreateSession(ctx, sessionReqData)
 	if err != nil {
-		e.LogError(ctx, log, domain.ErrFailedToCreateUserSession, err, slog.Any("userID", userSession.UserID))
+		tracing.RecordError(createSessionSpan, err)
+		createSessionSpan.End()
+
+		e.LogError(ctx, log, domain.ErrFailedToCreateUserSession, err, slog.String("user.id", userSession.UserID))
 		return entity.SessionTokens{}, domain.ErrFailedToCreateUserSession
 	}
 
-	log.Info("tokens created", slog.Any("userID", userSession.UserID))
+	createSessionSpan.End()
+
+	log.Info("tokens created", slog.String("user.id", userSession.UserID))
 
 	return tokenData, nil
 }
@@ -470,21 +627,40 @@ func (u *Auth) RefreshTokens(ctx context.Context, clientID string, reqData *enti
 func (u *Auth) GetJWKS(ctx context.Context, clientID string) (entity.JWKS, error) {
 	const method = "usecase.Auth.GetJWKS"
 
-	log := u.log.With(
-		slog.String("method", method),
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
 	)
 
+	log := u.log.With(
+		slog.String("method", method),
+		slog.String("client.id", clientID),
+	)
+
+	ctx, getPublicKeySpan := tracing.StartSpan(ctx, "get_public_key")
 	publicKey, err := u.tokenMgr.PublicKey(clientID)
 	if err != nil {
+		tracing.RecordError(getPublicKeySpan, err)
+		getPublicKeySpan.End()
 		e.LogError(ctx, log, domain.ErrFailedToGetPublicKey, err)
 		return entity.JWKS{}, domain.ErrFailedToGetPublicKey
 	}
 
+	getPublicKeySpan.End()
+
+	ctx, getKeyIDSpan := tracing.StartSpan(ctx, "get_key_id")
 	kid, err := u.tokenMgr.Kid(clientID)
 	if err != nil {
+		tracing.RecordError(getKeyIDSpan, err)
+		getKeyIDSpan.End()
+
 		e.LogError(ctx, log, domain.ErrFailedToGetKeyID, err)
 		return entity.JWKS{}, domain.ErrFailedToGetKeyID
 	}
+
+	getKeyIDSpan.End()
 
 	jwk := entity.JWK{
 		Alg: u.tokenMgr.SigningMethod(),
@@ -511,6 +687,7 @@ func (u *Auth) GetJWKS(ctx context.Context, clientID string) (entity.JWKS, error
 	jwksSlice := []entity.JWK{jwk}
 	jwks := u.constructJWKS(jwksSlice...)
 
+	span.AddEvent("JWKS constructed")
 	log.Info("JWKS retrieved")
 
 	return jwks, nil
@@ -520,13 +697,27 @@ func (u *Auth) GetJWKS(ctx context.Context, clientID string) (entity.JWKS, error
 func (u *Auth) verifyPassword(ctx context.Context, userData entity.User, password string) error {
 	const method = "usecase.Auth.verifyPassword"
 
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("user.id", userData.ID),
+	)
+
+	ctx, getUserDataSpan := tracing.StartSpan(ctx, "get_user_data")
 	userData, err := u.userMgr.GetUserData(ctx, userData.ID)
 	if err != nil {
+		tracing.RecordError(getUserDataSpan, err)
+		getUserDataSpan.End()
 		return fmt.Errorf("%w: %w", domain.ErrFailedToGetUserData, err)
 	}
 
+	getUserDataSpan.End()
+
+	span.AddEvent("verifying_password")
 	matched, err := u.tokenMgr.PasswordMatch(userData.PasswordHash, password)
 	if err != nil {
+		tracing.RecordError(span, err)
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToCheckPasswordHashMatch, err)
 	}
 
@@ -538,6 +729,16 @@ func (u *Auth) verifyPassword(ctx context.Context, userData entity.User, passwor
 }
 
 func (u *Auth) sendEmailWithToken(ctx context.Context, tokenData entity.VerificationToken, templateType entity.EmailTemplateType) error {
+	const method = "usecase.Auth.sendEmailWithToken"
+
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("user.email", tokenData.Email),
+		tracing.String("email.template_type", string(templateType)),
+	)
+
 	emailData := mail.Data{
 		TemplateType: templateType,
 		Subject:      templateType.Subject(),
@@ -548,7 +749,12 @@ func (u *Auth) sendEmailWithToken(ctx context.Context, tokenData entity.Verifica
 		},
 	}
 
-	return u.mailService.SendEmail(ctx, emailData)
+	span.AddEvent("Sending email")
+	if err := u.mailService.SendEmail(ctx, emailData); err != nil {
+		tracing.RecordError(span, err)
+		return err
+	}
+	return nil
 }
 
 func (u *Auth) handleTokenProcessing(
@@ -556,16 +762,24 @@ func (u *Auth) handleTokenProcessing(
 	token string,
 	emailTemplateType entity.EmailTemplateType,
 ) (entity.VerificationToken, error) {
+	const method = "usecase.Auth.handleTokenProcessing"
+
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.AddEvent("Getting token data")
 	tokenData, err := u.verificationMgr.GetTokenData(ctx, token)
 	if err != nil {
 		return entity.VerificationToken{}, fmt.Errorf("%w: %w", domain.ErrFailedToGetVerificationTokenData, err)
 	}
 
+	span.AddEvent("Checking if token is expired")
 	if tokenData.ExpiresAt.Before(time.Now()) {
 		u.log.Info("token expired",
-			slog.Any("userID", tokenData.UserID),
-			slog.Any("token", tokenData.Token))
+			slog.String("user.id", tokenData.UserID),
+			slog.String("token", tokenData.Token))
 
+		span.AddEvent("Token expired, deleting token")
 		if err = u.verificationMgr.DeleteToken(ctx, tokenData.Token); err != nil {
 			return entity.VerificationToken{}, fmt.Errorf("%w: %w", domain.ErrFailedToDeleteVerificationToken, err)
 		}
@@ -575,11 +789,13 @@ func (u *Auth) handleTokenProcessing(
 			Email: tokenData.Email,
 		}
 
+		span.AddEvent("Creating new token")
 		tokenData, err = u.verificationMgr.CreateToken(ctx, userData, tokenData.Endpoint, tokenData.Type)
 		if err != nil {
 			return entity.VerificationToken{}, fmt.Errorf("%w: %w", domain.ErrFailedToCreateVerificationToken, err)
 		}
 
+		span.AddEvent("Sending email with new token")
 		if err = u.sendEmailWithToken(ctx, tokenData, emailTemplateType); err != nil {
 			return entity.VerificationToken{}, fmt.Errorf("%w: %w", domain.ErrFailedToSendEmail, err)
 		}
@@ -597,11 +813,21 @@ func (u *Auth) checkPasswordHashAndUpdate(
 ) error {
 	const method = "usecase.Auth.checkPasswordHashAndUpdate"
 
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("user.id", userData.ID),
+	)
+
+	span.AddEvent("Validating password change")
 	err := u.validatePasswordChanged(userData.PasswordHash, reqData.UpdatedPassword)
 	if err != nil {
+		tracing.RecordError(span, err)
 		return err
 	}
 
+	span.AddEvent("Hashing updated password")
 	updatedPassHash, err := u.tokenMgr.HashPassword(reqData.UpdatedPassword)
 	if err != nil {
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToGeneratePasswordHash, err)
@@ -613,6 +839,7 @@ func (u *Auth) checkPasswordHashAndUpdate(
 		UpdatedAt:    time.Now(),
 	}
 
+	span.AddEvent("Updating user data")
 	if err = u.userMgr.UpdateUserData(ctx, updatedUser); err != nil {
 		return fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToUpdateUser, err)
 	}
