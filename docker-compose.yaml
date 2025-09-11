@@ -289,6 +289,69 @@ services:
       retries: 3
       start_period: 30s
 
+  # SSO application for full containerized testing
+  sso-app:
+    build:
+      context: .
+      target: runner
+    environment:
+      CONFIG_PATH: /src/config/config.docker.yaml
+    volumes:
+      - ./config/config.docker.yaml:/src/config/config.docker.yaml
+      - ./static:/src/static
+    ports:
+      - "44044:44044"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "44044"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "logging=promtail"
+      - "service=sso-app"
+
+  # Test runner for full containerized testing
+  sso-tests:
+    build:
+      context: .
+      target: tester
+    environment:
+      CONFIG_PATH: /src/config/config.docker.yaml
+    depends_on:
+      sso-app:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for SSO app to be ready...' &&
+        for i in $$(seq 1 30); do
+          if nc -z sso-app 44044; then
+            echo 'SSO app is ready!'
+            break
+          fi
+          echo 'Waiting... ($$i/30)'
+          sleep 1
+        done &&
+        echo 'Running tests...' &&
+        export SSO_HOST=sso-app:44044 &&
+        go test -v ./internal/... ./api_tests
+      "
+    labels:
+      - "service=sso-tests"
+
 volumes:
   pgdata:
   mongodata:

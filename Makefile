@@ -11,7 +11,7 @@ POSTGRESQL_URL ?= postgres://root:password@localhost:5432/sso_dev?sslmode=disabl
 # MONGO_URL ?= mongodb://localhost:27017/sso_dev
 DOCKER_COMPOSE_SERVICES ?= postgres redis minio minio-init otel-collector loki prometheus tempo grafana promtail # add mongo if you want to test with mongo
 
-.PHONY: help build setup-dev run stop test-local test-docker test-docker-clean lint observability obs-check
+.PHONY: help build setup-dev run stop test-local test-docker test-docker-full test-docker-clean lint observability obs-check
 
 # ================================
 # Main Commands
@@ -62,6 +62,17 @@ test-docker:
 	@docker build --target tester -t sso-test .
 	@docker run --network sso_default sso-test
 	@echo "Tests completed. Grafana: http://localhost:3000 (admin/admin)"
+	@echo "Don't forget to run 'make test-docker-clean' to stop the environment."
+
+# Run fully containerized tests (SSO + infrastructure + tests all in Docker)
+test-docker-full:
+	@echo "Starting fully containerized test environment..."
+	@docker compose up -d $(DOCKER_COMPOSE_SERVICES)
+	@sleep 15
+	@echo "Building and running SSO + tests in containers..."
+	@docker compose up --build sso-app sso-tests --abort-on-container-exit
+	@echo "Tests completed. Grafana: http://localhost:3000 (admin/admin)"
+	@echo "Don't forget to run 'make test-docker-clean' to stop the environment."
 
 # Stop Docker test environment  
 test-docker-clean:
@@ -114,7 +125,8 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  test-local        - Local tests (setup + run + test)"
-	@echo "  test-docker       - Docker tests with full observability stack"
+	@echo "  test-docker       - Docker tests with full observability stack (SSO local)"
+	@echo "  test-docker-full  - Fully containerized tests (SSO + tests in Docker)"
 	@echo "  test-docker-clean - Stop Docker environment"
 	@echo ""
 	@echo "Observability:"

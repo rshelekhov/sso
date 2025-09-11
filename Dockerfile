@@ -36,14 +36,17 @@ CMD ["test-entrypoint.sh"]
 # Stage 3: Prepare the final runtime image
 FROM alpine:3.19 AS runner
 
-RUN apk update && apk add --no-cache ca-certificates make postgresql-client
+RUN apk update && apk add --no-cache ca-certificates make postgresql-client busybox-extras
 
 WORKDIR /src
 
-COPY --from=builder /app ./
+COPY --from=builder /app ./sso
 COPY --from=builder /src/Makefile ./
 COPY --from=builder /src/migrations ./migrations
 COPY --from=builder /src/static ./static
+COPY --from=builder /src/config ./config
 COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 
-CMD ["./app"]
+EXPOSE 44044
+
+CMD ["./sso"]
