@@ -31,78 +31,73 @@ type TokenMetrics struct {
 }
 
 func newTokenMetrics(meter metric.Meter) (*TokenMetrics, error) {
-	tokenIssued, err := meter.Int64Counter(
+	var err error
+	metrics := &TokenMetrics{}
+
+	if metrics.TokenIssued, err = createCounter(
+		meter,
 		MetricTokenIssued,
-		metric.WithDescription("Tokens issued by type and result"),
-		metric.WithUnit("{token}"),
-	)
-	if err != nil {
+		"Tokens issued by type and result",
+		"{token}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricTokenIssued, err)
 	}
 
-	tokenValidated, err := meter.Int64Counter(
+	if metrics.TokenValidated, err = createCounter(
+		meter,
 		MetricTokenValidated,
-		metric.WithDescription("Token validation attempts by result"),
-		metric.WithUnit("{attempt}"),
-	)
-	if err != nil {
+		"Token validation attempts by result",
+		"{attempt}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricTokenValidated, err)
 	}
 
-	tokenRevoked, err := meter.Int64Counter(
+	if metrics.TokenRevoked, err = createCounter(
+		meter,
 		MetricTokenRevoked,
-		metric.WithDescription("Revoked tokens by reason"),
-		metric.WithUnit("{token}"),
-	)
-	if err != nil {
+		"Revoked tokens by reason",
+		"{token}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricTokenRevoked, err)
 	}
 
-	tokenValidationDuration, err := meter.Float64Histogram(
+	if metrics.TokenValidationDuration, err = createHistogram(
+		meter,
 		MetricTokenValidationDuration,
-		metric.WithDescription("Token validation time"),
-		metric.WithUnit("s"),
-	)
-	if err != nil {
+		"Token validation time",
+		"s",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s histogram: %w", MetricTokenValidationDuration, err)
 	}
 
-	jwksRotations, err := meter.Int64Counter(
+	if metrics.JWKSRotations, err = createCounter(
+		meter,
 		MetricJWKSRotations,
-		metric.WithDescription("JWKS key rotations by result"),
-		metric.WithUnit("{rotation}"),
-	)
-	if err != nil {
+		"JWKS key rotations by result",
+		"{rotation}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricJWKSRotations, err)
 	}
 
-	jwksCacheOperations, err := meter.Int64Counter(
+	if metrics.JWKSCacheOperations, err = createCounter(
+		meter,
 		MetricJWKSCacheOperations,
-		metric.WithDescription("JWKS cache operations by result"),
-		metric.WithUnit("{operation}"),
-	)
-	if err != nil {
+		"JWKS cache operations by result",
+		"{operation}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricJWKSCacheOperations, err)
 	}
 
-	keyGenerationDuration, err := meter.Float64Histogram(
+	if metrics.KeyGenerationDuration, err = createHistogram(
+		meter,
 		MetricKeyGenerationDuration,
-		metric.WithDescription("Key generation time by algorithm"),
-		metric.WithUnit("s"),
-	)
-	if err != nil {
+		"Key generation time by algorithm",
+		"s",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s histogram: %w", MetricKeyGenerationDuration, err)
 	}
 
-	return &TokenMetrics{
-		TokenIssued:             tokenIssued,
-		TokenValidated:          tokenValidated,
-		TokenRevoked:            tokenRevoked,
-		TokenValidationDuration: tokenValidationDuration,
-		JWKSRotations:           jwksRotations,
-		JWKSCacheOperations:     jwksCacheOperations,
-		KeyGenerationDuration:   keyGenerationDuration,
-	}, nil
+	return metrics, nil
 }
 
 func (m *TokenMetrics) RecordTokenIssued(ctx context.Context, clientID string, count int64) {}

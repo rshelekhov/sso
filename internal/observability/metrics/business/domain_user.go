@@ -21,39 +21,37 @@ type UserMetrics struct {
 }
 
 func newUserMetrics(meter metric.Meter) (*UserMetrics, error) {
+	var err error
+	metrics := &UserMetrics{}
 
-	userDeletionsAttempts, err := meter.Int64Counter(
+	if metrics.UserDeletionsAttempts, err = createCounter(
+		meter,
 		MetricUserDeletionsAttempts,
-		metric.WithDescription("User deletion operations by result"),
-		metric.WithUnit("{attempt}"),
-	)
-	if err != nil {
+		"User deletion operations by result",
+		"{attempt}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricUserDeletionsAttempts, err)
 	}
 
-	userDeletionsSuccess, err := meter.Int64Counter(
+	if metrics.UserDeletionsSuccess, err = createCounter(
+		meter,
 		MetricUserDeletionsSuccess,
-		metric.WithDescription("User deletion operations by result"),
-		metric.WithUnit("{success}"),
-	)
-	if err != nil {
+		"User deletion operations by result",
+		"{success}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricUserDeletionsSuccess, err)
 	}
 
-	userDeletionsErrors, err := meter.Int64Counter(
+	if metrics.UserDeletionsErrors, err = createCounter(
+		meter,
 		MetricUserDeletionsErrors,
-		metric.WithDescription("User deletion operations by result"),
-		metric.WithUnit("{error}"),
-	)
-	if err != nil {
+		"User deletion operations by result",
+		"{error}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricUserDeletionsErrors, err)
 	}
 
-	return &UserMetrics{
-		UserDeletionsAttempts: userDeletionsAttempts,
-		UserDeletionsSuccess:  userDeletionsSuccess,
-		UserDeletionsErrors:   userDeletionsErrors,
-	}, nil
+	return metrics, nil
 }
 
 func (m *UserMetrics) RecordUserDeletionsAttempt(ctx context.Context, clientID string) {

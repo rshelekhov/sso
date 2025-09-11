@@ -88,266 +88,316 @@ type AuthMetrics struct {
 }
 
 func newAuthMetrics(meter metric.Meter) (*AuthMetrics, error) {
-	// Login metrics
-	loginAttempts, err := meter.Int64Counter(
+	metrics := &AuthMetrics{}
+
+	if err := createLoginMetrics(meter, metrics); err != nil {
+		return nil, err
+	}
+
+	if err := createRegistrationMetrics(meter, metrics); err != nil {
+		return nil, err
+	}
+
+	if err := createPasswordMetrics(meter, metrics); err != nil {
+		return nil, err
+	}
+
+	if err := createEmailVerificationMetrics(meter, metrics); err != nil {
+		return nil, err
+	}
+
+	if err := createLogoutMetrics(meter, metrics); err != nil {
+		return nil, err
+	}
+
+	if err := createRefreshTokensMetrics(meter, metrics); err != nil {
+		return nil, err
+	}
+
+	if err := createJWKSMetrics(meter, metrics); err != nil {
+		return nil, err
+	}
+
+	if err := createSessionMetrics(meter, metrics); err != nil {
+		return nil, err
+	}
+
+	return metrics, nil
+}
+
+func createLoginMetrics(meter metric.Meter, metrics *AuthMetrics) error {
+	var err error
+
+	if metrics.LoginAttempts, err = createCounter(
+		meter,
 		MetricLoginAttempts,
-		metric.WithDescription("Login attempts by result and client"),
-		metric.WithUnit("{attempt}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create login attempts counter: %w", err)
+		"Login attempts by result and client",
+		"{attempt}",
+	); err != nil {
+		return fmt.Errorf("failed to create login attempts counter: %w", err)
 	}
 
-	loginSuccess, err := meter.Int64Counter(
+	if metrics.LoginSuccess, err = createCounter(
+		meter,
 		MetricLoginSuccess,
-		metric.WithDescription("Login success by client"),
-		metric.WithUnit("{success}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create login success counter: %w", err)
+		"Login success by client",
+		"{success}",
+	); err != nil {
+		return fmt.Errorf("failed to create login success counter: %w", err)
 	}
 
-	loginErrors, err := meter.Int64Counter(
+	if metrics.LoginErrors, err = createCounter(
+		meter,
 		MetricLoginErrors,
-		metric.WithDescription("Login errors by client"),
-		metric.WithUnit("{error}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create login errors counter: %w", err)
+		"Login errors by client",
+		"{error}",
+	); err != nil {
+		return fmt.Errorf("failed to create login errors counter: %w", err)
 	}
 
-	// Registration metrics
-	registrationAttempts, err := meter.Int64Counter(
+	return nil
+}
+
+func createRegistrationMetrics(meter metric.Meter, metrics *AuthMetrics) error {
+	var err error
+
+	if metrics.RegistrationAttempts, err = createCounter(
+		meter,
 		MetricRegistrationAttempts,
-		metric.WithDescription("User registration attempts by result"),
-		metric.WithUnit("{attempt}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create registrations counter: %w", err)
+		"User registration attempts by result",
+		"{attempt}",
+	); err != nil {
+		return fmt.Errorf("failed to create registration attempts counter: %w", err)
 	}
 
-	registrationSuccess, err := meter.Int64Counter(
+	if metrics.RegistrationSuccess, err = createCounter(
+		meter,
 		MetricRegistrationSuccess,
-		metric.WithDescription("User registration successes by result"),
-		metric.WithUnit("{success}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create registrations counter: %w", err)
+		"User registration successes by result",
+		"{success}",
+	); err != nil {
+		return fmt.Errorf("failed to create registration success counter: %w", err)
 	}
 
-	registrationErrors, err := meter.Int64Counter(
+	if metrics.RegistrationErrors, err = createCounter(
+		meter,
 		MetricRegistrationErrors,
-		metric.WithDescription("User registration errors by result"),
-		metric.WithUnit("{error}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create registrations counter: %w", err)
+		"User registration errors by result",
+		"{error}",
+	); err != nil {
+		return fmt.Errorf("failed to create registration errors counter: %w", err)
 	}
+
+	return nil
+}
+
+func createPasswordMetrics(meter metric.Meter, metrics *AuthMetrics) error {
+	var err error
 
 	// Password reset metrics
-	passwordResetsAttempts, err := meter.Int64Counter(
+	if metrics.PasswordResetsAttempts, err = createCounter(
+		meter,
 		MetricPasswordResetsAttempts,
-		metric.WithDescription("Password reset attempts by result"),
-		metric.WithUnit("{attempt}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create password resets counter: %w", err)
+		"Password reset attempts by result",
+		"{attempt}",
+	); err != nil {
+		return fmt.Errorf("failed to create password reset attempts counter: %w", err)
 	}
 
-	passwordResetsSuccess, err := meter.Int64Counter(
+	if metrics.PasswordResetsSuccess, err = createCounter(
+		meter,
 		MetricPasswordResetsSuccess,
-		metric.WithDescription("Password reset successes by result"),
-		metric.WithUnit("{success}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create password resets counter: %w", err)
+		"Password reset successes by result",
+		"{success}",
+	); err != nil {
+		return fmt.Errorf("failed to create password reset success counter: %w", err)
 	}
 
-	passwordResetsErrors, err := meter.Int64Counter(
+	if metrics.PasswordResetsErrors, err = createCounter(
+		meter,
 		MetricPasswordResetsErrors,
-		metric.WithDescription("Password reset errors by result"),
-		metric.WithUnit("{error}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create password resets counter: %w", err)
+		"Password reset errors by result",
+		"{error}",
+	); err != nil {
+		return fmt.Errorf("failed to create password reset errors counter: %w", err)
 	}
 
 	// Change password metrics
-
-	changePasswordAttempts, err := meter.Int64Counter(
+	if metrics.ChangePasswordAttempts, err = createCounter(
+		meter,
 		MetricChangePasswordAttempts,
-		metric.WithDescription("Change password attempts by result"),
-		metric.WithUnit("{attempt}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create change password counter: %w", err)
+		"Change password attempts by result",
+		"{attempt}",
+	); err != nil {
+		return fmt.Errorf("failed to create change password attempts counter: %w", err)
 	}
 
-	changePasswordSuccess, err := meter.Int64Counter(
+	if metrics.ChangePasswordSuccess, err = createCounter(
+		meter,
 		MetricChangePasswordSuccess,
-		metric.WithDescription("Change password successes by result"),
-		metric.WithUnit("{success}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create change password counter: %w", err)
+		"Change password successes by result",
+		"{success}",
+	); err != nil {
+		return fmt.Errorf("failed to create change password success counter: %w", err)
 	}
 
-	changePasswordErrors, err := meter.Int64Counter(
+	if metrics.ChangePasswordErrors, err = createCounter(
+		meter,
 		MetricChangePasswordErrors,
-		metric.WithDescription("Change password errors by result"),
-		metric.WithUnit("{error}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create change password counter: %w", err)
+		"Change password errors by result",
+		"{error}",
+	); err != nil {
+		return fmt.Errorf("failed to create change password errors counter: %w", err)
 	}
 
-	// Email verification metrics
-	emailVerifications, err := meter.Int64Counter(
+	return nil
+}
+
+func createEmailVerificationMetrics(meter metric.Meter, metrics *AuthMetrics) error {
+	var err error
+
+	if metrics.EmailVerificationsAttempts, err = createCounter(
+		meter,
 		MetricEmailVerificationsAttempts,
-		metric.WithDescription("Email verification attempts by result"),
-		metric.WithUnit("{attempt}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create email verifications counter: %w", err)
+		"Email verification attempts by result",
+		"{attempt}",
+	); err != nil {
+		return fmt.Errorf("failed to create email verification attempts counter: %w", err)
 	}
-	emailVerificationSuccess, err := meter.Int64Counter(
+
+	if metrics.EmailVerificationSuccess, err = createCounter(
+		meter,
 		MetricEmailVerificationSuccess,
-		metric.WithDescription("Email verification successes by result"),
-		metric.WithUnit("{success}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create email verifications counter: %w", err)
+		"Email verification successes by result",
+		"{success}",
+	); err != nil {
+		return fmt.Errorf("failed to create email verification success counter: %w", err)
 	}
-	emailVerificationErrors, err := meter.Int64Counter(
+
+	if metrics.EmailVerificationErrors, err = createCounter(
+		meter,
 		MetricEmailVerificationErrors,
-		metric.WithDescription("Email verification errors by result"),
-		metric.WithUnit("{error}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create email verifications counter: %w", err)
+		"Email verification errors by result",
+		"{error}",
+	); err != nil {
+		return fmt.Errorf("failed to create email verification errors counter: %w", err)
 	}
 
-	// Logout metrics
-	logoutAttempts, err := meter.Int64Counter(
+	return nil
+}
+
+func createLogoutMetrics(meter metric.Meter, metrics *AuthMetrics) error {
+	var err error
+
+	if metrics.LogoutAttempts, err = createCounter(
+		meter,
 		MetricLogoutAttempts,
-		metric.WithDescription("Logout operations by result"),
-		metric.WithUnit("{operation}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create logout operations counter: %w", err)
+		"Logout operations by result",
+		"{operation}",
+	); err != nil {
+		return fmt.Errorf("failed to create logout attempts counter: %w", err)
 	}
 
-	logoutSuccess, err := meter.Int64Counter(
+	if metrics.LogoutSuccess, err = createCounter(
+		meter,
 		MetricLogoutSuccess,
-		metric.WithDescription("Logout operations by result"),
-		metric.WithUnit("{operation}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create logout operations counter: %w", err)
+		"Logout operations by result",
+		"{operation}",
+	); err != nil {
+		return fmt.Errorf("failed to create logout success counter: %w", err)
 	}
 
-	logoutErrors, err := meter.Int64Counter(
+	if metrics.LogoutErrors, err = createCounter(
+		meter,
 		MetricLogoutErrors,
-		metric.WithDescription("Logout operations by result"),
-		metric.WithUnit("{operation}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create logout operations counter: %w", err)
+		"Logout operations by result",
+		"{operation}",
+	); err != nil {
+		return fmt.Errorf("failed to create logout errors counter: %w", err)
 	}
 
-	// Refresh tokens metrics
+	return nil
+}
 
-	refreshTokensAttempts, err := meter.Int64Counter(
+func createRefreshTokensMetrics(meter metric.Meter, metrics *AuthMetrics) error {
+	var err error
+
+	if metrics.RefreshTokensAttempts, err = createCounter(
+		meter,
 		MetricRefreshTokensAttempts,
-		metric.WithDescription("Refresh tokens attempts by result"),
-		metric.WithUnit("{attempt}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create refresh tokens counter: %w", err)
+		"Refresh tokens attempts by result",
+		"{attempt}",
+	); err != nil {
+		return fmt.Errorf("failed to create refresh tokens attempts counter: %w", err)
 	}
-	refreshTokensSuccess, err := meter.Int64Counter(
+
+	if metrics.RefreshTokensSuccess, err = createCounter(
+		meter,
 		MetricRefreshTokensSuccess,
-		metric.WithDescription("Refresh tokens successes by result"),
-		metric.WithUnit("{success}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create refresh tokens counter: %w", err)
+		"Refresh tokens successes by result",
+		"{success}",
+	); err != nil {
+		return fmt.Errorf("failed to create refresh tokens success counter: %w", err)
 	}
-	refreshTokensErrors, err := meter.Int64Counter(
+
+	if metrics.RefreshTokensErrors, err = createCounter(
+		meter,
 		MetricRefreshTokensErrors,
-		metric.WithDescription("Refresh tokens errors by result"),
-		metric.WithUnit("{error}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create refresh tokens counter: %w", err)
+		"Refresh tokens errors by result",
+		"{error}",
+	); err != nil {
+		return fmt.Errorf("failed to create refresh tokens errors counter: %w", err)
 	}
 
-	// JWKS retrieval metrics
+	return nil
+}
 
-	jwksRetrievalAttempts, err := meter.Int64Counter(
+func createJWKSMetrics(meter metric.Meter, metrics *AuthMetrics) error {
+	var err error
+
+	if metrics.MetricJWKSRetrievalAttempts, err = createCounter(
+		meter,
 		MetricJWKSRetrievalAttempts,
-		metric.WithDescription("JWKS retrieval attempts by result"),
-		metric.WithUnit("{attempt}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create jwks retrieval counter: %w", err)
+		"JWKS retrieval attempts by result",
+		"{attempt}",
+	); err != nil {
+		return fmt.Errorf("failed to create JWKS retrieval attempts counter: %w", err)
 	}
 
-	jwksRetrievalSuccess, err := meter.Int64Counter(
+	if metrics.MetricJWKSRetrievalSuccess, err = createCounter(
+		meter,
 		MetricJWKSRetrievalSuccess,
-		metric.WithDescription("JWKS retrieval successes by result"),
-		metric.WithUnit("{success}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create jwks retrieval counter: %w", err)
+		"JWKS retrieval successes by result",
+		"{success}",
+	); err != nil {
+		return fmt.Errorf("failed to create JWKS retrieval success counter: %w", err)
 	}
 
-	jwksRetrievalErrors, err := meter.Int64Counter(
+	if metrics.MetricJWKSRetrievalErrors, err = createCounter(
+		meter,
 		MetricJWKSRetrievalErrors,
-		metric.WithDescription("JWKS retrieval errors by result"),
-		metric.WithUnit("{error}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create jwks retrieval counter: %w", err)
+		"JWKS retrieval errors by result",
+		"{error}",
+	); err != nil {
+		return fmt.Errorf("failed to create JWKS retrieval errors counter: %w", err)
 	}
 
-	// Session metrics
-	sessionExpired, err := meter.Int64Counter(
+	return nil
+}
+
+func createSessionMetrics(meter metric.Meter, metrics *AuthMetrics) error {
+	var err error
+
+	if metrics.SessionExpired, err = createCounter(
+		meter,
 		MetricSessionExpired,
-		metric.WithDescription("Sessions expired by reason"),
-		metric.WithUnit("{session}"),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create session expired counter: %w", err)
+		"Sessions expired by reason",
+		"{session}",
+	); err != nil {
+		return fmt.Errorf("failed to create session expired counter: %w", err)
 	}
 
-	return &AuthMetrics{
-		LoginAttempts:               loginAttempts,
-		LoginSuccess:                loginSuccess,
-		LoginErrors:                 loginErrors,
-		RegistrationAttempts:        registrationAttempts,
-		RegistrationSuccess:         registrationSuccess,
-		RegistrationErrors:          registrationErrors,
-		PasswordResetsAttempts:      passwordResetsAttempts,
-		PasswordResetsSuccess:       passwordResetsSuccess,
-		PasswordResetsErrors:        passwordResetsErrors,
-		ChangePasswordAttempts:      changePasswordAttempts,
-		ChangePasswordSuccess:       changePasswordSuccess,
-		ChangePasswordErrors:        changePasswordErrors,
-		EmailVerificationsAttempts:  emailVerifications,
-		EmailVerificationSuccess:    emailVerificationSuccess,
-		EmailVerificationErrors:     emailVerificationErrors,
-		LogoutAttempts:              logoutAttempts,
-		LogoutSuccess:               logoutSuccess,
-		LogoutErrors:                logoutErrors,
-		RefreshTokensAttempts:       refreshTokensAttempts,
-		RefreshTokensSuccess:        refreshTokensSuccess,
-		RefreshTokensErrors:         refreshTokensErrors,
-		MetricJWKSRetrievalAttempts: jwksRetrievalAttempts,
-		MetricJWKSRetrievalSuccess:  jwksRetrievalSuccess,
-		MetricJWKSRetrievalErrors:   jwksRetrievalErrors,
-		SessionExpired:              sessionExpired,
-	}, nil
+	return nil
 }
 
 func (m *AuthMetrics) RecordLoginAttempt(ctx context.Context, clientID string) {

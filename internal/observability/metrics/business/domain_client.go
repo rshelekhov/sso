@@ -29,68 +29,64 @@ type ClientMetrics struct {
 }
 
 func newClientMetrics(meter metric.Meter) (*ClientMetrics, error) {
-	clientRegistrationsAttempts, err := meter.Int64Counter(
+	var err error
+	metrics := &ClientMetrics{}
+
+	if metrics.ClientRegistrationsAttempts, err = createCounter(
+		meter,
 		MetricClientRegistrationsAttempts,
-		metric.WithDescription("Client registrations attempts by result"),
-		metric.WithUnit("{client}"),
-	)
-	if err != nil {
+		"Client registrations attempts by result",
+		"{client}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricClientRegistrationsAttempts, err)
 	}
 
-	clientRegistrationsSuccess, err := meter.Int64Counter(
+	if metrics.ClientRegistrationsSuccess, err = createCounter(
+		meter,
 		MetricClientRegistrationsSuccess,
-		metric.WithDescription("Client registrations successes by result"),
-		metric.WithUnit("{success}"),
-	)
-	if err != nil {
+		"Client registrations successes by result",
+		"{success}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricClientRegistrationsSuccess, err)
 	}
 
-	clientRegistrationsErrors, err := meter.Int64Counter(
+	if metrics.ClientRegistrationsErrors, err = createCounter(
+		meter,
 		MetricClientRegistrationsErrors,
-		metric.WithDescription("Client registrations errors by result"),
-		metric.WithUnit("{error}"),
-	)
-	if err != nil {
+		"Client registrations errors by result",
+		"{error}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricClientRegistrationsErrors, err)
 	}
 
-	clientDeletionsAttempts, err := meter.Int64Counter(
+	if metrics.ClientDeletionsAttempts, err = createCounter(
+		meter,
 		MetricClientDeletionsAttempts,
-		metric.WithDescription("Client deletions attempts by result"),
-		metric.WithUnit("{attempt}"),
-	)
-	if err != nil {
+		"Client deletions attempts by result",
+		"{client}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricClientDeletionsAttempts, err)
 	}
 
-	clientDeletionsSuccess, err := meter.Int64Counter(
+	if metrics.ClientDeletionsSuccess, err = createCounter(
+		meter,
 		MetricClientDeletionsSuccess,
-		metric.WithDescription("Client deletions successes by result"),
-		metric.WithUnit("{success}"),
-	)
-	if err != nil {
+		"Client deletions successes by result",
+		"{success}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricClientDeletionsSuccess, err)
 	}
 
-	clientDeletionsErrors, err := meter.Int64Counter(
+	if metrics.ClientDeletionsErrors, err = createCounter(
+		meter,
 		MetricClientDeletionsErrors,
-		metric.WithDescription("Client deletions errors by result"),
-		metric.WithUnit("{error}"),
-	)
-	if err != nil {
+		"Client deletions errors by result",
+		"{error}",
+	); err != nil {
 		return nil, fmt.Errorf("failed to create %s counter: %w", MetricClientDeletionsErrors, err)
 	}
 
-	return &ClientMetrics{
-		ClientRegistrationsAttempts: clientRegistrationsAttempts,
-		ClientRegistrationsSuccess:  clientRegistrationsSuccess,
-		ClientRegistrationsErrors:   clientRegistrationsErrors,
-		ClientDeletionsAttempts:     clientDeletionsAttempts,
-		ClientDeletionsSuccess:      clientDeletionsSuccess,
-		ClientDeletionsErrors:       clientDeletionsErrors,
-	}, nil
+	return metrics, nil
 }
 
 func (m *ClientMetrics) RecordClientRegistrationsAttempt(ctx context.Context) {
