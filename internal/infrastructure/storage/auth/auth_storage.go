@@ -9,6 +9,7 @@ import (
 	mongoStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/auth/mongo"
 	pgStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/auth/postgres"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
 var (
@@ -16,7 +17,20 @@ var (
 	ErrPostgresAuthStorageSettingsEmpty = errors.New("postgres auth storage settings are empty")
 )
 
-func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (auth.Storage, error) {
+func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager, recorder metrics.MetricsRecorder) (auth.Storage, error) {
+	baseStorage, err := newBaseStorage(dbConn, txMgr)
+	if err != nil {
+		return nil, err
+	}
+
+	if recorder == nil {
+		recorder = &metrics.NoOpRecorder{}
+	}
+
+	return newAuthStorageDecorator(dbConn.Type.String(), baseStorage, recorder), nil
+}
+
+func newBaseStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (auth.Storage, error) {
 	switch dbConn.Type {
 	case storage.TypeMongo:
 		return newMongoStorage(dbConn)
