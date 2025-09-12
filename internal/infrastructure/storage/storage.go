@@ -9,6 +9,8 @@ import (
 	postgresLib "github.com/rshelekhov/golib/db/postgres/pgxv5"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/mongo/common"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
+	"github.com/rshelekhov/sso/internal/observability/metrics/infrastructure"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -18,6 +20,7 @@ type DBConnection struct {
 	Type     Type
 	Mongo    *Mongo
 	Postgres *Postgres
+	recorder metrics.MetricsRecorder
 }
 
 type Type string
@@ -26,6 +29,10 @@ const (
 	TypeMongo    Type = "mongo"
 	TypePostgres Type = "postgres"
 )
+
+func (t Type) String() string {
+	return string(t)
+}
 
 type Mongo struct {
 	*mongoLib.Connection
@@ -36,12 +43,12 @@ type Postgres struct {
 	*postgresLib.Connection
 }
 
-func NewDBConnection(ctx context.Context, cfg settings.Storage) (*DBConnection, error) {
+func NewDBConnection(ctx context.Context, cfg settings.Storage, recorder metrics.MetricsRecorder) (*DBConnection, error) {
 	switch cfg.Type {
 	case settings.StorageTypeMongo:
 		return newMongoStorage(ctx, cfg.Mongo)
 	case settings.StorageTypePostgres:
-		return newPostgresStorage(ctx, cfg.Postgres)
+		return newPostgresStorage(ctx, cfg.Postgres, recorder)
 	default:
 		return nil, fmt.Errorf("unknown storage type: %s", cfg.Type)
 	}
@@ -64,16 +71,21 @@ func newMongoStorage(ctx context.Context, cfg *settings.MongoParams) (*DBConnect
 		return nil, fmt.Errorf("%s: failed to initialize collections: %w", method, err)
 	}
 
-	return &DBConnection{
+	dbConn := &DBConnection{
 		Type: TypeMongo,
 		Mongo: &Mongo{
 			Connection: conn,
 			Timeout:    cfg.Timeout,
 		},
-	}, nil
+	}
+
+	// MongoDB doesn't provide detailed connection pool statistics
+	// Only PostgreSQL metrics will be collected
+
+	return dbConn, nil
 }
 
-func newPostgresStorage(ctx context.Context, cfg *settings.PostgresParams) (*DBConnection, error) {
+func newPostgresStorage(ctx context.Context, cfg *settings.PostgresParams, recorder metrics.MetricsRecorder) (*DBConnection, error) {
 	const method = "storage.newPostgresStorage"
 
 	conn, err := postgresLib.NewConnectionPool(ctx, cfg.ConnURL)
@@ -81,12 +93,18 @@ func newPostgresStorage(ctx context.Context, cfg *settings.PostgresParams) (*DBC
 		return nil, fmt.Errorf("%s: failed to create new postgres storage: %w", method, err)
 	}
 
-	return &DBConnection{
+	dbConn := &DBConnection{
 		Type: TypePostgres,
 		Postgres: &Postgres{
 			Connection: conn,
 		},
-	}, nil
+		recorder: recorder,
+	}
+
+	// Start collecting connection pool metrics
+	go dbConn.collectPostgresMetrics(ctx)
+
+	return dbConn, nil
 }
 
 func initializeCollection(db *mongo.Database) error {
@@ -130,6 +148,36 @@ func createUserIndexes(db *mongo.Database) error {
 	}
 
 	return nil
+}
+
+func (d *DBConnection) collectPostgresMetrics(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second) // Collect metrics every 30 seconds
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if d.Postgres != nil && d.Postgres.Pool() != nil {
+				pool := d.Postgres.Pool()
+				poolStats := pool.Stat()
+				config := pool.Config()
+
+				stats := infrastructure.PostgresConnectionPoolStats{
+					Acquired:        int64(poolStats.AcquiredConns()),
+					Idle:            int64(poolStats.IdleConns()),
+					Total:           int64(poolStats.TotalConns()),
+					Max:             int64(config.MaxConns),
+					Min:             int64(config.MinConns),
+					AcquireCount:    poolStats.AcquireCount(),
+					AcquireDuration: poolStats.AcquireDuration(),
+					Constructing:    int64(poolStats.ConstructingConns()),
+				}
+				d.recorder.RecordDBConnectionPoolStats("postgresql", stats)
+			}
+		}
+	}
 }
 
 func (d *DBConnection) Close(ctx context.Context) error {
