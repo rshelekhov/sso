@@ -25,7 +25,7 @@ func (q *Queries) MarkEmailVerified(ctx context.Context, id string) error {
 }
 
 const registerUser = `-- name: RegisterUser :exec
-INSERT INTO users (id, email, password_hash, verified, created_at,updated_at)
+INSERT INTO users (id, email, password_hash, verified, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
 

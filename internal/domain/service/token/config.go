@@ -56,14 +56,14 @@ type PasswordHashBcryptParams struct {
 }
 
 var (
-	defaultPasswordHashParams = PasswordHashParams{
+	DefaultPasswordHashParams = PasswordHashParams{
 		Type:       PasswordHashDefault,
 		SaltLength: 32,
 		Pepper:     "red-hot-chili-peppers",
-		Argon:      &defaultPasswordHashArgon2Params,
+		Argon:      &DefaultPasswordHashArgon2Params,
 	}
 
-	defaultPasswordHashArgon2Params = PasswordHashArgon2Params{
+	DefaultPasswordHashArgon2Params = PasswordHashArgon2Params{
 		Time:        2,
 		Memory:      32 * 1024,
 		Parallelism: 2,
@@ -71,7 +71,7 @@ var (
 	}
 
 	//nolint:unused // This variable will be used in the future
-	defaultPasswordHashBcryptParams = PasswordHashBcryptParams{
+	DefaultPasswordHashBcryptParams = PasswordHashBcryptParams{
 		Cost: bcrypt.DefaultCost,
 	}
 )

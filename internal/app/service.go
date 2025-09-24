@@ -9,7 +9,9 @@ import (
 	"github.com/rshelekhov/sso/internal/domain/service/clientvalidator"
 	authenticate "github.com/rshelekhov/sso/internal/lib/interceptor/auth"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
+	metricsInterceptor "github.com/rshelekhov/sso/internal/lib/interceptor/metrics"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/requestid"
+	"github.com/rshelekhov/sso/internal/observability/metrics/infrastructure"
 	"github.com/rshelekhov/sso/pkg/jwtauth"
 	"google.golang.org/grpc"
 )
@@ -23,6 +25,7 @@ type SSOService struct {
 	userUsecase     ssogrpc.UserUsecase
 	redisClient     *redis.Client
 	methodsConfig   *config.GRPCMethodsConfig
+	metrics         *infrastructure.GRPCServerMetrics
 }
 
 func NewSSOService(
@@ -34,6 +37,7 @@ func NewSSOService(
 	userUsecase ssogrpc.UserUsecase,
 	redisClient *redis.Client,
 	methodsConfig *config.GRPCMethodsConfig,
+	metrics *infrastructure.GRPCServerMetrics,
 ) *SSOService {
 	return &SSOService{
 		log:             log,
@@ -44,6 +48,7 @@ func NewSSOService(
 		userUsecase:     userUsecase,
 		redisClient:     redisClient,
 		methodsConfig:   methodsConfig,
+		metrics:         metrics,
 	}
 }
 
@@ -62,9 +67,17 @@ func (s *SSOService) GetCustomInterceptors() []grpc.UnaryServerInterceptor {
 	requestIDInterceptor := requestid.NewInterceptor()
 	clientIDInterceptor := clientid.NewInterceptor(s.methodsConfig)
 
-	return []grpc.UnaryServerInterceptor{
+	interceptors := []grpc.UnaryServerInterceptor{
 		requestIDInterceptor.UnaryServerInterceptor(),
 		clientIDInterceptor.UnaryServerInterceptor(),
 		authenticate.UnaryServerInterceptor(s.methodsConfig, s.jwtMiddleware.UnaryServerInterceptor()),
 	}
+
+	// Only add metrics interceptor if metrics are enabled
+	if s.metrics != nil {
+		metricsInterceptor := metricsInterceptor.NewInterceptor(s.metrics)
+		interceptors = append(interceptors, metricsInterceptor.UnaryServerInterceptor())
+	}
+
+	return interceptors
 }

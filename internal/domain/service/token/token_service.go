@@ -14,6 +14,7 @@ type Service struct {
 	refreshTokenCookieDomain string
 	refreshTokenCookiePath   string
 	keyStorage               KeyStorage
+	metrics                  MetricsRecorder
 }
 
 type KeyStorage interface {
@@ -21,7 +22,7 @@ type KeyStorage interface {
 	GetPrivateKey(clientID string) ([]byte, error)
 }
 
-func NewService(cfg Config, storage KeyStorage) *Service {
+func NewService(cfg Config, storage KeyStorage, metrics MetricsRecorder) *Service {
 	return &Service{
 		issuer:                   cfg.Issuer,
 		signingMethod:            cfg.SigningMethod,
@@ -32,5 +33,6 @@ func NewService(cfg Config, storage KeyStorage) *Service {
 		refreshTokenCookieDomain: cfg.RefreshTokenCookieDomain,
 		refreshTokenCookiePath:   cfg.RefreshTokenCookiePath,
 		keyStorage:               storage,
+		metrics:                  metrics,
 	}
 }

@@ -44,9 +44,9 @@ func (d *DeviceStorageDecorator) UpdateLastVisitedAt(ctx context.Context, sessio
 	return err
 }
 
-func (d *DeviceStorageDecorator) DeleteAllUserDevices(ctx context.Context, userID string) error {
+func (d *DeviceStorageDecorator) DeleteAllUserDevices(ctx context.Context, userID string) (int, error) {
 	start := time.Now()
-	err := d.storage.DeleteAllUserDevices(ctx, userID)
+	deletedDevicesCount, err := d.storage.DeleteAllUserDevices(ctx, userID)
 	d.recorder.RecordDBOperation(d.dbType, "device.delete_all_user_devices", time.Since(start), err)
-	return err
+	return deletedDevicesCount, err
 }

@@ -39,6 +39,8 @@ func (m *manager) getJWK(ctx context.Context, clientID, kid string) (*JWK, error
 
 	cachedJWKS, found := m.getCachedJWKS(cacheKey)
 	if !found || len(cachedJWKS) == 0 {
+		m.recordJWKSCacheMiss(ctx, clientID)
+
 		jwks, err := m.jwksProvider.GetJWKS(ctx, clientID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: failed to get JWKS: %w", op, err)
@@ -54,6 +56,8 @@ func (m *manager) getJWK(ctx context.Context, clientID, kid string) (*JWK, error
 
 		cachedJWKS = jwks
 	}
+
+	m.recordJWKSCacheHit(ctx, clientID)
 
 	// Find the JWK with the matching key ID
 	for _, jwk := range cachedJWKS {
@@ -77,6 +81,18 @@ func (m *manager) getCachedJWKS(cacheKey string) ([]JWK, bool) {
 	}
 
 	return nil, false
+}
+
+func (m *manager) recordJWKSCacheHit(ctx context.Context, clientID string) {
+	if m.metrics != nil {
+		m.metrics.RecordJWKSCacheHit(ctx, clientID)
+	}
+}
+
+func (m *manager) recordJWKSCacheMiss(ctx context.Context, clientID string) {
+	if m.metrics != nil {
+		m.metrics.RecordJWKSCacheMiss(ctx, clientID)
+	}
 }
 
 // createCacheKey creates a cache key based on the clientID

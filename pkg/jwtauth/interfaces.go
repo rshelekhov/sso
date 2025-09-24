@@ -36,6 +36,19 @@ type (
 		HTTPMiddleware(next http.Handler) http.Handler
 	}
 
+	MetricsRecorder interface {
+		// Token validation
+		RecordTokenValidationSuccess(ctx context.Context, clientID string)
+		RecordTokenValidationExpired(ctx context.Context, clientID string)
+		RecordTokenValidationInvalid(ctx context.Context, clientID string)
+		RecordTokenValidationMalformed(ctx context.Context, clientID string)
+		RecordTokenValidationDuration(ctx context.Context, clientID string, duration float64)
+
+		// JWKS operations
+		RecordJWKSCacheHit(ctx context.Context, clientID string)
+		RecordJWKSCacheMiss(ctx context.Context, clientID string)
+	}
+
 	Manager interface {
 		Extractor
 		ContextManager

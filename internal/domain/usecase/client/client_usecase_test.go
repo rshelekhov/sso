@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/domain/usecase/client"
 	"github.com/rshelekhov/sso/internal/domain/usecase/client/mocks"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/rshelekhov/sso/internal/lib/logger/slogdiscard"
@@ -116,7 +117,7 @@ func TestClientUsecase_RegisterClient(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			app := NewUsecase(log, keyManagerMock, storageMock)
+			app := client.NewUsecase(log, keyManagerMock, storageMock, &mocks.NoOpMetricsRecorder{})
 
 			err := app.RegisterClient(context.Background(), tt.clientName)
 
@@ -175,7 +176,7 @@ func TestClientUsecase_DeleteClient(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			app := NewUsecase(log, nil, storageMock)
+			app := client.NewUsecase(log, nil, storageMock, &mocks.NoOpMetricsRecorder{})
 
 			err := app.DeleteClient(context.Background(), clientID, secretHash)
 

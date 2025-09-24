@@ -10,6 +10,7 @@ import (
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/lib/e"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 type User struct {
@@ -21,6 +22,7 @@ type User struct {
 	identityMgr     IdentityManager
 	verificationMgr VerificationManager
 	txMgr           TransactionManager
+	metrics         MetricsRecorder
 }
 
 type (
@@ -74,6 +76,7 @@ func NewUsecase(
 	im IdentityManager,
 	vm VerificationManager,
 	tm TransactionManager,
+	metrics MetricsRecorder,
 ) *User {
 	return &User{
 		log:             log,
@@ -84,6 +87,7 @@ func NewUsecase(
 		identityMgr:     im,
 		verificationMgr: vm,
 		txMgr:           tm,
+		metrics:         metrics,
 	}
 }
 
@@ -173,6 +177,8 @@ func (u *User) DeleteUser(ctx context.Context, clientID string) error {
 
 	log := u.log.With(slog.String("method", method))
 
+	u.metrics.RecordUserDeletionsAttempt(ctx, clientID)
+
 	userID, err := u.identityMgr.ExtractUserIDFromTokenInContext(ctx, clientID)
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToExtractUserIDFromContext, err)
@@ -203,10 +209,13 @@ func (u *User) DeleteUser(ctx context.Context, clientID string) error {
 		}
 	}); err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", userData.ID))
+		u.metrics.RecordUserDeletionsError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToCommitTransaction.Error()))
 		return err
 	}
 
 	log.Info("user soft-deleted", slog.String("userID", userData.ID))
+
+	u.metrics.RecordUserDeletionsSuccess(ctx, clientID)
 
 	return nil
 }
@@ -215,6 +224,8 @@ func (u *User) DeleteUserByID(ctx context.Context, clientID, userID string) erro
 	const method = "usecase.User.DeleteUserByID"
 
 	log := u.log.With(slog.String("method", method))
+
+	u.metrics.RecordUserDeletionsAttempt(ctx, clientID)
 
 	userData := entity.User{
 		ID:        userID,
@@ -240,10 +251,13 @@ func (u *User) DeleteUserByID(ctx context.Context, clientID, userID string) erro
 		}
 	}); err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.Any("userID", userData.ID))
+		u.metrics.RecordUserDeletionsError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToCommitTransaction.Error()))
 		return err
 	}
 
 	log.Info("user soft-deleted by ID", slog.String("userID", userData.ID))
+
+	u.metrics.RecordUserDeletionsSuccess(ctx, clientID)
 
 	return nil
 }

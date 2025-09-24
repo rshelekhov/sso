@@ -8,6 +8,7 @@ import (
 	"github.com/rshelekhov/golib/server"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
 type App struct {
@@ -16,8 +17,8 @@ type App struct {
 	dbConn     *storage.DBConnection
 }
 
-func New(log *slog.Logger, cfg *config.ServerSettings) (*App, error) {
-	builder := newBuilder(log, cfg)
+func New(log *slog.Logger, cfg *config.ServerSettings, registry *metrics.Registry) (*App, error) {
+	builder := newBuilder(log, cfg, registry)
 	return builder.Build()
 }
 

@@ -14,7 +14,7 @@ import (
 type (
 	JWTManager interface {
 		NewAccessToken(clientID, kid string, additionalClaims map[string]any) (string, error)
-		NewRefreshToken() string
+		NewRefreshToken(clientID string) string
 		Issuer() string
 		AccessTokenTTL() time.Duration
 		RefreshTokenTTL() time.Duration
@@ -27,15 +27,15 @@ type (
 		CreateSession(ctx context.Context, session entity.Session) error
 		GetSessionByRefreshToken(ctx context.Context, refreshToken string) (entity.Session, error)
 		DeleteRefreshToken(ctx context.Context, refreshToken string) error
-		DeleteSession(ctx context.Context, session entity.Session) error
-		DeleteAllSessions(ctx context.Context, userID string) error
+		DeleteSession(ctx context.Context, session entity.Session) (entity.SessionMeta, error)
+		DeleteAllSessions(ctx context.Context, userID string) ([]entity.SessionMeta, error)
 	}
 
 	DeviceStorage interface {
 		RegisterDevice(ctx context.Context, device entity.UserDevice) error
 		GetUserDeviceID(ctx context.Context, userID, userAgent string) (string, error)
 		UpdateLastVisitedAt(ctx context.Context, session entity.Session) error
-		DeleteAllUserDevices(ctx context.Context, userID string) error
+		DeleteAllUserDevices(ctx context.Context, userID string) (int, error)
 	}
 )
 
@@ -43,13 +43,20 @@ type Session struct {
 	jwtMgr         JWTManager
 	sessionStorage SessionStorage
 	deviceStorage  DeviceStorage
+	metrics        MetricsRecorder
 }
 
-func NewService(ts JWTManager, sessionStorage SessionStorage, deviceStorage DeviceStorage) *Session {
+func NewService(
+	ts JWTManager,
+	sessionStorage SessionStorage,
+	deviceStorage DeviceStorage,
+	metrics MetricsRecorder,
+) *Session {
 	return &Session{
 		jwtMgr:         ts,
 		sessionStorage: sessionStorage,
 		deviceStorage:  deviceStorage,
+		metrics:        metrics,
 	}
 }
 
@@ -79,6 +86,9 @@ func (s *Session) CreateSession(ctx context.Context, sessionReqData entity.Sessi
 
 	tokenData := s.prepareTokenResponse(accessToken, session)
 
+	s.metrics.RecordSessionCreated(ctx, session.ClientID)
+	s.metrics.RecordSessionActive(ctx, session.ClientID)
+
 	return tokenData, nil
 }
 
@@ -94,6 +104,11 @@ func (s *Session) GetSessionByRefreshToken(ctx context.Context, refreshToken str
 	}
 
 	if session.IsExpired() {
+		duration := time.Since(session.CreatedAt).Seconds()
+
+		s.metrics.RecordSessionDeletedExpired(ctx, session.ClientID)
+		s.metrics.RecordSessionDuration(ctx, session.ClientID, duration)
+
 		return entity.Session{}, domain.ErrSessionExpired
 	}
 
@@ -127,12 +142,18 @@ func (s *Session) DeleteRefreshToken(ctx context.Context, refreshToken string) e
 func (s *Session) DeleteSession(ctx context.Context, sessionReqData entity.SessionRequestData) error {
 	const method = "service.session.DeleteSession"
 
-	if err := s.sessionStorage.DeleteSession(ctx, entity.Session{
+	session, err := s.sessionStorage.DeleteSession(ctx, entity.Session{
 		UserID:   sessionReqData.UserID,
 		DeviceID: sessionReqData.DeviceID,
-	}); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
+
+	duration := time.Since(session.CreatedAt).Seconds()
+
+	s.metrics.RecordSessionDeletedLogout(ctx, session.ClientID)
+	s.metrics.RecordSessionDuration(ctx, session.ClientID, duration)
 
 	return nil
 }
@@ -140,8 +161,16 @@ func (s *Session) DeleteSession(ctx context.Context, sessionReqData entity.Sessi
 func (s *Session) DeleteUserSessions(ctx context.Context, user entity.User) error {
 	const method = "service.session.DeleteAllUserSessions"
 
-	if err := s.sessionStorage.DeleteAllSessions(ctx, user.ID); err != nil {
+	sessions, err := s.sessionStorage.DeleteAllSessions(ctx, user.ID)
+	if err != nil {
 		return fmt.Errorf("%s: %w", method, err)
+	}
+
+	for _, session := range sessions {
+		duration := time.Since(session.CreatedAt).Seconds()
+
+		s.metrics.RecordSessionDeletedLogout(ctx, session.ClientID)
+		s.metrics.RecordSessionDuration(ctx, session.ClientID, duration)
 	}
 
 	return nil
@@ -150,9 +179,12 @@ func (s *Session) DeleteUserSessions(ctx context.Context, user entity.User) erro
 func (s *Session) DeleteUserDevices(ctx context.Context, user entity.User) error {
 	const method = "service.session.DeleteUserDevices"
 
-	if err := s.deviceStorage.DeleteAllUserDevices(ctx, user.ID); err != nil {
+	deletedDevicesCount, err := s.deviceStorage.DeleteAllUserDevices(ctx, user.ID)
+	if err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
+
+	s.metrics.RecordDeviceDeletions(ctx, user.ID, deletedDevicesCount)
 
 	return nil
 }
@@ -184,6 +216,8 @@ func (s *Session) registerDevice(ctx context.Context, session entity.SessionRequ
 		return "", fmt.Errorf("%w: %w", domain.ErrFailedToRegisterDevice, err)
 	}
 
+	s.metrics.RecordDeviceRegistrations(ctx, session.ClientID)
+
 	return userDevice.ID, nil
 }
 
@@ -214,7 +248,7 @@ func (s *Session) createTokens(
 		return "", "", fmt.Errorf("%w: %w", domain.ErrFailedToCreateAccessToken, err)
 	}
 
-	refreshToken = s.jwtMgr.NewRefreshToken()
+	refreshToken = s.jwtMgr.NewRefreshToken(session.ClientID)
 
 	return accessToken, refreshToken, nil
 }

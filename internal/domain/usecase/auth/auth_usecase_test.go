@@ -1,4 +1,4 @@
-package auth
+package auth_test
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"math/big"
 	"testing"
 	"time"
+
+	"github.com/rshelekhov/sso/internal/domain/usecase/auth"
 
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 
@@ -287,7 +289,18 @@ func TestAuthUsecase_Login(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, txMgr, db)
+			auth := auth.NewUsecase(
+				log,
+				sessionMgr,
+				userMgr,
+				mailService,
+				tokenMgr,
+				verificationMgr,
+				txMgr,
+				db,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
 			tokens, err := auth.Login(context.Background(), clientID, tt.reqData)
 
@@ -790,7 +803,18 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, txMgr, db)
+			auth := auth.NewUsecase(
+				log,
+				sessionMgr,
+				userMgr,
+				mailService,
+				tokenMgr,
+				verificationMgr,
+				txMgr,
+				db,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
 			tokens, err := auth.RegisterUser(context.Background(), clientID, tt.reqData, tt.endpoint)
 
@@ -1079,7 +1103,18 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, nil, mailService, nil, verificationMgr, txMgr, db)
+			auth := auth.NewUsecase(
+				log,
+				nil,
+				nil,
+				mailService,
+				nil,
+				verificationMgr,
+				txMgr,
+				db,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
 			_, err := auth.VerifyEmail(context.Background(), tokenStr)
 
@@ -1224,7 +1259,18 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, userMgr, mailService, nil, verificationMgr, nil, nil)
+			auth := auth.NewUsecase(
+				log,
+				nil,
+				userMgr,
+				mailService,
+				nil,
+				verificationMgr,
+				nil,
+				nil,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
 			err := auth.ResetPassword(context.Background(), clientID, reqData, endpoint)
 
@@ -1681,7 +1727,18 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, userMgr, mailService, tokenMgr, verificationMgr, txMgr, nil)
+			auth := auth.NewUsecase(
+				log,
+				nil,
+				userMgr,
+				mailService,
+				tokenMgr,
+				verificationMgr,
+				txMgr,
+				nil,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
 			_, err := auth.ChangePassword(context.Background(), clientID, reqData)
 
@@ -1803,7 +1860,18 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, sessionMgr, nil, nil, tokenMgr, nil, nil, nil)
+			auth := auth.NewUsecase(
+				log,
+				sessionMgr,
+				nil,
+				nil,
+				tokenMgr,
+				nil,
+				nil,
+				nil,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
 			err := auth.LogoutUser(context.Background(), clientID, &userDeviceReqData)
 
@@ -1987,7 +2055,18 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, sessionMgr, nil, nil, nil, nil, nil, nil)
+			auth := auth.NewUsecase(
+				log,
+				sessionMgr,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
 			sessionTokens, err := auth.RefreshTokens(context.Background(), clientID, &reqData)
 
@@ -2152,7 +2231,18 @@ func TestAuthUsecase_GetJWKS(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, nil, nil, tokenMgr, nil, nil, nil)
+			auth := auth.NewUsecase(
+				log,
+				nil,
+				nil,
+				nil,
+				tokenMgr,
+				nil,
+				nil,
+				nil,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
 			jwks, err := auth.GetJWKS(ctx, clientID)
 

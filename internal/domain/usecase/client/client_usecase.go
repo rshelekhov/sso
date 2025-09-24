@@ -13,6 +13,7 @@ import (
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"go.opentelemetry.io/otel/attribute"
 
 	"github.com/segmentio/ksuid"
 	"golang.org/x/crypto/bcrypt"
@@ -22,6 +23,7 @@ type Client struct {
 	log     *slog.Logger
 	keyMgr  KeyManager
 	storage Storage
+	metrics MetricsRecorder
 }
 
 type (
@@ -40,11 +42,13 @@ func NewUsecase(
 	log *slog.Logger,
 	km KeyManager,
 	storage Storage,
+	metrics MetricsRecorder,
 ) *Client {
 	return &Client{
 		log:     log,
 		keyMgr:  km,
 		storage: storage,
+		metrics: metrics,
 	}
 }
 
@@ -53,6 +57,8 @@ func (u *Client) RegisterClient(ctx context.Context, clientName string) error {
 
 	log := u.log.With(slog.String("method", method))
 
+	u.metrics.RecordClientRegistrationsAttempt(ctx)
+
 	clientID := ksuid.New().String()
 
 	secretHash, err := u.generateAndHashSecret(clientName)
@@ -60,6 +66,7 @@ func (u *Client) RegisterClient(ctx context.Context, clientName string) error {
 		log.LogAttrs(ctx, slog.LevelError, domain.ErrFailedToGenerateSecretHash.Error(),
 			slog.Any("error", err),
 		)
+		u.metrics.RecordClientRegistrationsError(ctx, attribute.String("error.type", domain.ErrFailedToGenerateSecretHash.Error()))
 		return err
 	}
 
@@ -77,6 +84,7 @@ func (u *Client) RegisterClient(ctx context.Context, clientName string) error {
 	if err = u.storage.RegisterClient(ctx, clientData); err != nil {
 		if errors.Is(err, storage.ErrClientAlreadyExists) {
 			log.LogAttrs(ctx, slog.LevelError, domain.ErrClientAlreadyExists.Error())
+			u.metrics.RecordClientRegistrationsError(ctx, attribute.String("error.type", domain.ErrClientAlreadyExists.Error()))
 			return domain.ErrClientAlreadyExists
 		}
 
@@ -85,6 +93,7 @@ func (u *Client) RegisterClient(ctx context.Context, clientName string) error {
 			slog.Any("error", err),
 		)
 
+		u.metrics.RecordClientRegistrationsError(ctx, attribute.String("error.type", domain.ErrFailedToRegisterClient.Error()))
 		return domain.ErrFailedToRegisterClient
 	}
 
@@ -101,9 +110,11 @@ func (u *Client) RegisterClient(ctx context.Context, clientName string) error {
 				slog.String("clientID", clientID),
 				slog.Any("error", err),
 			)
+			u.metrics.RecordClientRegistrationsError(ctx, attribute.String("error.type", domain.ErrFailedToDeleteClient.Error()))
 			return domain.ErrFailedToDeleteClient
 		}
 
+		u.metrics.RecordClientRegistrationsError(ctx, attribute.String("error.type", domain.ErrFailedToGenerateAndSavePrivateKey.Error()))
 		return domain.ErrFailedToGenerateAndSavePrivateKey
 	}
 
@@ -112,6 +123,8 @@ func (u *Client) RegisterClient(ctx context.Context, clientName string) error {
 		slog.String("clientID", clientID),
 	)
 
+	u.metrics.RecordClientRegistrationsSuccess(ctx)
+
 	return nil
 }
 
@@ -119,6 +132,8 @@ func (u *Client) DeleteClient(ctx context.Context, clientID, secretHash string) 
 	const method = "usecase.Client.DeleteClient"
 
 	log := u.log.With(slog.String("method", method))
+
+	u.metrics.RecordClientDeletionsAttempt(ctx)
 
 	clientData := entity.ClientData{
 		ID:        clientID,
@@ -129,6 +144,7 @@ func (u *Client) DeleteClient(ctx context.Context, clientID, secretHash string) 
 	if err := u.storage.DeleteClient(ctx, clientData); err != nil {
 		if errors.Is(err, storage.ErrClientNotFound) {
 			log.LogAttrs(ctx, slog.LevelError, domain.ErrClientNotFound.Error())
+			u.metrics.RecordClientDeletionsError(ctx, attribute.String("error.type", domain.ErrClientNotFound.Error()))
 			return domain.ErrClientNotFound
 		}
 
@@ -137,10 +153,13 @@ func (u *Client) DeleteClient(ctx context.Context, clientID, secretHash string) 
 			slog.Any("error", err),
 		)
 
+		u.metrics.RecordClientDeletionsError(ctx, attribute.String("error.type", domain.ErrFailedToDeleteClient.Error()))
 		return domain.ErrFailedToDeleteClient
 	}
 
 	log.Info("client deleted", slog.String("clientID", clientID))
+
+	u.metrics.RecordClientDeletionsSuccess(ctx)
 
 	return nil
 }

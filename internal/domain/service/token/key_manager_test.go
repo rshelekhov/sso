@@ -1,4 +1,4 @@
-package token
+package token_test
 
 import (
 	"crypto/ecdsa"
@@ -6,11 +6,10 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/pem"
-	"strings"
 	"testing"
 
+	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/domain/service/token/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -19,11 +18,11 @@ import (
 func TestGenerateAndSavePrivateKey(t *testing.T) {
 	mockKeyStorage := new(mocks.KeyStorage)
 
-	cfg := Config{
-		PasswordHashParams: defaultPasswordHashParams,
+	cfg := token.Config{
+		PasswordHashParams: token.DefaultPasswordHashParams,
 	}
 
-	tokenService := NewService(cfg, mockKeyStorage)
+	tokenService := token.NewService(cfg, mockKeyStorage, &mocks.NoOpMetricsRecorder{})
 
 	mockKeyStorage.EXPECT().SavePrivateKey(clientID, mock.Anything).
 		Once().
@@ -50,11 +49,11 @@ func TestPublicKey(t *testing.T) {
 	t.Run("Error — Unknown type", func(t *testing.T) {
 		mockKeyStorage := new(mocks.KeyStorage)
 
-		cfg := Config{
-			PasswordHashParams: defaultPasswordHashParams,
+		cfg := token.Config{
+			PasswordHashParams: token.DefaultPasswordHashParams,
 		}
 
-		tokenService := NewService(cfg, mockKeyStorage)
+		tokenService := token.NewService(cfg, mockKeyStorage, &mocks.NoOpMetricsRecorder{})
 
 		// Generate a test private key
 		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -74,25 +73,4 @@ func TestPublicKey(t *testing.T) {
 		_, err = tokenService.PublicKey(clientID)
 		require.NotEmpty(t, err)
 	})
-}
-
-func TestGeneratePrivateKeyPEM(t *testing.T) {
-	privateKeyPEM, err := generatePrivateKeyPEM()
-	require.NoError(t, err)
-
-	// Check if the generated PEM starts and ends with the correct headers
-	expectedHeader := "-----BEGIN RSA PRIVATE KEY-----"
-	expectedFooter := "-----END RSA PRIVATE KEY-----"
-	privateKeyPEMString := string(privateKeyPEM)
-	require.True(t, strings.HasPrefix(privateKeyPEMString, expectedHeader))
-	require.True(t, strings.HasSuffix(privateKeyPEMString, expectedFooter+"\n"))
-
-	// Extract the base64 part and decode it
-	base64Data := privateKeyPEMString[len(expectedHeader)+1 : len(privateKeyPEMString)-len(expectedFooter)-1]
-	privateKeyBytes, err := base64.StdEncoding.DecodeString(base64Data)
-	require.NoError(t, err)
-
-	// Parse the DER encoded private key
-	_, err = x509.ParsePKCS1PrivateKey(privateKeyBytes)
-	require.NoError(t, err)
 }

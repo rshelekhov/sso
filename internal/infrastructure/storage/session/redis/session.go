@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -103,34 +104,50 @@ func (s *SessionStorage) DeleteRefreshToken(ctx context.Context, refreshToken st
 	return nil
 }
 
-func (s *SessionStorage) DeleteSession(ctx context.Context, session entity.Session) error {
+func (s *SessionStorage) DeleteSession(ctx context.Context, session entity.Session) (entity.SessionMeta, error) {
 	const method = "storage.redis.DeleteSession"
 
 	sessionKey := s.sessionKey(session.UserID, session.DeviceID)
 
 	data, err := s.client.HGetAll(ctx, sessionKey).Result()
 	if err != nil {
-		return fmt.Errorf("%s: failed to get session data: %w", method, err)
+		return entity.SessionMeta{}, fmt.Errorf("%s: failed to get session data: %w", method, err)
 	}
 	if len(data) == 0 {
-		return storage.ErrSessionNotFound
+		return entity.SessionMeta{}, storage.ErrSessionNotFound
 	}
 
 	refreshKey := s.refreshIndexKey(data[refreshTokenKeyPrefix])
 
 	if err := s.client.Del(ctx, sessionKey, refreshKey).Err(); err != nil {
-		return fmt.Errorf("%s: failed to delete session: %w", method, err)
+		return entity.SessionMeta{}, fmt.Errorf("%s: failed to delete session: %w", method, err)
 	}
 
-	return nil
+	createdAt, err := strconv.ParseInt(data[createdAtKeyPrefix], 10, 64)
+	if err != nil {
+		return entity.SessionMeta{}, fmt.Errorf("%s: failed to parse created_at field: %w", method, err)
+	}
+	expiresAt, err := strconv.ParseInt(data[expiresAtKeyPrefix], 10, 64)
+	if err != nil {
+		return entity.SessionMeta{}, fmt.Errorf("%s: failed to parse expires_at field: %w", method, err)
+	}
+
+	return entity.SessionMeta{
+		ClientID:  data[clientIDKeyPrefix],
+		UserID:    data[userIDKeyPrefix],
+		DeviceID:  data[deviceIDKeyPrefix],
+		CreatedAt: time.Unix(createdAt, 0),
+		ExpiresAt: time.Unix(expiresAt, 0),
+	}, nil
 }
 
-func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID string) error {
+func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID string) ([]entity.SessionMeta, error) {
 	const method = "storage.redis.DeleteAllSessions"
 
 	pattern := fmt.Sprintf("%s:%s:*", sessionKeyPrefix, userID)
 	iter := s.client.Scan(ctx, 0, pattern, 0).Iterator()
 
+	var sessions []entity.SessionMeta
 	var keysToDelete []string
 
 	for iter.Next(ctx) {
@@ -138,7 +155,7 @@ func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID string) e
 
 		data, err := s.client.HGetAll(ctx, sessionKey).Result()
 		if err != nil {
-			return fmt.Errorf("%s: failed to get session data for key %s: %w", method, sessionKey, err)
+			return nil, fmt.Errorf("%s: failed to get session data for key %s: %w", method, sessionKey, err)
 		}
 		if len(data) == 0 {
 			// If there is no data, delete the "empty" key
@@ -153,23 +170,40 @@ func (s *SessionStorage) DeleteAllSessions(ctx context.Context, userID string) e
 			continue
 		}
 
+		createdAt, err := strconv.ParseInt(data[createdAtKeyPrefix], 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("%s: failed to parse created_at field: %w", method, err)
+		}
+		expiresAt, err := strconv.ParseInt(data[expiresAtKeyPrefix], 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("%s: failed to parse expires_at field: %w", method, err)
+		}
+
 		keysToDelete = append(keysToDelete,
 			sessionKey,
 			s.refreshIndexKey(refreshToken),
 		)
+
+		sessions = append(sessions, entity.SessionMeta{
+			ClientID:  data[clientIDKeyPrefix],
+			UserID:    data[userIDKeyPrefix],
+			DeviceID:  data[deviceIDKeyPrefix],
+			CreatedAt: time.Unix(createdAt, 0),
+			ExpiresAt: time.Unix(expiresAt, 0),
+		})
 	}
 
 	if err := iter.Err(); err != nil {
-		return fmt.Errorf("%s: failed to iterate over sessions: %w", method, err)
+		return nil, fmt.Errorf("%s: failed to iterate over sessions: %w", method, err)
 	}
 
 	if len(keysToDelete) > 0 {
 		if err := s.client.Del(ctx, keysToDelete...).Err(); err != nil {
-			return fmt.Errorf("%s: failed to delete sessions: %w", method, err)
+			return nil, fmt.Errorf("%s: failed to delete sessions: %w", method, err)
 		}
 	}
 
-	return nil
+	return sessions, nil
 }
 
 func (s *SessionStorage) RevokeAccessToken(ctx context.Context, token string) error {

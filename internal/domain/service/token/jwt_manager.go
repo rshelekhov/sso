@@ -1,6 +1,7 @@
 package token
 
 import (
+	"context"
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/base64"
@@ -15,15 +16,29 @@ import (
 
 func (s *Service) NewAccessToken(clientID, kid string, additionalClaims map[string]any) (string, error) {
 	const method = "service.token.NewAccessToken"
+	ctx := context.Background()
 
 	if clientID == "" {
+		s.metrics.RecordAccessTokenIssueFailed(ctx, clientID)
 		return "", fmt.Errorf("%s: %w", method, domain.ErrClientIDIsNotAllowed)
 	}
 
 	if kid == "" {
+		s.metrics.RecordAccessTokenIssueFailed(ctx, clientID)
 		return "", fmt.Errorf("%s: %w", method, domain.ErrEmptyKidIsNotAllowed)
 	}
 
+	signedToken, err := s.createAccessToken(clientID, kid, additionalClaims)
+	if err != nil {
+		s.metrics.RecordAccessTokenIssueFailed(ctx, clientID)
+		return "", fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToCreateAccessToken, err)
+	}
+
+	s.metrics.RecordAccessTokenIssued(ctx, clientID)
+	return signedToken, nil
+}
+
+func (s *Service) createAccessToken(clientID, kid string, additionalClaims map[string]any) (string, error) {
 	claims := jwt.MapClaims{}
 
 	if additionalClaims != nil {
@@ -32,12 +47,12 @@ func (s *Service) NewAccessToken(clientID, kid string, additionalClaims map[stri
 
 	privateKeyPEM, err := s.keyStorage.GetPrivateKey(clientID)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToGetPrivateKey, err)
+		return "", fmt.Errorf("%w: %w", domain.ErrFailedToGetPrivateKey, err)
 	}
 
 	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(privateKeyPEM)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToParsePrivateKey, err)
+		return "", fmt.Errorf("%w: %w", domain.ErrFailedToParsePrivateKey, err)
 	}
 
 	token := jwt.NewWithClaims(s.algorithm(), claims)
@@ -46,13 +61,15 @@ func (s *Service) NewAccessToken(clientID, kid string, additionalClaims map[stri
 
 	signedToken, err := token.SignedString(privateKey)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w: %w", method, domain.ErrFailedToSignToken, err)
+		return "", fmt.Errorf("%w: %w", domain.ErrFailedToSignToken, err)
 	}
 
 	return signedToken, nil
 }
 
-func (s *Service) NewRefreshToken() string {
+func (s *Service) NewRefreshToken(clientID string) string {
+	ctx := context.Background()
+	s.metrics.RecordRefreshTokenIssued(ctx, clientID)
 	return ksuid.New().String()
 }
 
