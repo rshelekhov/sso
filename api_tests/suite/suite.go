@@ -128,8 +128,6 @@ func grpcAddress(cfg *appConfig.ServerSettings) string {
 	if host == "" {
 		host = cfg.GRPCServer.Host + ":" + cfg.GRPCServer.Port
 	}
-	// Debug logging
-	fmt.Printf("DEBUG: SSO_HOST=%s, final host=%s\n", os.Getenv("SSO_HOST"), host)
 	return host
 }
 
