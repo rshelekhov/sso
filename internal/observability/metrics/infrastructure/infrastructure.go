@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/noop"
 )
 
 type Metrics struct {
@@ -46,10 +47,19 @@ func NewMetrics(meter metric.Meter) (*Metrics, error) {
 
 // NewNoOpMetrics creates infrastructure metrics with all NoOp implementations
 func NewNoOpMetrics() *Metrics {
+	// Use OpenTelemetry's NoOp meter to create proper NoOp instruments
+	noopMeter := noop.NewMeterProvider().Meter("")
+
+	// Create metrics with NoOp instruments - these will not panic when called
+	grpcServer, _ := NewGRPCServerMetrics(noopMeter)
+	dbClient, _ := NewDBClientMetrics(noopMeter)
+	redis, _ := NewRedisMetrics(noopMeter)
+	s3, _ := NewS3Metrics(noopMeter)
+
 	return &Metrics{
-		GRPCServer: &GRPCServerMetrics{},
-		DBClient:   &DBClientMetrics{},
-		Redis:      &RedisMetrics{},
-		S3:         &S3Metrics{},
+		GRPCServer: grpcServer,
+		DBClient:   dbClient,
+		Redis:      redis,
+		S3:         s3,
 	}
 }
