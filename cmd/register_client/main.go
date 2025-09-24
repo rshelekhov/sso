@@ -16,6 +16,7 @@ import (
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/domain/usecase/client"
+	clientMocks "github.com/rshelekhov/sso/internal/domain/usecase/client/mocks"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	appDB "github.com/rshelekhov/sso/internal/infrastructure/storage/client"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
@@ -66,7 +67,7 @@ func main() {
 		log.Error("failed to init token service", slog.Any("error", err))
 	}
 
-	clientUsecase := client.NewUsecase(log, tokenService, appStorage, nil)
+	clientUsecase := client.NewUsecase(log, tokenService, appStorage, &clientMocks.NoOpMetricsRecorder{})
 
 	err = clientUsecase.RegisterClient(context.Background(), appName)
 	if err != nil {

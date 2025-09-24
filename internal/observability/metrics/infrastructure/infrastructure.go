@@ -43,3 +43,13 @@ func NewMetrics(meter metric.Meter) (*Metrics, error) {
 		S3:         s3,
 	}, nil
 }
+
+// NewNoOpMetrics creates infrastructure metrics with all NoOp implementations
+func NewNoOpMetrics() *Metrics {
+	return &Metrics{
+		GRPCServer: &GRPCServerMetrics{},
+		DBClient:   &DBClientMetrics{},
+		Redis:      &RedisMetrics{},
+		S3:         &S3Metrics{},
+	}
+}

@@ -50,3 +50,14 @@ func NewMetrics(meter metric.Meter) (*Metrics, error) {
 		Token:   token,
 	}, nil
 }
+
+// NewNoOpMetrics creates a metrics instance with all NoOp implementations
+func NewNoOpMetrics() *Metrics {
+	return &Metrics{
+		Auth:    &AuthMetrics{},
+		Client:  &ClientMetrics{},
+		User:    &UserMetrics{},
+		Session: &SessionMetrics{},
+		Token:   &TokenMetrics{},
+	}
+}

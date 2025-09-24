@@ -23,9 +23,6 @@ func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager, recorde
 		return nil, err
 	}
 
-	if recorder == nil {
-		recorder = &metrics.NoOpRecorder{}
-	}
 
 	return newVerificationStorageDecorator(dbConn.Type.String(), baseStorage, recorder), nil
 }

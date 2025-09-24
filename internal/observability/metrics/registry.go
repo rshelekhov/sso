@@ -31,3 +31,11 @@ func NewRegistry(meter metric.Meter) (*Registry, error) {
 		Business:       business,
 	}, nil
 }
+
+// NewNoOpRegistry creates a registry with all NoOp implementations
+func NewNoOpRegistry() *Registry {
+	return &Registry{
+		Infrastructure: infrastructure.NewNoOpMetrics(),
+		Business:       business.NewNoOpMetrics(),
+	}
+}

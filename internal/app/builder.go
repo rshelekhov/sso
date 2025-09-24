@@ -30,8 +30,6 @@ import (
 	userDB "github.com/rshelekhov/sso/internal/infrastructure/storage/user"
 	verificationDB "github.com/rshelekhov/sso/internal/infrastructure/storage/verification"
 	"github.com/rshelekhov/sso/internal/observability/metrics"
-	"github.com/rshelekhov/sso/internal/observability/metrics/business"
-	"github.com/rshelekhov/sso/internal/observability/metrics/infrastructure"
 	"github.com/rshelekhov/sso/pkg/jwtauth"
 	"google.golang.org/grpc"
 )
@@ -53,7 +51,6 @@ type Builder struct {
 type Storages struct {
 	dbConn       *storage.DBConnection
 	redisConn    *storage.RedisConnection
-	recorder     metrics.MetricsRecorder
 	trMgr        transaction.Manager
 	client       clientDB.Storage
 	auth         auth.Storage
@@ -88,6 +85,10 @@ type Configs struct {
 }
 
 func newBuilder(logger *slog.Logger, cfg *config.ServerSettings, registry *metrics.Registry) *Builder {
+	// Ensure we always have a valid metrics registry
+	if registry == nil {
+		registry = metrics.NewNoOpRegistry()
+	}
 	return &Builder{
 		logger:          logger,
 		cfg:             cfg,
@@ -99,16 +100,24 @@ func (b *Builder) BuildRecorder() {
 	b.recorder = metrics.NewRecorder(b.metricsRegistry)
 }
 
+// getMetricsRecorder returns a valid metrics recorder, falling back to NoOp if recorder is nil
+func (b *Builder) getMetricsRecorder() metrics.MetricsRecorder {
+	if b.recorder != nil {
+		return b.recorder
+	}
+	return &metrics.NoOpRecorder{}
+}
+
 func (b *Builder) BuildStorages() error {
 	b.storages = &Storages{}
 	var err error
 
-	b.storages.dbConn, err = newDBConnection(b.cfg.Storage, b.recorder)
+	b.storages.dbConn, err = newDBConnection(b.cfg.Storage, b.getMetricsRecorder())
 	if err != nil {
 		return fmt.Errorf("failed to init database connection: %w", err)
 	}
 
-	b.storages.redisConn, err = newRedisConnection(b.cfg.Cache.Redis, b.recorder)
+	b.storages.redisConn, err = newRedisConnection(b.cfg.Cache.Redis, b.getMetricsRecorder())
 	if err != nil {
 		return fmt.Errorf("failed to create redis connection: %w", err)
 	}
@@ -118,12 +127,12 @@ func (b *Builder) BuildStorages() error {
 		return fmt.Errorf("failed to init transaction manager: %w", err)
 	}
 
-	b.storages.client, err = clientDB.NewStorage(b.storages.dbConn, b.recorder)
+	b.storages.client, err = clientDB.NewStorage(b.storages.dbConn, b.getMetricsRecorder())
 	if err != nil {
 		return fmt.Errorf("failed to init client storage: %w", err)
 	}
 
-	b.storages.auth, err = authDB.NewStorage(b.storages.dbConn, b.storages.trMgr, b.storages.recorder)
+	b.storages.auth, err = authDB.NewStorage(b.storages.dbConn, b.storages.trMgr, b.getMetricsRecorder())
 	if err != nil {
 		return fmt.Errorf("failed to init auth storage: %w", err)
 	}
@@ -133,22 +142,22 @@ func (b *Builder) BuildStorages() error {
 		return fmt.Errorf("failed to init session storage: %w", err)
 	}
 
-	b.storages.device, err = deviceDB.NewStorage(b.storages.dbConn, b.storages.trMgr, b.storages.recorder)
+	b.storages.device, err = deviceDB.NewStorage(b.storages.dbConn, b.storages.trMgr, b.getMetricsRecorder())
 	if err != nil {
 		return fmt.Errorf("failed to init user device storage: %w", err)
 	}
 
-	b.storages.user, err = userDB.NewStorage(b.storages.dbConn, b.storages.trMgr, b.storages.recorder)
+	b.storages.user, err = userDB.NewStorage(b.storages.dbConn, b.storages.trMgr, b.getMetricsRecorder())
 	if err != nil {
 		return fmt.Errorf("failed to init user storage: %w", err)
 	}
 
-	b.storages.verification, err = verificationDB.NewStorage(b.storages.dbConn, b.storages.trMgr, b.storages.recorder)
+	b.storages.verification, err = verificationDB.NewStorage(b.storages.dbConn, b.storages.trMgr, b.getMetricsRecorder())
 	if err != nil {
 		return fmt.Errorf("failed to init verification storage: %w", err)
 	}
 
-	b.storages.key, err = newKeyStorage(b.cfg.KeyStorage, b.recorder)
+	b.storages.key, err = newKeyStorage(b.cfg.KeyStorage, b.getMetricsRecorder())
 	if err != nil {
 		return fmt.Errorf("failed to init key storage: %w", err)
 	}
@@ -162,10 +171,7 @@ func (b *Builder) BuildServices() error {
 
 	b.services.clientValidator = clientvalidator.NewService(b.storages.client)
 
-	var tokenMetrics *business.TokenMetrics
-	if b.metricsRegistry != nil && b.metricsRegistry.Business != nil {
-		tokenMetrics = b.metricsRegistry.Business.Token
-	}
+	tokenMetrics := b.metricsRegistry.Business.Token
 
 	b.services.token, err = newTokenService(
 		b.cfg.JWT,
@@ -177,10 +183,7 @@ func (b *Builder) BuildServices() error {
 		return fmt.Errorf("failed to init token service: %w", err)
 	}
 
-	var sessionMetrics *business.SessionMetrics
-	if b.metricsRegistry != nil && b.metricsRegistry.Business != nil {
-		sessionMetrics = b.metricsRegistry.Business.Session
-	}
+	sessionMetrics := b.metricsRegistry.Business.Session
 
 	b.services.session = session.NewService(
 		b.services.token,
@@ -202,10 +205,7 @@ func (b *Builder) BuildServices() error {
 func (b *Builder) BuildUsecases() {
 	b.usecases = &Usecases{}
 
-	var clientMetrics *business.ClientMetrics
-	if b.metricsRegistry != nil && b.metricsRegistry.Business != nil {
-		clientMetrics = b.metricsRegistry.Business.Client
-	}
+	clientMetrics := b.metricsRegistry.Business.Client
 
 	b.usecases.client = client.NewUsecase(
 		b.logger,
@@ -214,12 +214,8 @@ func (b *Builder) BuildUsecases() {
 		clientMetrics,
 	)
 
-	var authMetrics *business.AuthMetrics
-	var authTokenMetrics *business.TokenMetrics
-	if b.metricsRegistry != nil && b.metricsRegistry.Business != nil {
-		authMetrics = b.metricsRegistry.Business.Auth
-		authTokenMetrics = b.metricsRegistry.Business.Token
-	}
+	authMetrics := b.metricsRegistry.Business.Auth
+	authTokenMetrics := b.metricsRegistry.Business.Token
 
 	b.usecases.auth = auth.NewUsecase(
 		b.logger,
@@ -234,10 +230,7 @@ func (b *Builder) BuildUsecases() {
 		authTokenMetrics,
 	)
 
-	var userMetrics *business.UserMetrics
-	if b.metricsRegistry != nil && b.metricsRegistry.Business != nil {
-		userMetrics = b.metricsRegistry.Business.User
-	}
+	userMetrics := b.metricsRegistry.Business.User
 
 	b.usecases.user = user.NewUsecase(
 		b.logger,
@@ -253,10 +246,7 @@ func (b *Builder) BuildUsecases() {
 }
 
 func (b *Builder) BuildSSOService() {
-	var grpcMetrics *infrastructure.GRPCServerMetrics
-	if b.metricsRegistry != nil && b.metricsRegistry.Infrastructure != nil {
-		grpcMetrics = b.metricsRegistry.Infrastructure.GRPCServer
-	}
+	grpcMetrics := b.metricsRegistry.Infrastructure.GRPCServer
 
 	b.ssoService = NewSSOService(
 		b.logger,
@@ -289,19 +279,12 @@ func (b *Builder) Build() (*App, error) {
 	jwksAdapter := jwksadapter.NewJWKSAdapter(b.usecases.auth)
 	jwksProvider := jwtauth.NewLocalJWKSProvider(jwksAdapter)
 
-	var jwtTokenMetrics *business.TokenMetrics
-	if b.metricsRegistry != nil && b.metricsRegistry.Business != nil {
-		jwtTokenMetrics = b.metricsRegistry.Business.Token
-	}
+	jwtTokenMetrics := b.metricsRegistry.Business.Token
 
-	if jwtTokenMetrics != nil {
-		b.managers.jwt = jwtauth.NewManager(
-			jwksProvider,
-			jwtauth.WithMetricsRecorder(jwtTokenMetrics),
-		)
-	} else {
-		b.managers.jwt = jwtauth.NewManager(jwksProvider)
-	}
+	b.managers.jwt = jwtauth.NewManager(
+		jwksProvider,
+		jwtauth.WithMetricsRecorder(jwtTokenMetrics),
+	)
 
 	b.BuildSSOService()
 

@@ -28,9 +28,6 @@ func NewStorage(dbConn *storage.DBConnection, recorder metrics.MetricsRecorder) 
 		return nil, err
 	}
 
-	if recorder == nil {
-		recorder = &metrics.NoOpRecorder{}
-	}
 
 	return newClientStorageDecorator(dbConn.Type.String(), baseStorage, recorder), nil
 }

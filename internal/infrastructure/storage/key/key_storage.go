@@ -22,10 +22,6 @@ func NewStorage(ctx context.Context, cfg Config, recorder metrics.MetricsRecorde
 		// Local storage - no metrics neededи
 		return newLocalKeyStorage(cfg)
 	case StorageTypeS3:
-		if recorder == nil {
-			recorder = &metrics.NoOpRecorder{}
-		}
-
 		return newS3KeyStorage(ctx, cfg, recorder)
 	default:
 		return nil, fmt.Errorf("unknown key storage type: %s", cfg.Type)
