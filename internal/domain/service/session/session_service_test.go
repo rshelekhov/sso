@@ -1,4 +1,4 @@
-package session
+package session_test
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/domain/service/session"
 	"github.com/rshelekhov/sso/internal/domain/service/session/mocks"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/stretchr/testify/assert"
@@ -90,7 +91,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(accessTokenStr, nil)
 
-				jwtManager.EXPECT().NewRefreshToken().
+				jwtManager.EXPECT().NewRefreshToken(sessionReqData.ClientID).
 					Once().
 					Return(refreshTokenStr)
 
@@ -145,7 +146,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(accessTokenStr, nil)
 
-				jwtManager.EXPECT().NewRefreshToken().
+				jwtManager.EXPECT().NewRefreshToken(sessionReqData.ClientID).
 					Once().
 					Return(refreshTokenStr)
 
@@ -296,7 +297,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(accessTokenStr, nil)
 
-				jwtManager.EXPECT().NewRefreshToken().
+				jwtManager.EXPECT().NewRefreshToken(sessionReqData.ClientID).
 					Once().
 					Return(refreshTokenStr)
 
@@ -338,7 +339,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 					Once().
 					Return(accessTokenStr, nil)
 
-				jwtManager.EXPECT().NewRefreshToken().
+				jwtManager.EXPECT().NewRefreshToken(sessionReqData.ClientID).
 					Once().
 					Return(refreshTokenStr)
 
@@ -397,7 +398,7 @@ func TestSessionService_CreateSession(t *testing.T) {
 
 			tt.mockBehavior(jwtManager, sessionStorage, deviceStorage)
 
-			service := NewService(jwtManager, sessionStorage, deviceStorage)
+			service := session.NewService(jwtManager, sessionStorage, deviceStorage, &mocks.NoOpMetricsRecorder{})
 
 			tokens, err := service.CreateSession(ctx, tt.reqData)
 
@@ -491,7 +492,7 @@ func TestSessionService_GetSessionByRefreshToken(t *testing.T) {
 			sessionStorage := mocks.NewSessionStorage(t)
 			tt.mockBehavior(sessionStorage)
 
-			service := NewService(nil, sessionStorage, nil)
+			service := session.NewService(nil, sessionStorage, nil, &mocks.NoOpMetricsRecorder{})
 
 			session, err := service.GetSessionByRefreshToken(ctx, tt.refreshToken)
 
@@ -567,7 +568,7 @@ func TestSessionService_GetUserDeviceID(t *testing.T) {
 			deviceStorage := mocks.NewDeviceStorage(t)
 			tt.mockBehavior(deviceStorage)
 
-			service := NewService(nil, nil, deviceStorage)
+			service := session.NewService(nil, nil, deviceStorage, &mocks.NoOpMetricsRecorder{})
 
 			deviceID, err := service.GetUserDeviceID(ctx, tt.reqData.UserID, tt.reqData.UserDevice.UserAgent)
 
@@ -624,7 +625,7 @@ func TestSessionService_DeleteRefreshToken(t *testing.T) {
 			sessionStorage := mocks.NewSessionStorage(t)
 			tt.mockBehavior(sessionStorage)
 
-			service := NewService(nil, sessionStorage, nil)
+			service := session.NewService(nil, sessionStorage, nil, &mocks.NoOpMetricsRecorder{})
 
 			err := service.DeleteRefreshToken(ctx, tt.refreshToken)
 
@@ -660,7 +661,7 @@ func TestSessionService_DeleteSession(t *testing.T) {
 					DeviceID: sessionReqData.DeviceID,
 				}).
 					Once().
-					Return(nil)
+					Return(entity.SessionMeta{}, nil)
 			},
 			expectedError: nil,
 		},
@@ -673,7 +674,7 @@ func TestSessionService_DeleteSession(t *testing.T) {
 					DeviceID: sessionReqData.DeviceID,
 				}).
 					Once().
-					Return(errors.New("failed to delete session"))
+					Return(entity.SessionMeta{}, errors.New("failed to delete session"))
 			},
 			expectedError: errors.New("failed to delete session"),
 		},
@@ -684,7 +685,7 @@ func TestSessionService_DeleteSession(t *testing.T) {
 			sessionStorage := mocks.NewSessionStorage(t)
 			tt.mockBehavior(sessionStorage)
 
-			service := NewService(nil, sessionStorage, nil)
+			service := session.NewService(nil, sessionStorage, nil, &mocks.NoOpMetricsRecorder{})
 
 			err := service.DeleteSession(ctx, tt.reqData)
 
@@ -716,7 +717,7 @@ func TestSessionService_DeleteUserSessions(t *testing.T) {
 			mockBehavior: func(sessionStorage *mocks.SessionStorage) {
 				sessionStorage.EXPECT().DeleteAllSessions(ctx, user.ID).
 					Once().
-					Return(nil)
+					Return([]entity.SessionMeta{}, nil)
 			},
 			expectedError: nil,
 		},
@@ -726,7 +727,7 @@ func TestSessionService_DeleteUserSessions(t *testing.T) {
 			mockBehavior: func(sessionStorage *mocks.SessionStorage) {
 				sessionStorage.EXPECT().DeleteAllSessions(ctx, user.ID).
 					Once().
-					Return(errors.New("failed to delete user sessions"))
+					Return([]entity.SessionMeta{}, errors.New("failed to delete user sessions"))
 			},
 			expectedError: errors.New("failed to delete user sessions"),
 		},
@@ -737,7 +738,7 @@ func TestSessionService_DeleteUserSessions(t *testing.T) {
 			sessionStorage := mocks.NewSessionStorage(t)
 			tt.mockBehavior(sessionStorage)
 
-			service := NewService(nil, sessionStorage, nil)
+			service := session.NewService(nil, sessionStorage, nil, &mocks.NoOpMetricsRecorder{})
 
 			err := service.DeleteUserSessions(ctx, tt.user)
 
@@ -769,7 +770,7 @@ func TestSessionService_DeleteUserDevices(t *testing.T) {
 			mockBehavior: func(deviceStorage *mocks.DeviceStorage) {
 				deviceStorage.EXPECT().DeleteAllUserDevices(ctx, user.ID).
 					Once().
-					Return(nil)
+					Return(1, nil)
 			},
 			expectedError: nil,
 		},
@@ -779,7 +780,7 @@ func TestSessionService_DeleteUserDevices(t *testing.T) {
 			mockBehavior: func(deviceStorage *mocks.DeviceStorage) {
 				deviceStorage.EXPECT().DeleteAllUserDevices(ctx, user.ID).
 					Once().
-					Return(errors.New("failed to delete user devices"))
+					Return(0, errors.New("failed to delete user devices"))
 			},
 			expectedError: errors.New("failed to delete user devices"),
 		},
@@ -790,7 +791,7 @@ func TestSessionService_DeleteUserDevices(t *testing.T) {
 			deviceStorage := mocks.NewDeviceStorage(t)
 			tt.mockBehavior(deviceStorage)
 
-			service := NewService(nil, nil, deviceStorage)
+			service := session.NewService(nil, nil, deviceStorage, &mocks.NoOpMetricsRecorder{})
 
 			err := service.DeleteUserDevices(ctx, tt.user)
 

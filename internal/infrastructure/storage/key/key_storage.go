@@ -8,6 +8,7 @@ import (
 	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key/fs"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key/s3"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
 var (
@@ -15,12 +16,13 @@ var (
 	ErrS3KeyStorageSettingsEmpty    = errors.New("s3 key storage settings are empty")
 )
 
-func NewStorage(ctx context.Context, cfg Config) (token.KeyStorage, error) {
+func NewStorage(ctx context.Context, cfg Config, recorder metrics.MetricsRecorder) (token.KeyStorage, error) {
 	switch cfg.Type {
 	case StorageTypeLocal:
+		// Local storage - no metrics neededи
 		return newLocalKeyStorage(cfg)
 	case StorageTypeS3:
-		return newS3KeyStorage(ctx, cfg)
+		return newS3KeyStorage(ctx, cfg, recorder)
 	default:
 		return nil, fmt.Errorf("unknown key storage type: %s", cfg.Type)
 	}
@@ -38,7 +40,7 @@ func newLocalKeyStorage(cfg Config) (token.KeyStorage, error) {
 	return fs.NewKeyStorage(localConfig)
 }
 
-func newS3KeyStorage(ctx context.Context, cfg Config) (token.KeyStorage, error) {
+func newS3KeyStorage(ctx context.Context, cfg Config, recorder metrics.MetricsRecorder) (token.KeyStorage, error) {
 	if cfg.S3 == nil {
 		return nil, ErrS3KeyStorageSettingsEmpty
 	}
@@ -54,7 +56,7 @@ func newS3KeyStorage(ctx context.Context, cfg Config) (token.KeyStorage, error) 
 		DisableSSL:     cfg.S3.DisableSSL,
 	}
 
-	return s3.NewKeyStorage(ctx, s3Config)
+	return s3.NewKeyStorage(ctx, s3Config, recorder)
 }
 
 type StorageType string

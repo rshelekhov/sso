@@ -1,11 +1,13 @@
 package token
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"time"
 
 	"github.com/rshelekhov/sso/internal/domain"
 )
@@ -13,10 +15,15 @@ import (
 func (s *Service) GenerateAndSavePrivateKey(clientID string) error {
 	const method = "service.token.GenerateAndSavePrivateKey"
 
+	ctx := context.Background()
+	start := time.Now()
+
 	privateKeyPEM, err := generatePrivateKeyPEM()
 	if err != nil {
 		return fmt.Errorf("%s: %w", method, err)
 	}
+
+	s.metrics.RecordPrivateKeyPEMGenerationDuration(ctx, clientID, time.Since(start).Seconds())
 
 	if err = s.keyStorage.SavePrivateKey(clientID, privateKeyPEM); err != nil {
 		return fmt.Errorf("%s: %w", method, err)

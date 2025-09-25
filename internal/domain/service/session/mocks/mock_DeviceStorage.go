@@ -23,21 +23,31 @@ func (_m *DeviceStorage) EXPECT() *DeviceStorage_Expecter {
 }
 
 // DeleteAllUserDevices provides a mock function with given fields: ctx, userID
-func (_m *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID string) error {
+func (_m *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID string) (int, error) {
 	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteAllUserDevices")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+	var r0 int
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (int, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) int); ok {
 		r0 = rf(ctx, userID)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(int)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // DeviceStorage_DeleteAllUserDevices_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteAllUserDevices'
@@ -59,12 +69,12 @@ func (_c *DeviceStorage_DeleteAllUserDevices_Call) Run(run func(ctx context.Cont
 	return _c
 }
 
-func (_c *DeviceStorage_DeleteAllUserDevices_Call) Return(_a0 error) *DeviceStorage_DeleteAllUserDevices_Call {
-	_c.Call.Return(_a0)
+func (_c *DeviceStorage_DeleteAllUserDevices_Call) Return(_a0 int, _a1 error) *DeviceStorage_DeleteAllUserDevices_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *DeviceStorage_DeleteAllUserDevices_Call) RunAndReturn(run func(context.Context, string) error) *DeviceStorage_DeleteAllUserDevices_Call {
+func (_c *DeviceStorage_DeleteAllUserDevices_Call) RunAndReturn(run func(context.Context, string) (int, error)) *DeviceStorage_DeleteAllUserDevices_Call {
 	_c.Call.Return(run)
 	return _c
 }

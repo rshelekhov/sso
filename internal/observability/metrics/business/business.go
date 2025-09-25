@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/noop"
 )
 
 type Metrics struct {
@@ -49,4 +50,25 @@ func NewMetrics(meter metric.Meter) (*Metrics, error) {
 		Session: session,
 		Token:   token,
 	}, nil
+}
+
+// NewNoOpMetrics creates a metrics instance with all NoOp implementations
+func NewNoOpMetrics() *Metrics {
+	// Use OpenTelemetry's NoOp meter to create proper NoOp instruments
+	noopMeter := noop.NewMeterProvider().Meter("")
+
+	// Create metrics with NoOp instruments - these will not panic when called
+	auth, _ := newAuthMetrics(noopMeter)
+	client, _ := newClientMetrics(noopMeter)
+	user, _ := newUserMetrics(noopMeter)
+	session, _ := newSessionMetrics(noopMeter)
+	token, _ := newTokenMetrics(noopMeter)
+
+	return &Metrics{
+		Auth:    auth,
+		Client:  client,
+		User:    user,
+		Session: session,
+		Token:   token,
+	}
 }

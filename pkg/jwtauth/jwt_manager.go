@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/pkg/jwtauth/cache"
@@ -29,6 +30,9 @@ type manager struct {
 	// App ID for verification tokens
 	// This is optional field is using in a services, authenticated by SSO
 	clientID string
+
+	// Recorder for token validation metrics
+	metrics MetricsRecorder
 }
 
 func NewManager(jwksProvider JWKSProvider, opts ...Option) Manager {
@@ -49,6 +53,12 @@ type Option func(m *manager)
 func WithClientID(clientID string) Option {
 	return func(m *manager) {
 		m.clientID = clientID
+	}
+}
+
+func WithMetricsRecorder(metrics MetricsRecorder) Option {
+	return func(m *manager) {
+		m.metrics = metrics
 	}
 }
 
@@ -209,16 +219,63 @@ func (m *manager) getClaimsFromToken(ctx context.Context, clientID string) (map[
 // verifyToken checks the validity of the provided access token.
 // It parses the token, verifies the signature, and ensures it is not expired.
 func (m *manager) verifyToken(clientID, token string) error {
+	ctx := context.Background()
+	start := time.Now()
+
 	parsedToken, err := m.ParseToken(clientID, token)
 	if err != nil {
+		switch {
+		case errors.Is(err, jwt.ErrTokenExpired):
+			m.recordTokenExpired(ctx, clientID)
+			return Errors(err)
+		case errors.Is(err, jwt.ErrSignatureInvalid):
+			m.recordTokenInvalid(ctx, clientID)
+			return Errors(err)
+		default:
+			m.recordTokenMalformed(ctx, clientID)
+		}
 		return Errors(err)
 	}
 
 	if !parsedToken.Valid {
+		m.recordTokenInvalid(ctx, clientID)
 		return ErrInvalidToken
 	}
 
+	m.recordTokenValidationDuration(ctx, clientID, time.Since(start).Seconds())
+	m.recordTokenSuccess(ctx, clientID)
+
 	return nil
+}
+
+func (m *manager) recordTokenSuccess(ctx context.Context, clientID string) {
+	if m.metrics != nil {
+		m.metrics.RecordTokenValidationSuccess(ctx, clientID)
+	}
+}
+
+func (m *manager) recordTokenExpired(ctx context.Context, clientID string) {
+	if m.metrics != nil {
+		m.metrics.RecordTokenValidationExpired(ctx, clientID)
+	}
+}
+
+func (m *manager) recordTokenInvalid(ctx context.Context, clientID string) {
+	if m.metrics != nil {
+		m.metrics.RecordTokenValidationInvalid(ctx, clientID)
+	}
+}
+
+func (m *manager) recordTokenMalformed(ctx context.Context, clientID string) {
+	if m.metrics != nil {
+		m.metrics.RecordTokenValidationMalformed(ctx, clientID)
+	}
+}
+
+func (m *manager) recordTokenValidationDuration(ctx context.Context, clientID string, duration float64) {
+	if m.metrics != nil {
+		m.metrics.RecordTokenValidationDuration(ctx, clientID, duration)
+	}
 }
 
 func Errors(err error) error {

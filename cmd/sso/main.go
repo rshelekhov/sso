@@ -14,11 +14,17 @@ import (
 	"github.com/rshelekhov/sso/internal/app"
 	appConfig "github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/settings"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
-func initObservability(cfg settings.App) (*slog.Logger, func(), error) {
-	if !cfg.EnableMetrics {
-		return slog.Default().With(slog.String("env", cfg.Env)), func() {}, nil
+func initObservability(cfg settings.App) (*observability.Observability, func(), error) {
+	// Initialize observability if any telemetry features are enabled
+	if !cfg.EnableMetrics && !cfg.EnableTracing {
+		// Create minimal observability with just logger when no telemetry is needed
+		obs := &observability.Observability{
+			Logger: slog.Default().With(slog.String("env", cfg.Env)),
+		}
+		return obs, func() {}, nil
 	}
 
 	obsCfg, err := observability.NewConfig(
@@ -59,23 +65,39 @@ func initObservability(cfg settings.App) (*slog.Logger, func(), error) {
 		}
 	}
 
-	return obs.Logger.With(slog.String("env", cfg.Env)), shutdownFunc, nil
+	obs.Logger = obs.Logger.With(slog.String("env", cfg.Env))
+
+	return obs, shutdownFunc, nil
 }
 
 func main() {
 	cfg := config.MustLoad[appConfig.ServerSettings]()
 
-	log, shutdownObs, err := initObservability(cfg.App)
+	obs, shutdownObs, err := initObservability(cfg.App)
 	if err != nil {
 		slog.Error("failed to initialize observability", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
-	defer shutdownObs()
+
+	log := obs.Logger
 
 	log.Info("starting application")
 	log.Debug("logger debug mode enabled")
 
-	application, err := app.New(log, cfg)
+	var registry *metrics.Registry
+	if obs.MeterProvider != nil {
+		meter := obs.MeterProvider.Meter(cfg.App.ServiceName)
+		registry, err = metrics.NewRegistry(meter)
+		if err != nil {
+			log.Error("failed to initialize metrics", slog.String("error", err.Error()))
+			shutdownObs()
+			os.Exit(1)
+		}
+	}
+
+	defer shutdownObs()
+
+	application, err := app.New(log, cfg, registry)
 	if err != nil {
 		log.Error("failed to initialize application", slog.String("error", err.Error()))
 		return

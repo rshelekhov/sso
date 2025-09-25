@@ -9,9 +9,11 @@ import (
 type (
 	Session struct {
 		ID            string
+		ClientID      string
 		UserID        string
 		DeviceID      string
 		RefreshToken  string
+		CreatedAt     time.Time
 		LastVisitedAt time.Time
 		ExpiresAt     time.Time
 	}
@@ -21,6 +23,14 @@ type (
 		DeviceID   string
 		ClientID   string
 		UserDevice UserDeviceRequestData
+	}
+
+	SessionMeta struct {
+		ClientID  string
+		UserID    string
+		DeviceID  string
+		CreatedAt time.Time
+		ExpiresAt time.Time
 	}
 
 	// SessionTokens uses for creating user sessions
@@ -43,9 +53,11 @@ func NewSession(
 ) Session {
 	return Session{
 		ID:            ksuid.New().String(),
+		ClientID:      reqData.ClientID,
 		UserID:        reqData.UserID,
 		DeviceID:      reqData.DeviceID,
 		RefreshToken:  refreshToken,
+		CreatedAt:     currentTime,
 		LastVisitedAt: currentTime,
 		ExpiresAt:     currentTime.Add(refreshTokenTTL),
 	}

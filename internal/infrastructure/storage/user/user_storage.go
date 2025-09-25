@@ -9,6 +9,7 @@ import (
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
 	mongoStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/user/mongo"
 	pgStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/user/postgres"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
 var (
@@ -16,7 +17,17 @@ var (
 	ErrPostgresUserStorageSettingsEmpty = errors.New("postgres user storage settings are empty")
 )
 
-func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (userdata.Storage, error) {
+func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager, recorder metrics.MetricsRecorder) (userdata.Storage, error) {
+	baseStorage, err := newBaseStorage(dbConn, txMgr)
+	if err != nil {
+		return nil, err
+	}
+
+
+	return newUserStorageDecorator(dbConn.Type.String(), baseStorage, recorder), nil
+}
+
+func newBaseStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (userdata.Storage, error) {
 	switch dbConn.Type {
 	case storage.TypeMongo:
 		return newMongoStorage(dbConn)

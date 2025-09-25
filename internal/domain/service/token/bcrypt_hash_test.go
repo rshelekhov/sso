@@ -8,7 +8,7 @@ import (
 
 func TestTokenService_PasswordHashBcrypt_HappyPath(t *testing.T) {
 	pass := "test-password"
-	params := defaultPasswordHashBcryptParams
+	params := DefaultPasswordHashBcryptParams
 	pepper := []byte("pepper")
 
 	hash, err := passwordHashBcrypt(pass, params, pepper)
@@ -18,7 +18,7 @@ func TestTokenService_PasswordHashBcrypt_HappyPath(t *testing.T) {
 
 func TestTokenService_PasswordMatchBcrypt_HappyPath(t *testing.T) {
 	pass := "test-password"
-	params := defaultPasswordHashBcryptParams
+	params := DefaultPasswordHashBcryptParams
 	pepper := []byte("pepper")
 
 	hash, err := passwordHashBcrypt(pass, params, pepper)
@@ -31,7 +31,7 @@ func TestTokenService_PasswordMatchBcrypt_HappyPath(t *testing.T) {
 
 func TestTokenService_PasswordMatchBcrypt_IncorrectPassword(t *testing.T) {
 	pass := "test-password"
-	params := defaultPasswordHashBcryptParams
+	params := DefaultPasswordHashBcryptParams
 	pepper := []byte("pepper")
 
 	hash, err := passwordHashBcrypt(pass, params, pepper)

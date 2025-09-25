@@ -9,6 +9,7 @@ import (
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	mongoStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/client/mongo"
 	pgStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/client/postgres"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
 var (
@@ -21,7 +22,17 @@ type Storage interface {
 	client.Storage
 }
 
-func NewStorage(dbConn *storage.DBConnection) (Storage, error) {
+func NewStorage(dbConn *storage.DBConnection, recorder metrics.MetricsRecorder) (Storage, error) {
+	baseStorage, err := newBaseStorage(dbConn)
+	if err != nil {
+		return nil, err
+	}
+
+
+	return newClientStorageDecorator(dbConn.Type.String(), baseStorage, recorder), nil
+}
+
+func newBaseStorage(dbConn *storage.DBConnection) (Storage, error) {
 	switch dbConn.Type {
 	case storage.TypeMongo:
 		return newMongoStorage(dbConn)

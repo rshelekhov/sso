@@ -5,8 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"time"
 
 	s3lib "github.com/rshelekhov/golib/db/s3"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -16,9 +18,10 @@ type KeyStorage struct {
 	Client         *s3.S3
 	Bucket         string
 	PrivateKeyPath string
+	recorder       metrics.MetricsRecorder
 }
 
-func NewKeyStorage(ctx context.Context, cfg Config) (*KeyStorage, error) {
+func NewKeyStorage(ctx context.Context, cfg Config, recorder metrics.MetricsRecorder) (*KeyStorage, error) {
 	const op = "storage.key.s3.NewKeyStorage"
 
 	var conn s3lib.ConnectionAPI
@@ -60,6 +63,7 @@ func NewKeyStorage(ctx context.Context, cfg Config) (*KeyStorage, error) {
 		Client:         conn.Client(),
 		Bucket:         cfg.Bucket,
 		PrivateKeyPath: cfg.PrivateKeyPath,
+		recorder:       recorder,
 	}, nil
 }
 
@@ -79,6 +83,8 @@ const privateKeyFilePathFormat = "%s/app_%s_private.pem"
 func (s *KeyStorage) SavePrivateKey(clientID string, privateKeyPEM []byte) error {
 	const method = "storage.key.s3.SavePrivateKey"
 
+	start := time.Now()
+
 	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, clientID)
 
 	_, err := s.Client.PutObject(&s3.PutObjectInput{
@@ -91,11 +97,15 @@ func (s *KeyStorage) SavePrivateKey(clientID string, privateKeyPEM []byte) error
 		return fmt.Errorf("%s: failed to save private key to S3: %w", method, err)
 	}
 
+	s.recorder.RecordS3Operation(method, time.Since(start), err)
+
 	return nil
 }
 
 func (s *KeyStorage) GetPrivateKey(clientID string) ([]byte, error) {
 	const method = "storage.key.s3.GetPrivateKey"
+
+	start := time.Now()
 
 	privateKeyFilePath := fmt.Sprintf(privateKeyFilePathFormat, s.PrivateKeyPath, clientID)
 
@@ -112,6 +122,8 @@ func (s *KeyStorage) GetPrivateKey(clientID string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s:failed to read private key data: %w", method, err)
 	}
+
+	s.recorder.RecordS3Operation(method, time.Since(start), err)
 
 	return privateKeyBytes, nil
 }

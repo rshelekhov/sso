@@ -16,9 +16,11 @@ import (
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/domain/usecase/client"
+	clientMocks "github.com/rshelekhov/sso/internal/domain/usecase/client/mocks"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	appDB "github.com/rshelekhov/sso/internal/infrastructure/storage/client"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/key"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
 func main() {
@@ -42,17 +44,20 @@ func main() {
 		panic("app name is required")
 	}
 
-	dbConn, err := newDBConnection(cfg.Storage)
+	// Use no-op recorder for CLI utility to avoid metrics overhead
+	recorder := &metrics.NoOpRecorder{}
+
+	dbConn, err := newDBConnection(cfg.Storage, recorder)
 	if err != nil {
 		log.Error("failed to init database connection", slog.Any("error", err))
 	}
 
-	appStorage, err := appDB.NewStorage(dbConn)
+	appStorage, err := appDB.NewStorage(dbConn, recorder)
 	if err != nil {
 		log.Error("failed to init app storage", slog.Any("error", err))
 	}
 
-	keyStorage, err := newKeyStorage(cfg.KeyStorage)
+	keyStorage, err := newKeyStorage(cfg.KeyStorage, recorder)
 	if err != nil {
 		log.Error("failed to init key storage", slog.Any("error", err))
 	}
@@ -62,7 +67,7 @@ func main() {
 		log.Error("failed to init token service", slog.Any("error", err))
 	}
 
-	clientUsecase := client.NewUsecase(log, tokenService, appStorage)
+	clientUsecase := client.NewUsecase(log, tokenService, appStorage, &clientMocks.NoOpMetricsRecorder{})
 
 	err = clientUsecase.RegisterClient(context.Background(), appName)
 	if err != nil {
@@ -70,11 +75,11 @@ func main() {
 	}
 }
 
-func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
+func newDBConnection(cfg settings.Storage, recorder metrics.MetricsRecorder) (*storage.DBConnection, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	dbConnection, err := storage.NewDBConnection(ctx, cfg)
+	dbConnection, err := storage.NewDBConnection(ctx, cfg, recorder)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +87,7 @@ func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
 	return dbConnection, nil
 }
 
-func newKeyStorage(cfg settings.KeyStorage) (token.KeyStorage, error) {
+func newKeyStorage(cfg settings.KeyStorage, recorder metrics.MetricsRecorder) (token.KeyStorage, error) {
 	keyStorageConfig, err := settings.ToKeyStorageConfig(cfg)
 	if err != nil {
 		return nil, err
@@ -91,7 +96,7 @@ func newKeyStorage(cfg settings.KeyStorage) (token.KeyStorage, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	keyStorage, err := key.NewStorage(ctx, keyStorageConfig)
+	keyStorage, err := key.NewStorage(ctx, keyStorageConfig, recorder)
 	if err != nil {
 		return nil, err
 	}
@@ -115,6 +120,7 @@ func newTokenService(jwt settings.JWT, passwordHash settings.PasswordHashParams,
 		PasswordHashParams: passwordHashConfig,
 	},
 		keyStorage,
+		nil,
 	)
 
 	return tokenService, nil

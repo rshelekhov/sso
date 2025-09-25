@@ -18,7 +18,7 @@ func (s *Service) HashPassword(password string) (string, error) {
 	params := s.passwordHashParams
 
 	if s.passwordHashParams.Type == PasswordHashDefault {
-		params = defaultPasswordHashParams
+		params = DefaultPasswordHashParams
 	}
 
 	salt, err := generateSalt(params.SaltLength)

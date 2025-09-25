@@ -9,6 +9,7 @@ import (
 	mongoStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/device/mongo"
 	pgStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/device/postgres"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
 var (
@@ -16,7 +17,17 @@ var (
 	ErrPostgresDeviceStorageSettingsEmpty = errors.New("postgres device storage settings are empty")
 )
 
-func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (session.DeviceStorage, error) {
+func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager, recorder metrics.MetricsRecorder) (session.DeviceStorage, error) {
+	baseStorage, err := newBaseStorage(dbConn, txMgr)
+	if err != nil {
+		return nil, err
+	}
+
+
+	return newDeviceStorageDecorator(dbConn.Type.String(), baseStorage, recorder), nil
+}
+
+func newBaseStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (session.DeviceStorage, error) {
 	switch dbConn.Type {
 	case storage.TypeMongo:
 		return newMongoStorage(dbConn)

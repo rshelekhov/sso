@@ -10,7 +10,7 @@ import (
 
 func TestTokenService_PasswordHashArgon2_HappyPath(t *testing.T) {
 	pass := "test-password"
-	params := defaultPasswordHashArgon2Params
+	params := DefaultPasswordHashArgon2Params
 	salt := []byte("salt")
 	pepper := []byte("pepper")
 
@@ -27,7 +27,7 @@ func TestTokenService_PasswordHashArgon2_HappyPath(t *testing.T) {
 
 func TestTokenService_PasswordMatchArgon2_HappyPath(t *testing.T) {
 	pass := "test-password"
-	params := defaultPasswordHashArgon2Params
+	params := DefaultPasswordHashArgon2Params
 	salt := []byte("salt")
 	pepper := []byte("pepper")
 
@@ -40,7 +40,7 @@ func TestTokenService_PasswordMatchArgon2_HappyPath(t *testing.T) {
 }
 
 func TestTokenService_PasswordMatchArgon2_IncorrectPassword(t *testing.T) {
-	params := defaultPasswordHashArgon2Params
+	params := DefaultPasswordHashArgon2Params
 	salt := []byte("salt")
 	pepper := []byte("pepper")
 
@@ -52,7 +52,7 @@ func TestTokenService_PasswordMatchArgon2_IncorrectPassword(t *testing.T) {
 }
 
 func TestTokenService_PasswordMatchArgon2_EmptyPassword(t *testing.T) {
-	params := defaultPasswordHashArgon2Params
+	params := DefaultPasswordHashArgon2Params
 	salt := []byte("salt")
 	pepper := []byte("pepper")
 

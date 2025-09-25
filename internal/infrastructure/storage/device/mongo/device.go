@@ -111,7 +111,7 @@ func (s *DeviceStorage) UpdateLastVisitedAt(ctx context.Context, session entity.
 	return nil
 }
 
-func (s *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID string) error {
+func (s *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID string) (int, error) {
 	const method = "storage.session.mongo.DeleteAllUserDevices"
 
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
@@ -123,12 +123,12 @@ func (s *DeviceStorage) DeleteAllUserDevices(ctx context.Context, userID string)
 
 	result, err := s.devicesColl.DeleteMany(ctx, filter)
 	if err != nil {
-		return fmt.Errorf("%s: failed to delete user devices: %w", method, err)
+		return 0, fmt.Errorf("%s: failed to delete user devices: %w", method, err)
 	}
 
 	if result.DeletedCount == 0 {
-		return storage.ErrUserDeviceNotFound
+		return 0, storage.ErrUserDeviceNotFound
 	}
 
-	return nil
+	return int(result.DeletedCount), nil
 }

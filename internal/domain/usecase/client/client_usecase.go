@@ -15,7 +15,7 @@ import (
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 	"github.com/rshelekhov/sso/internal/lib/e"
-
+	"go.opentelemetry.io/otel/attribute"
 	"github.com/segmentio/ksuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -24,6 +24,7 @@ type Client struct {
 	log     *slog.Logger
 	keyMgr  KeyManager
 	storage Storage
+	metrics MetricsRecorder
 }
 
 type (
@@ -42,11 +43,13 @@ func NewUsecase(
 	log *slog.Logger,
 	km KeyManager,
 	storage Storage,
+	metrics MetricsRecorder,
 ) *Client {
 	return &Client{
 		log:     log,
 		keyMgr:  km,
 		storage: storage,
+		metrics: metrics,
 	}
 }
 
@@ -65,6 +68,8 @@ func (u *Client) RegisterClient(ctx context.Context, clientName string) error {
 		tracing.String("client.name", clientName),
 	)
 
+	u.metrics.RecordClientRegistrationsAttempt(ctx)
+
 	clientID := ksuid.New().String()
 
 	log := u.log.With(
@@ -76,10 +81,11 @@ func (u *Client) RegisterClient(ctx context.Context, clientName string) error {
 	ctx, generateAndHashSecretSpan := tracing.StartSpan(ctx, "generate_and_hash_secret")
 	secretHash, err := u.generateAndHashSecret(clientName)
 	if err != nil {
-		tracing.RecordError(generateAndHashSecretSpan, err)
+    tracing.RecordError(generateAndHashSecretSpan, err)
 		generateAndHashSecretSpan.End()
-
+    
 		e.LogError(ctx, log, domain.ErrFailedToGenerateSecretHash, err)
+		u.metrics.RecordClientRegistrationsError(ctx, attribute.String("error.type", domain.ErrFailedToGenerateSecretHash.Error()))
 		return domain.ErrFailedToGenerateSecretHash
 	}
 
@@ -98,13 +104,15 @@ func (u *Client) RegisterClient(ctx context.Context, clientName string) error {
 
 	if err = u.storage.RegisterClient(ctx, clientData); err != nil {
 		if errors.Is(err, storage.ErrClientAlreadyExists) {
-			tracing.RecordError(span, err)
+      tracing.RecordError(span, err)
 			e.LogError(ctx, log, domain.ErrClientAlreadyExists, err)
+			u.metrics.RecordClientRegistrationsError(ctx, attribute.String("error.type", domain.ErrClientAlreadyExists.Error()))
 			return domain.ErrClientAlreadyExists
 		}
 
 		tracing.RecordError(span, err)
 		e.LogError(ctx, log, domain.ErrFailedToRegisterClient, err)
+		u.metrics.RecordClientRegistrationsError(ctx, attribute.String("error.type", domain.ErrFailedToRegisterClient.Error()))
 		return domain.ErrFailedToRegisterClient
 	}
 
@@ -119,13 +127,15 @@ func (u *Client) RegisterClient(ctx context.Context, clientName string) error {
 		span.AddEvent("Got error, rolling back client registration")
 		err = u.DeleteClient(ctx, clientData.ID, clientData.Secret)
 		if err != nil {
-			tracing.RecordError(generateAndSavePrivateKeySpan, err)
+      tracing.RecordError(generateAndSavePrivateKeySpan, err)
 			generateAndSavePrivateKeySpan.End()
-
+      
 			e.LogError(ctx, log, domain.ErrFailedToDeleteClient, err)
+			u.metrics.RecordClientRegistrationsError(ctx, attribute.String("error.type", domain.ErrFailedToDeleteClient.Error()))
 			return domain.ErrFailedToDeleteClient
 		}
 
+		u.metrics.RecordClientRegistrationsError(ctx, attribute.String("error.type", domain.ErrFailedToGenerateAndSavePrivateKey.Error()))
 		return domain.ErrFailedToGenerateAndSavePrivateKey
 	}
 
@@ -135,6 +145,8 @@ func (u *Client) RegisterClient(ctx context.Context, clientName string) error {
 		slog.String("client.name", clientName),
 		slog.String("client.id", clientID),
 	)
+
+	u.metrics.RecordClientRegistrationsSuccess(ctx)
 
 	return nil
 }
@@ -150,6 +162,8 @@ func (u *Client) DeleteClient(ctx context.Context, clientID, secretHash string) 
 		slog.String("client.id", clientID),
 	)
 
+	u.metrics.RecordClientDeletionsAttempt(ctx)
+
 	clientData := entity.ClientData{
 		ID:        clientID,
 		Secret:    secretHash,
@@ -158,17 +172,19 @@ func (u *Client) DeleteClient(ctx context.Context, clientID, secretHash string) 
 
 	if err := u.storage.DeleteClient(ctx, clientData); err != nil {
 		if errors.Is(err, storage.ErrClientNotFound) {
-			tracing.RecordError(span, err)
+      tracing.RecordError(span, err)
 			e.LogError(ctx, log, domain.ErrClientNotFound, err)
+			u.metrics.RecordClientDeletionsError(ctx, attribute.String("error.type", domain.ErrClientNotFound.Error()))
 			return domain.ErrClientNotFound
 		}
-
-		tracing.RecordError(span, err)
-		e.LogError(ctx, log, domain.ErrFailedToDeleteClient, err)
+    
+		u.metrics.RecordClientDeletionsError(ctx, attribute.String("error.type", domain.ErrFailedToDeleteClient.Error()))
 		return domain.ErrFailedToDeleteClient
 	}
 
 	log.Info("client deleted")
+
+	u.metrics.RecordClientDeletionsSuccess(ctx)
 
 	return nil
 }

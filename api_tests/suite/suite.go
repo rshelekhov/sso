@@ -3,7 +3,6 @@ package suite
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
 	"testing"
 	"time"
@@ -18,6 +17,7 @@ import (
 	appConfig "github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/config/settings"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -35,7 +35,6 @@ const (
 	//nolint:staticcheck
 	CONFIG_PATH       = "CONFIG_PATH"
 	defaultConfigPath = "../config/config.yaml"
-	grpcHost          = "localhost"
 )
 
 // New creates new test suite
@@ -45,7 +44,9 @@ func New(t *testing.T) (context.Context, *Suite) {
 
 	cfg := mustLoadConfig(configPath())
 
-	ctx, cancelCtx := context.WithTimeout(context.Background(), cfg.GRPCServer.Timeout)
+	// Use longer timeout for tests to handle heavy operations like Argon2 hashing
+	testTimeout := 60 * time.Second
+	ctx, cancelCtx := context.WithTimeout(context.Background(), testTimeout)
 
 	t.Cleanup(func() {
 		t.Helper()
@@ -123,14 +124,20 @@ func configPath() string {
 }
 
 func grpcAddress(cfg *appConfig.ServerSettings) string {
-	return net.JoinHostPort(grpcHost, cfg.GRPCServer.Port)
+	host := os.Getenv("SSO_HOST")
+	if host == "" {
+		host = cfg.GRPCServer.Host + ":" + cfg.GRPCServer.Port
+	}
+	return host
 }
 
 func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	dbConnection, err := storage.NewDBConnection(ctx, cfg)
+	// Use no-op recorder for tests to avoid metrics overhead
+	recorder := &metrics.NoOpRecorder{}
+	dbConnection, err := storage.NewDBConnection(ctx, cfg, recorder)
 	if err != nil {
 		return nil, err
 	}
