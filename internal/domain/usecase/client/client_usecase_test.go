@@ -1,4 +1,4 @@
-package client
+package client_test
 
 import (
 	"context"
@@ -7,15 +7,16 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/domain/usecase/client"
 	"github.com/rshelekhov/sso/internal/domain/usecase/client/mocks"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
-	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogdiscard"
+	"github.com/rshelekhov/sso/internal/lib/logger/slogdiscard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
 func TestClientUsecase_RegisterClient(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	clientName := "test-client"
 
@@ -116,9 +117,9 @@ func TestClientUsecase_RegisterClient(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			app := NewUsecase(log, keyManagerMock, storageMock)
+			app := client.NewUsecase(log, keyManagerMock, storageMock, &mocks.NoOpMetricsRecorder{})
 
-			err := app.RegisterClient(ctx, tt.clientName)
+			err := app.RegisterClient(context.Background(), tt.clientName)
 
 			assert.ErrorIs(t, err, tt.expectedError)
 		})
@@ -126,7 +127,7 @@ func TestClientUsecase_RegisterClient(t *testing.T) {
 }
 
 func TestClientUsecase_DeleteClient(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	clientID := "test-client-id"
 	secretHash := "test-secret-hash"
@@ -175,9 +176,9 @@ func TestClientUsecase_DeleteClient(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			app := NewUsecase(log, nil, storageMock)
+			app := client.NewUsecase(log, nil, storageMock, &mocks.NoOpMetricsRecorder{})
 
-			err := app.DeleteClient(ctx, clientID, secretHash)
+			err := app.DeleteClient(context.Background(), clientID, secretHash)
 
 			assert.ErrorIs(t, err, tt.expectedError)
 		})

@@ -1,0 +1,359 @@
+services:
+  sso:
+    build: .
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      otel-collector:
+        condition: service_healthy
+    environment:
+      CONFIG_PATH: /app/config.yaml
+    volumes:
+      - ./config/config.docker.yaml:/app/config.yaml
+      - ./certs:/src/certs
+    ports:
+      - "44044:44044"
+    labels:
+      - "logging=promtail"
+      - "service=sso"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,logging"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "44044"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    labels:
+      - "logging=promtail"
+      - "service=redis"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,logging"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: sso_user
+      POSTGRES_PASSWORD: sso_password
+      POSTGRES_DB: sso_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    labels:
+      - "logging=promtail"
+      - "service=postgres"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,logging"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sso_user -d sso_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongodata:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  minio:
+    image: minio/minio:RELEASE.2025-06-13T11-33-47Z
+    environment:
+      MINIO_ROOT_USER: minio_user
+      MINIO_ROOT_PASSWORD: minio_password
+    volumes:
+      - miniodata:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server --console-address ":9001" /data
+    labels:
+      - "logging=promtail"
+      - "service=minio"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,logging"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  minio-init:
+    image: alpine:3.19
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./certs:/certs
+      - ./scripts/minio-init.sh:/init.sh
+    command: sh -c "apk add --no-cache curl && wget -O /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc && chmod +x /usr/local/bin/mc && sh /init.sh"
+    restart: "no"
+
+  prometheus:
+    image: prom/prometheus:v2.53.5
+    volumes:
+      - ./telemetry/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  loki:
+    image: grafana/loki:3.4.4
+    volumes:
+      - ./telemetry/loki-config.yaml:/etc/loki/config.yaml
+    ports:
+      - "3100:3100"
+    command: --config.file=/etc/loki/config.yaml
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  promtail:
+    image: grafana/promtail:3.4.4
+    depends_on:
+      loki:
+        condition: service_healthy
+    volumes:
+      - ./telemetry/promtail-config.yaml:/etc/promtail/config.yaml
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "9080:9080"
+    command: --config.file=/etc/promtail/config.yaml
+    user: root
+    labels:
+      - "logging=promtail"
+      - "service=promtail"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,logging"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:9080/ready || exit 1",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  tempo:
+    image: grafana/tempo:2.8.1
+    volumes:
+      - ./telemetry/tempo-config.yaml:/etc/tempo/config.yaml
+    ports:
+      - "3200:3200"
+    command: --config.file=/etc/tempo/config.yaml
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3200/ready",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # OpenTelemetry Collector - routes observability data
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.128.0
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./telemetry/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC receiver (for SSO app)
+      - "4318:4318" # OTLP HTTP receiver
+      - "8889:8889" # Prometheus metrics export
+      - "8888:8888" # Collector metrics
+      - "13133:13133" # Health check endpoint
+    depends_on:
+      tempo:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:13133",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  grafana:
+    image: grafana/grafana:12.0.2
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./telemetry/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./telemetry/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # SSO application for full containerized testing
+  sso-app:
+    build:
+      context: .
+      target: runner
+    environment:
+      CONFIG_PATH: /src/config/config.docker.yaml
+    volumes:
+      - ./config/config.docker.yaml:/src/config/config.docker.yaml
+      - ./static:/src/static
+    ports:
+      - "44044:44044"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "44044"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      - "logging=promtail"
+      - "service=sso-app"
+
+  # Test runner for full containerized testing
+  sso-tests:
+    build:
+      context: .
+      target: tester
+    environment:
+      CONFIG_PATH: /src/config/config.docker.yaml
+    depends_on:
+      sso-app:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for SSO app to be ready...' &&
+        for i in $$(seq 1 30); do
+          if nc -z sso-app 44044; then
+            echo 'SSO app is ready!'
+            break
+          fi
+          echo 'Waiting... ($$i/30)'
+          sleep 1
+        done &&
+        echo 'Running tests...' &&
+        export SSO_HOST=sso-app:44044 &&
+        go test -v ./internal/... ./api_tests
+      "
+    labels:
+      - "service=sso-tests"
+
+volumes:
+  pgdata:
+  mongodata:
+  miniodata:
+  grafana-storage:

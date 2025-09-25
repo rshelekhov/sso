@@ -7,17 +7,17 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain/entity"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	postgresLib "github.com/rshelekhov/golib/db/postgres/pgxv5"
 )
 
 type TestVerificationStorage struct {
-	*pgxpool.Pool
+	*postgresLib.Connection
 }
 
 // NewTestStorage creates a new Postgres storage
-func NewTestStorage(pool *pgxpool.Pool) *TestVerificationStorage {
+func NewTestStorage(conn *postgresLib.Connection) *TestVerificationStorage {
 	return &TestVerificationStorage{
-		Pool: pool,
+		Connection: conn,
 	}
 }
 
@@ -27,7 +27,7 @@ func (s *TestVerificationStorage) GetToken(ctx context.Context, email string, to
 	query := "SELECT token FROM tokens WHERE recipient = $1 AND token_type_id = $2"
 
 	var token string
-	err := s.Pool.QueryRow(ctx, query, email, int32(tokenType)).Scan(&token)
+	err := s.Connection.QueryRow(ctx, query, email, int32(tokenType)).Scan(&token)
 	if err != nil {
 		return "", fmt.Errorf("%s: failed to get verification token: %w", method, err)
 	}
@@ -41,7 +41,7 @@ func (s *TestVerificationStorage) GetTokenExpiresAt(ctx context.Context, email s
 	query := "SELECT expires_at FROM tokens WHERE recipient = $1 AND token_type_id = $2"
 
 	var expiresAt time.Time
-	err := s.Pool.QueryRow(ctx, query, email, int32(tokenType)).Scan(&expiresAt)
+	err := s.Connection.QueryRow(ctx, query, email, int32(tokenType)).Scan(&expiresAt)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("%s: failed to get verification token expires at: %w", method, err)
 	}

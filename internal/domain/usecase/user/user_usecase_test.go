@@ -1,4 +1,4 @@
-package user
+package user_test
 
 import (
 	"context"
@@ -8,15 +8,16 @@ import (
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
+	"github.com/rshelekhov/sso/internal/domain/usecase/user"
 	"github.com/rshelekhov/sso/internal/domain/usecase/user/mocks"
-	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogdiscard"
+	"github.com/rshelekhov/sso/internal/lib/logger/slogdiscard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestUserUsecase_GetUser(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 	clientID := "test-app-id"
 	userID := "test-user-id"
 
@@ -96,9 +97,9 @@ func TestUserUsecase_GetUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			userUsecase := NewUsecase(log, nil, nil, userMgr, nil, identityMgr, nil, nil)
+			userUsecase := user.NewUsecase(log, nil, nil, userMgr, nil, identityMgr, nil, nil, &mocks.NoOpMetricsRecorder{})
 
-			userData, err := userUsecase.GetUser(ctx, clientID)
+			userData, err := userUsecase.GetUser(context.Background(), clientID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -111,7 +112,7 @@ func TestUserUsecase_GetUser(t *testing.T) {
 }
 
 func TestUserUsecase_GetUserByID(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 	clientID := "test-app-id"
 	userID := "test-user-id"
 
@@ -168,9 +169,9 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			userUsecase := NewUsecase(log, nil, nil, userMgr, nil, nil, nil, nil)
+			userUsecase := user.NewUsecase(log, nil, nil, userMgr, nil, nil, nil, nil, &mocks.NoOpMetricsRecorder{})
 
-			userData, err := userUsecase.GetUserByID(ctx, clientID, userID)
+			userData, err := userUsecase.GetUserByID(context.Background(), clientID, userID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -183,7 +184,7 @@ func TestUserUsecase_GetUserByID(t *testing.T) {
 }
 
 func TestUserUsecase_UpdateUser(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.Anything
 	clientID := "test-app-id"
 	userID := "test-user-id"
 	currentEmail := "old@example.com"
@@ -602,9 +603,9 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			userUsecase := NewUsecase(log, nil, nil, userMgr, passwordMgr, identityMgr, nil, nil)
+			userUsecase := user.NewUsecase(log, nil, nil, userMgr, passwordMgr, identityMgr, nil, nil, &mocks.NoOpMetricsRecorder{})
 
-			updatedUser, err := userUsecase.UpdateUser(ctx, clientID, tt.reqData)
+			updatedUser, err := userUsecase.UpdateUser(context.Background(), clientID, tt.reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -617,7 +618,7 @@ func TestUserUsecase_UpdateUser(t *testing.T) {
 }
 
 func TestUserUsecase_DeleteUser(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 	clientID := "test-app-id"
 	userID := "test-user-id"
 
@@ -929,9 +930,9 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			userUsecase := NewUsecase(log, nil, sessionMgr, userMgr, nil, identityMgr, verificationMgr, txMgr)
+			userUsecase := user.NewUsecase(log, nil, sessionMgr, userMgr, nil, identityMgr, verificationMgr, txMgr, &mocks.NoOpMetricsRecorder{})
 
-			err := userUsecase.DeleteUser(ctx, clientID)
+			err := userUsecase.DeleteUser(context.Background(), clientID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -943,7 +944,7 @@ func TestUserUsecase_DeleteUser(t *testing.T) {
 }
 
 func TestUserUsecase_DeleteUserByID(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 	clientID := "test-app-id"
 	userID := "test-user-id"
 
@@ -1193,9 +1194,9 @@ func TestUserUsecase_DeleteUserByID(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			userUsecase := NewUsecase(log, nil, sessionMgr, userMgr, nil, nil, verificationMgr, txMgr)
+			userUsecase := user.NewUsecase(log, nil, sessionMgr, userMgr, nil, nil, verificationMgr, txMgr, &mocks.NoOpMetricsRecorder{})
 
-			err := userUsecase.DeleteUserByID(ctx, clientID, userID)
+			err := userUsecase.DeleteUserByID(context.Background(), clientID, userID)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())

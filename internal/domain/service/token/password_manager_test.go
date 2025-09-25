@@ -1,9 +1,10 @@
-package token
+package token_test
 
 import (
 	"testing"
 
 	"github.com/rshelekhov/sso/internal/domain"
+	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/domain/service/token/mocks"
 	"github.com/stretchr/testify/require"
 )
@@ -12,18 +13,18 @@ func TestTokenService_HashPassword(t *testing.T) {
 	tests := []struct {
 		name          string
 		password      string
-		config        Config
+		config        token.Config
 		expectedError error
 	}{
 		{
 			name:     "Valid password with Argon2",
 			password: "test-password",
-			config: Config{
-				PasswordHashParams: PasswordHashParams{
-					Type:       PasswordHashArgon2,
+			config: token.Config{
+				PasswordHashParams: token.PasswordHashParams{
+					Type:       token.PasswordHashArgon2,
 					SaltLength: 32,
 					Pepper:     "pepper",
-					Argon:      &defaultPasswordHashArgon2Params,
+					Argon:      &token.DefaultPasswordHashArgon2Params,
 				},
 			},
 			expectedError: nil,
@@ -31,12 +32,12 @@ func TestTokenService_HashPassword(t *testing.T) {
 		{
 			name:     "Valid password with Bcrypt",
 			password: "test-password",
-			config: Config{
-				PasswordHashParams: PasswordHashParams{
-					Type:       PasswordHashBcrypt,
+			config: token.Config{
+				PasswordHashParams: token.PasswordHashParams{
+					Type:       token.PasswordHashBcrypt,
 					SaltLength: 32,
 					Pepper:     "pepper",
-					Bcrypt:     &defaultPasswordHashBcryptParams,
+					Bcrypt:     &token.DefaultPasswordHashBcryptParams,
 				},
 			},
 			expectedError: nil,
@@ -44,8 +45,8 @@ func TestTokenService_HashPassword(t *testing.T) {
 		{
 			name:     "Empty password",
 			password: "",
-			config: Config{
-				PasswordHashParams: defaultPasswordHashParams,
+			config: token.Config{
+				PasswordHashParams: token.DefaultPasswordHashParams,
 			},
 			expectedError: domain.ErrPasswordIsNotAllowed,
 		},
@@ -54,7 +55,7 @@ func TestTokenService_HashPassword(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockKeyStorage := new(mocks.KeyStorage)
-			tokenService := NewService(tt.config, mockKeyStorage)
+			tokenService := token.NewService(tt.config, mockKeyStorage, &mocks.NoOpMetricsRecorder{})
 
 			hashedPassword, err := tokenService.HashPassword(tt.password)
 
@@ -78,7 +79,7 @@ func TestTokenService_PasswordMatch(t *testing.T) {
 		name           string
 		hashedPassword string
 		password       string
-		config         Config
+		config         token.Config
 		setupHash      bool
 		expectedMatch  bool
 		expectedError  error
@@ -86,12 +87,12 @@ func TestTokenService_PasswordMatch(t *testing.T) {
 		{
 			name:     "Success with Argon2",
 			password: password,
-			config: Config{
-				PasswordHashParams: PasswordHashParams{
-					Type:       PasswordHashArgon2,
+			config: token.Config{
+				PasswordHashParams: token.PasswordHashParams{
+					Type:       token.PasswordHashArgon2,
 					SaltLength: 32,
 					Pepper:     "pepper",
-					Argon:      &defaultPasswordHashArgon2Params,
+					Argon:      &token.DefaultPasswordHashArgon2Params,
 				},
 			},
 			setupHash:     true,
@@ -100,12 +101,12 @@ func TestTokenService_PasswordMatch(t *testing.T) {
 		{
 			name:     "Success with Bcrypt",
 			password: password,
-			config: Config{
-				PasswordHashParams: PasswordHashParams{
-					Type:       PasswordHashBcrypt,
+			config: token.Config{
+				PasswordHashParams: token.PasswordHashParams{
+					Type:       token.PasswordHashBcrypt,
 					SaltLength: 32,
 					Pepper:     "pepper",
-					Bcrypt:     &defaultPasswordHashBcryptParams,
+					Bcrypt:     &token.DefaultPasswordHashBcryptParams,
 				},
 			},
 			setupHash:     true,
@@ -115,8 +116,8 @@ func TestTokenService_PasswordMatch(t *testing.T) {
 			name:           "Empty hash",
 			hashedPassword: "",
 			password:       "test-password",
-			config: Config{
-				PasswordHashParams: defaultPasswordHashParams,
+			config: token.Config{
+				PasswordHashParams: token.DefaultPasswordHashParams,
 			},
 			expectedMatch: false,
 			expectedError: domain.ErrHashIsNotAllowed,
@@ -124,8 +125,8 @@ func TestTokenService_PasswordMatch(t *testing.T) {
 		{
 			name:     "Empty password",
 			password: "",
-			config: Config{
-				PasswordHashParams: defaultPasswordHashParams,
+			config: token.Config{
+				PasswordHashParams: token.DefaultPasswordHashParams,
 			},
 			setupHash:     true,
 			expectedMatch: false,
@@ -136,7 +137,7 @@ func TestTokenService_PasswordMatch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockKeyStorage := new(mocks.KeyStorage)
-			tokenService := NewService(tt.config, mockKeyStorage)
+			tokenService := token.NewService(tt.config, mockKeyStorage, &mocks.NoOpMetricsRecorder{})
 
 			var hashedPassword string
 			if tt.setupHash {

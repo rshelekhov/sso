@@ -1,0 +1,74 @@
+# Tempo Configuration for SSO Application
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9095
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:9096
+        http:
+          endpoint: 0.0.0.0:9097
+
+ingester:
+  max_block_duration: 5m
+  trace_idle_period: 10s
+
+compactor:
+  compaction:
+    block_retention: 1h
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /tmp/tempo/wal
+    local:
+      path: /tmp/tempo/blocks
+
+query_frontend:
+  search:
+    duration_slo: 5s
+    throughput_bytes_slo: 1.073741824e+09
+  trace_by_id:
+    duration_slo: 5s
+
+# Metrics generator configuration
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      cluster: docker-compose
+  storage:
+    path: /tmp/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+  processor:
+    # Service graphs processor
+    service_graphs:
+      histogram_buckets: [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8]
+      dimensions: [service.name, service.namespace]
+    # Span metrics processor
+    span_metrics:
+      histogram_buckets:
+        [
+          0.002,
+          0.005,
+          0.01,
+          0.025,
+          0.05,
+          0.075,
+          0.1,
+          0.25,
+          0.5,
+          0.75,
+          1.0,
+          2.5,
+          5.0,
+          7.5,
+          10.0,
+        ]
+      dimensions: [service.name, operation, span.kind, status.code]

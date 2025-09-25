@@ -10,15 +10,21 @@ import (
 	"time"
 )
 
-const deleteAllUserDevices = `-- name: DeleteAllUserDevices :exec
-DELETE FROM user_devices
-WHERE user_id = $1
-  AND detached = FALSE
+const deleteAllUserDevices = `-- name: DeleteAllUserDevices :one
+WITH deleted AS (
+  DELETE FROM user_devices
+  WHERE user_id = $1 AND detached = FALSE
+  RETURNING 1
+)
+SELECT COUNT(*)::int AS deleted_count
+FROM deleted
 `
 
-func (q *Queries) DeleteAllUserDevices(ctx context.Context, userID string) error {
-	_, err := q.db.Exec(ctx, deleteAllUserDevices, userID)
-	return err
+func (q *Queries) DeleteAllUserDevices(ctx context.Context, userID string) (int32, error) {
+	row := q.db.QueryRow(ctx, deleteAllUserDevices, userID)
+	var deleted_count int32
+	err := row.Scan(&deleted_count)
+	return deleted_count, err
 }
 
 const getUserDeviceID = `-- name: GetUserDeviceID :one

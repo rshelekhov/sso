@@ -70,21 +70,33 @@ func (_c *SessionStorage_CreateSession_Call) RunAndReturn(run func(context.Conte
 }
 
 // DeleteAllSessions provides a mock function with given fields: ctx, userID
-func (_m *SessionStorage) DeleteAllSessions(ctx context.Context, userID string) error {
+func (_m *SessionStorage) DeleteAllSessions(ctx context.Context, userID string) ([]entity.SessionMeta, error) {
 	ret := _m.Called(ctx, userID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteAllSessions")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+	var r0 []entity.SessionMeta
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]entity.SessionMeta, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []entity.SessionMeta); ok {
 		r0 = rf(ctx, userID)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entity.SessionMeta)
+		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // SessionStorage_DeleteAllSessions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteAllSessions'
@@ -106,12 +118,12 @@ func (_c *SessionStorage_DeleteAllSessions_Call) Run(run func(ctx context.Contex
 	return _c
 }
 
-func (_c *SessionStorage_DeleteAllSessions_Call) Return(_a0 error) *SessionStorage_DeleteAllSessions_Call {
-	_c.Call.Return(_a0)
+func (_c *SessionStorage_DeleteAllSessions_Call) Return(_a0 []entity.SessionMeta, _a1 error) *SessionStorage_DeleteAllSessions_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *SessionStorage_DeleteAllSessions_Call) RunAndReturn(run func(context.Context, string) error) *SessionStorage_DeleteAllSessions_Call {
+func (_c *SessionStorage_DeleteAllSessions_Call) RunAndReturn(run func(context.Context, string) ([]entity.SessionMeta, error)) *SessionStorage_DeleteAllSessions_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -164,21 +176,31 @@ func (_c *SessionStorage_DeleteRefreshToken_Call) RunAndReturn(run func(context.
 }
 
 // DeleteSession provides a mock function with given fields: ctx, _a1
-func (_m *SessionStorage) DeleteSession(ctx context.Context, _a1 entity.Session) error {
+func (_m *SessionStorage) DeleteSession(ctx context.Context, _a1 entity.Session) (entity.SessionMeta, error) {
 	ret := _m.Called(ctx, _a1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteSession")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, entity.Session) error); ok {
+	var r0 entity.SessionMeta
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, entity.Session) (entity.SessionMeta, error)); ok {
+		return rf(ctx, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, entity.Session) entity.SessionMeta); ok {
 		r0 = rf(ctx, _a1)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(entity.SessionMeta)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, entity.Session) error); ok {
+		r1 = rf(ctx, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // SessionStorage_DeleteSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteSession'
@@ -200,12 +222,12 @@ func (_c *SessionStorage_DeleteSession_Call) Run(run func(ctx context.Context, _
 	return _c
 }
 
-func (_c *SessionStorage_DeleteSession_Call) Return(_a0 error) *SessionStorage_DeleteSession_Call {
-	_c.Call.Return(_a0)
+func (_c *SessionStorage_DeleteSession_Call) Return(_a0 entity.SessionMeta, _a1 error) *SessionStorage_DeleteSession_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *SessionStorage_DeleteSession_Call) RunAndReturn(run func(context.Context, entity.Session) error) *SessionStorage_DeleteSession_Call {
+func (_c *SessionStorage_DeleteSession_Call) RunAndReturn(run func(context.Context, entity.Session) (entity.SessionMeta, error)) *SessionStorage_DeleteSession_Call {
 	_c.Call.Return(run)
 	return _c
 }

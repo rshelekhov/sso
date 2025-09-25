@@ -9,6 +9,7 @@ import (
 	mongoStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/auth/mongo"
 	pgStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/auth/postgres"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
 var (
@@ -16,7 +17,17 @@ var (
 	ErrPostgresAuthStorageSettingsEmpty = errors.New("postgres auth storage settings are empty")
 )
 
-func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (auth.Storage, error) {
+func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager, recorder metrics.MetricsRecorder) (auth.Storage, error) {
+	baseStorage, err := newBaseStorage(dbConn, txMgr)
+	if err != nil {
+		return nil, err
+	}
+
+
+	return newAuthStorageDecorator(dbConn.Type.String(), baseStorage, recorder), nil
+}
+
+func newBaseStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (auth.Storage, error) {
 	switch dbConn.Type {
 	case storage.TypeMongo:
 		return newMongoStorage(dbConn)
@@ -36,7 +47,7 @@ func newMongoStorage(dbConn *storage.DBConnection) (auth.Storage, error) {
 		return nil, ErrMongoAuthStorageSettingsEmpty
 	}
 
-	return mongoStorage.NewAuthStorage(dbConn.Mongo.Database, dbConn.Mongo.Timeout)
+	return mongoStorage.NewAuthStorage(dbConn.Mongo.Database(), dbConn.Mongo.Timeout)
 }
 
 func newPostgresStorage(dbConn *storage.DBConnection, txMgr transaction.PostgresManager) (auth.Storage, error) {
@@ -44,5 +55,5 @@ func newPostgresStorage(dbConn *storage.DBConnection, txMgr transaction.Postgres
 		return nil, ErrPostgresAuthStorageSettingsEmpty
 	}
 
-	return pgStorage.NewAuthStorage(dbConn.Postgres.Pool, txMgr), nil
+	return pgStorage.NewAuthStorage(dbConn.Postgres.Pool(), txMgr), nil
 }

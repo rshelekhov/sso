@@ -20,7 +20,7 @@ func NewClient(domain, apiKey, sender string) *Client {
 }
 
 func (c *Client) SendPlainText(ctx context.Context, subject, body, recipient string) error {
-	message := c.mg.NewMessage(c.sender, subject, body, recipient)
+	message := mailgun.NewMessage(c.sender, subject, body, recipient)
 
 	_, _, err := c.mg.Send(ctx, message)
 	if err != nil {
@@ -31,8 +31,8 @@ func (c *Client) SendPlainText(ctx context.Context, subject, body, recipient str
 }
 
 func (c *Client) SendHTML(ctx context.Context, subject, html, recipient string) error {
-	message := c.mg.NewMessage(c.sender, subject, "", recipient)
-	message.SetHtml(html)
+	message := mailgun.NewMessage(c.sender, subject, "", recipient)
+	message.SetHTML(html)
 	_, _, err := c.mg.Send(ctx, message)
 	if err != nil {
 		return err

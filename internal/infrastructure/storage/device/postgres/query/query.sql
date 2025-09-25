@@ -14,7 +14,11 @@ WHERE user_id = $1
   AND user_agent = $2
   AND detached = FALSE;
 
--- name: DeleteAllUserDevices :exec
-DELETE FROM user_devices
-WHERE user_id = $1
-  AND detached = FALSE;
+-- name: DeleteAllUserDevices :one
+WITH deleted AS (
+  DELETE FROM user_devices
+  WHERE user_id = $1 AND detached = FALSE
+  RETURNING 1
+)
+SELECT COUNT(*)::int AS deleted_count
+FROM deleted;

@@ -1,4 +1,4 @@
-package auth
+package auth_test
 
 import (
 	"context"
@@ -12,19 +12,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rshelekhov/sso/internal/domain/usecase/auth"
+
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
 	"github.com/rshelekhov/sso/internal/domain/usecase/auth/mocks"
-	"github.com/rshelekhov/sso/internal/lib/logger/handler/slogdiscard"
+	"github.com/rshelekhov/sso/internal/lib/logger/slogdiscard"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestAuthUsecase_Login(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	clientID := "test-client-id"
 	userID := "test-user-id"
@@ -287,9 +289,20 @@ func TestAuthUsecase_Login(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, txMgr, db)
+			auth := auth.NewUsecase(
+				log,
+				sessionMgr,
+				userMgr,
+				mailService,
+				tokenMgr,
+				verificationMgr,
+				txMgr,
+				db,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
-			tokens, err := auth.Login(ctx, clientID, tt.reqData)
+			tokens, err := auth.Login(context.Background(), clientID, tt.reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -302,7 +315,7 @@ func TestAuthUsecase_Login(t *testing.T) {
 }
 
 func TestAuthUsecase_RegisterUser(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	clientID := "test-client-id"
 	email := "test@example.com"
@@ -790,9 +803,20 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, sessionMgr, userMgr, mailService, tokenMgr, verificationMgr, txMgr, db)
+			auth := auth.NewUsecase(
+				log,
+				sessionMgr,
+				userMgr,
+				mailService,
+				tokenMgr,
+				verificationMgr,
+				txMgr,
+				db,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
-			tokens, err := auth.RegisterUser(ctx, clientID, tt.reqData, tt.endpoint)
+			tokens, err := auth.RegisterUser(context.Background(), clientID, tt.reqData, tt.endpoint)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -805,7 +829,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 }
 
 func TestAuthUsecase_VerifyEmail(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	userID := "test-user-id"
 	endpoint := "https://example.com/verify"
@@ -1079,9 +1103,20 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, nil, mailService, nil, verificationMgr, txMgr, db)
+			auth := auth.NewUsecase(
+				log,
+				nil,
+				nil,
+				mailService,
+				nil,
+				verificationMgr,
+				txMgr,
+				db,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
-			_, err := auth.VerifyEmail(ctx, tokenStr)
+			_, err := auth.VerifyEmail(context.Background(), tokenStr)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1093,7 +1128,7 @@ func TestAuthUsecase_VerifyEmail(t *testing.T) {
 }
 
 func TestAuthUsecase_ResetPassword(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	clientID := "test-client-id"
 	endpoint := "https://example.com/change-password"
@@ -1224,9 +1259,20 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, userMgr, mailService, nil, verificationMgr, nil, nil)
+			auth := auth.NewUsecase(
+				log,
+				nil,
+				userMgr,
+				mailService,
+				nil,
+				verificationMgr,
+				nil,
+				nil,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
-			err := auth.ResetPassword(ctx, clientID, reqData, endpoint)
+			err := auth.ResetPassword(context.Background(), clientID, reqData, endpoint)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1238,7 +1284,7 @@ func TestAuthUsecase_ResetPassword(t *testing.T) {
 }
 
 func TestAuthUsecase_ChangePassword(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	userID := "test-user-id"
 	clientID := "test-client-id"
@@ -1681,9 +1727,20 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, userMgr, mailService, tokenMgr, verificationMgr, txMgr, nil)
+			auth := auth.NewUsecase(
+				log,
+				nil,
+				userMgr,
+				mailService,
+				tokenMgr,
+				verificationMgr,
+				txMgr,
+				nil,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
-			_, err := auth.ChangePassword(ctx, clientID, reqData)
+			_, err := auth.ChangePassword(context.Background(), clientID, reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1695,7 +1752,7 @@ func TestAuthUsecase_ChangePassword(t *testing.T) {
 }
 
 func TestAuthUsecase_LogoutUser(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	clientID := "test-client-id"
 	userID := "test-user-id"
@@ -1803,9 +1860,20 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, sessionMgr, nil, nil, tokenMgr, nil, nil, nil)
+			auth := auth.NewUsecase(
+				log,
+				sessionMgr,
+				nil,
+				nil,
+				tokenMgr,
+				nil,
+				nil,
+				nil,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
-			err := auth.LogoutUser(ctx, clientID, &userDeviceReqData)
+			err := auth.LogoutUser(context.Background(), clientID, &userDeviceReqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -1817,7 +1885,7 @@ func TestAuthUsecase_LogoutUser(t *testing.T) {
 }
 
 func TestAuthUsecase_RefreshTokens(t *testing.T) {
-	ctx := context.Background()
+	ctx := mock.MatchedBy(func(context.Context) bool { return true })
 
 	userID := "test-user-id"
 	clientID := "test-client-id"
@@ -1987,9 +2055,20 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, sessionMgr, nil, nil, nil, nil, nil, nil)
+			auth := auth.NewUsecase(
+				log,
+				sessionMgr,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
-			sessionTokens, err := auth.RefreshTokens(ctx, clientID, &reqData)
+			sessionTokens, err := auth.RefreshTokens(context.Background(), clientID, &reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
@@ -2152,7 +2231,18 @@ func TestAuthUsecase_GetJWKS(t *testing.T) {
 
 			log := slogdiscard.NewDiscardLogger()
 
-			auth := NewUsecase(log, nil, nil, nil, tokenMgr, nil, nil, nil)
+			auth := auth.NewUsecase(
+				log,
+				nil,
+				nil,
+				nil,
+				tokenMgr,
+				nil,
+				nil,
+				nil,
+				&mocks.NoOpMetricsRecorder{},
+				&mocks.NoOpTokenMetricsRecorder{},
+			)
 
 			jwks, err := auth.GetJWKS(ctx, clientID)
 

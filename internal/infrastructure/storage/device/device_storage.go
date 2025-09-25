@@ -9,6 +9,7 @@ import (
 	mongoStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/device/mongo"
 	pgStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/device/postgres"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
 var (
@@ -16,7 +17,17 @@ var (
 	ErrPostgresDeviceStorageSettingsEmpty = errors.New("postgres device storage settings are empty")
 )
 
-func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (session.DeviceStorage, error) {
+func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager, recorder metrics.MetricsRecorder) (session.DeviceStorage, error) {
+	baseStorage, err := newBaseStorage(dbConn, txMgr)
+	if err != nil {
+		return nil, err
+	}
+
+
+	return newDeviceStorageDecorator(dbConn.Type.String(), baseStorage, recorder), nil
+}
+
+func newBaseStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (session.DeviceStorage, error) {
 	switch dbConn.Type {
 	case storage.TypeMongo:
 		return newMongoStorage(dbConn)
@@ -36,7 +47,7 @@ func newMongoStorage(dbConn *storage.DBConnection) (session.DeviceStorage, error
 		return nil, ErrMongoDeviceStorageSettingsEmpty
 	}
 
-	return mongoStorage.NewDeviceStorage(dbConn.Mongo.Database, dbConn.Mongo.Timeout)
+	return mongoStorage.NewDeviceStorage(dbConn.Mongo.Database(), dbConn.Mongo.Timeout)
 }
 
 func newPostgresStorage(dbConn *storage.DBConnection, txMgr transaction.PostgresManager) (session.DeviceStorage, error) {
@@ -44,5 +55,5 @@ func newPostgresStorage(dbConn *storage.DBConnection, txMgr transaction.Postgres
 		return nil, ErrPostgresDeviceStorageSettingsEmpty
 	}
 
-	return pgStorage.NewDeviceStorage(dbConn.Postgres.Pool, txMgr), nil
+	return pgStorage.NewDeviceStorage(dbConn.Postgres.Pool(), txMgr), nil
 }

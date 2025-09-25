@@ -225,17 +225,17 @@ func (_c *JWTManager_NewAccessToken_Call) RunAndReturn(run func(string, string, 
 	return _c
 }
 
-// NewRefreshToken provides a mock function with no fields
-func (_m *JWTManager) NewRefreshToken() string {
-	ret := _m.Called()
+// NewRefreshToken provides a mock function with given fields: clientID
+func (_m *JWTManager) NewRefreshToken(clientID string) string {
+	ret := _m.Called(clientID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NewRefreshToken")
 	}
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func() string); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(string) string); ok {
+		r0 = rf(clientID)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
@@ -249,13 +249,14 @@ type JWTManager_NewRefreshToken_Call struct {
 }
 
 // NewRefreshToken is a helper method to define mock.On call
-func (_e *JWTManager_Expecter) NewRefreshToken() *JWTManager_NewRefreshToken_Call {
-	return &JWTManager_NewRefreshToken_Call{Call: _e.mock.On("NewRefreshToken")}
+//   - clientID string
+func (_e *JWTManager_Expecter) NewRefreshToken(clientID interface{}) *JWTManager_NewRefreshToken_Call {
+	return &JWTManager_NewRefreshToken_Call{Call: _e.mock.On("NewRefreshToken", clientID)}
 }
 
-func (_c *JWTManager_NewRefreshToken_Call) Run(run func()) *JWTManager_NewRefreshToken_Call {
+func (_c *JWTManager_NewRefreshToken_Call) Run(run func(clientID string)) *JWTManager_NewRefreshToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		run(args[0].(string))
 	})
 	return _c
 }
@@ -265,7 +266,7 @@ func (_c *JWTManager_NewRefreshToken_Call) Return(_a0 string) *JWTManager_NewRef
 	return _c
 }
 
-func (_c *JWTManager_NewRefreshToken_Call) RunAndReturn(run func() string) *JWTManager_NewRefreshToken_Call {
+func (_c *JWTManager_NewRefreshToken_Call) RunAndReturn(run func(string) string) *JWTManager_NewRefreshToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

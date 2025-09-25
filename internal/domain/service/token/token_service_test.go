@@ -1,4 +1,4 @@
-package token
+package token_test
 
 import (
 	"crypto/rand"
@@ -7,20 +7,21 @@ import (
 	"encoding/pem"
 	"testing"
 
+	"github.com/rshelekhov/sso/internal/domain/service/token"
 	"github.com/rshelekhov/sso/internal/domain/service/token/mocks"
 	"github.com/stretchr/testify/require"
 )
 
 const clientID = "test-app-id"
 
-func setup(t *testing.T) (*mocks.KeyStorage, *Service, *rsa.PrivateKey, []byte) {
+func setup(t *testing.T) (*mocks.KeyStorage, *token.Service, *rsa.PrivateKey, []byte) {
 	mockKeyStorage := new(mocks.KeyStorage)
 
-	cfg := Config{
-		PasswordHashParams: defaultPasswordHashParams,
+	cfg := token.Config{
+		PasswordHashParams: token.DefaultPasswordHashParams,
 	}
 
-	tokenService := NewService(cfg, mockKeyStorage)
+	tokenService := token.NewService(cfg, mockKeyStorage, &mocks.NoOpMetricsRecorder{})
 
 	// Generate a test RSA private key
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)

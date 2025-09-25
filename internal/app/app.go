@@ -1,32 +1,37 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
-	grpcapp "github.com/rshelekhov/sso/internal/app/grpc"
+	"github.com/rshelekhov/golib/server"
 	"github.com/rshelekhov/sso/internal/config"
 	"github.com/rshelekhov/sso/internal/infrastructure/storage"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
 type App struct {
-	GRPCServer *grpcapp.App
+	Server     *server.App
+	SSOService *SSOService
 	dbConn     *storage.DBConnection
 }
 
-func New(log *slog.Logger, cfg *config.ServerSettings) (*App, error) {
-	builder := newBuilder(log, cfg)
+func New(log *slog.Logger, cfg *config.ServerSettings, registry *metrics.Registry) (*App, error) {
+	builder := newBuilder(log, cfg, registry)
 	return builder.Build()
 }
 
-func (a *App) Stop() error {
+func (a *App) Run(ctx context.Context) error {
+	return a.Server.Run(ctx, a.SSOService)
+}
+
+func (a *App) Stop(ctx context.Context) error {
 	const method = "app.Stop"
 
-	// Shutdown gRPC server
-	a.GRPCServer.Stop()
+	a.Server.Shutdown()
 
-	// Close database connection
-	if err := a.dbConn.Close(); err != nil {
+	if err := a.dbConn.Close(ctx); err != nil {
 		return fmt.Errorf("%s:failed to close database connection: %w", method, err)
 	}
 

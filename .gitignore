@@ -2,7 +2,7 @@
 /.idea/
 
 # ENV
-config/.env
+config/config.yaml
 
 # Certs folder with private keys
 /certs/*

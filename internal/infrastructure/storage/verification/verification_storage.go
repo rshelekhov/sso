@@ -9,6 +9,7 @@ import (
 	"github.com/rshelekhov/sso/internal/infrastructure/storage/transaction"
 	mongoStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/verification/mongo"
 	pgStorage "github.com/rshelekhov/sso/internal/infrastructure/storage/verification/postgres"
+	"github.com/rshelekhov/sso/internal/observability/metrics"
 )
 
 var (
@@ -16,7 +17,17 @@ var (
 	ErrPostgresVerificationStorageSettingsEmpty = errors.New("postgres verification storage settings are empty")
 )
 
-func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (verification.Storage, error) {
+func NewStorage(dbConn *storage.DBConnection, txMgr transaction.Manager, recorder metrics.MetricsRecorder) (verification.Storage, error) {
+	baseStorage, err := newBaseStorage(dbConn, txMgr)
+	if err != nil {
+		return nil, err
+	}
+
+
+	return newVerificationStorageDecorator(dbConn.Type.String(), baseStorage, recorder), nil
+}
+
+func newBaseStorage(dbConn *storage.DBConnection, txMgr transaction.Manager) (verification.Storage, error) {
 	switch dbConn.Type {
 	case storage.TypeMongo:
 		return newMongoStorage(dbConn)
@@ -36,7 +47,7 @@ func newMongoStorage(dbConn *storage.DBConnection) (verification.Storage, error)
 		return nil, ErrMongoVerificationStorageSettingsEmpty
 	}
 
-	return mongoStorage.NewVerificationStorage(dbConn.Mongo.Database, dbConn.Mongo.Timeout)
+	return mongoStorage.NewVerificationStorage(dbConn.Mongo.Database(), dbConn.Mongo.Timeout)
 }
 
 func newPostgresStorage(dbConn *storage.DBConnection, txMgr transaction.PostgresManager) (verification.Storage, error) {
@@ -44,5 +55,5 @@ func newPostgresStorage(dbConn *storage.DBConnection, txMgr transaction.Postgres
 		return nil, ErrPostgresVerificationStorageSettingsEmpty
 	}
 
-	return pgStorage.NewVerificationStorage(dbConn.Postgres.Pool, txMgr), nil
+	return pgStorage.NewVerificationStorage(dbConn.Postgres.Pool(), txMgr), nil
 }
