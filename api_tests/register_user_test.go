@@ -46,6 +46,9 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	userID := respReg.GetUserId()
+	require.NotEmpty(t, userID)
+
 	token := respReg.GetTokenData()
 	require.NotEmpty(t, token)
 
