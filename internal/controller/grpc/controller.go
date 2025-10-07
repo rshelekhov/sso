@@ -31,7 +31,7 @@ type (
 
 	AuthUsecase interface {
 		Login(ctx context.Context, clientID string, reqData *entity.UserRequestData) (userID string, tokens entity.SessionTokens, err error)
-		RegisterUser(ctx context.Context, clientID string, reqData *entity.UserRequestData, confirmEmailEndpoint string) (userID string, tokens entity.SessionTokens, err error)
+		RegisterUser(ctx context.Context, clientID string, reqData *entity.UserRequestData, confirmEmailEndpoint string) (userID string, tokens entity.SessionTokens, err error) // nolint: lll
 		VerifyEmail(ctx context.Context, verificationToken string) (entity.VerificationResult, error)
 		ResetPassword(ctx context.Context, clientID string, reqData *entity.ResetPasswordRequestData, changePasswordEndpoint string) error
 		ChangePassword(ctx context.Context, clientID string, reqData *entity.ChangePasswordRequestData) (entity.ChangingPasswordResult, error)

@@ -202,7 +202,16 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 }
 
 // RegisterUser creates new user in the system and returns jwtoken
-func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entity.UserRequestData, verifyEmailEndpoint string) (userID string, tokens entity.SessionTokens, err error) {
+func (u *Auth) RegisterUser(
+	ctx context.Context,
+	clientID string,
+	reqData *entity.UserRequestData,
+	verifyEmailEndpoint string,
+) (
+	userID string,
+	tokens entity.SessionTokens,
+	err error,
+) {
 	const method = "usecase.Auth.RegisterUser"
 
 	ctx, span := tracing.StartSpan(ctx, method)
