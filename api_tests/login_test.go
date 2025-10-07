@@ -44,6 +44,10 @@ func TestLogin_HappyPath(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+
+	registerUserID := respReg.GetUserId()
+	require.NotEmpty(t, registerUserID)
+
 	require.NotEmpty(t, respReg.GetTokenData())
 
 	// Login user
@@ -56,6 +60,10 @@ func TestLogin_HappyPath(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
+
+	loginUserID := respLogin.GetUserId()
+	require.NotEmpty(t, loginUserID)
+	require.Equal(t, registerUserID, loginUserID)
 
 	token := respLogin.GetTokenData()
 	require.NotEmpty(t, token)

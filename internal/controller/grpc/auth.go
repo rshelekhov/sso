@@ -37,13 +37,13 @@ func (c *gRPCController) Login(ctx context.Context, req *authv1.LoginRequest) (*
 
 	userData := fromLoginRequest(req)
 
-	tokenData, err := c.authUsecase.Login(ctx, clientID, userData)
+	userID, tokenData, err := c.authUsecase.Login(ctx, clientID, userData)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToLoginUser, err)
 		return nil, mapErrorToGRPCStatus(err)
 	}
 
-	return toLoginResponse(tokenData), nil
+	return toLoginResponse(userID, tokenData), nil
 }
 
 func (c *gRPCController) RegisterUser(ctx context.Context, req *authv1.RegisterUserRequest) (*authv1.RegisterUserResponse, error) {
@@ -73,13 +73,13 @@ func (c *gRPCController) RegisterUser(ctx context.Context, req *authv1.RegisterU
 	userData := fromRegisterUserRequest(req)
 	endpoint := req.GetVerificationUrl()
 
-	tokenData, err := c.authUsecase.RegisterUser(ctx, clientID, userData, endpoint)
+	userID, tokenData, err := c.authUsecase.RegisterUser(ctx, clientID, userData, endpoint)
 	if err != nil {
 		e.LogError(ctx, log, controller.ErrFailedToRegisterUser, err)
 		return nil, mapErrorToGRPCStatus(err)
 	}
 
-	return toRegisterUserResponse(tokenData), nil
+	return toRegisterUserResponse(userID, tokenData), nil
 }
 
 func (c *gRPCController) VerifyEmail(ctx context.Context, req *authv1.VerifyEmailRequest) (*authv1.VerifyEmailResponse, error) {

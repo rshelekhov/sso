@@ -302,12 +302,13 @@ func TestAuthUsecase_Login(t *testing.T) {
 				&mocks.NoOpTokenMetricsRecorder{},
 			)
 
-			tokens, err := auth.Login(context.Background(), clientID, tt.reqData)
+			userID, tokens, err := auth.Login(context.Background(), clientID, tt.reqData)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
 			} else {
 				require.NoError(t, err)
+				require.NotEmpty(t, userID)
 				assert.Equal(t, tt.expectedTokens, tokens)
 			}
 		})
@@ -816,12 +817,13 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 				&mocks.NoOpTokenMetricsRecorder{},
 			)
 
-			tokens, err := auth.RegisterUser(context.Background(), clientID, tt.reqData, tt.endpoint)
+			userID, tokens, err := auth.RegisterUser(context.Background(), clientID, tt.reqData, tt.endpoint)
 
 			if tt.expectedError != nil {
 				assert.Contains(t, err.Error(), tt.expectedError.Error())
 			} else {
 				require.NoError(t, err)
+				require.NotEmpty(t, userID)
 				assert.Equal(t, tt.expectedTokens, tokens)
 			}
 		})

@@ -107,7 +107,7 @@ func NewUsecase(
 }
 
 // Login checks if user with given credentials exists in the system
-func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserRequestData) (entity.SessionTokens, error) {
+func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserRequestData) (userID string, tokens entity.SessionTokens, err error) {
 	const method = "usecase.Auth.Login"
 
 	ctx, span := tracing.StartSpan(ctx, method)
@@ -127,7 +127,7 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 	u.metrics.RecordLoginAttempt(ctx, clientID)
 
 	ctx, getUserByEmailSpan := tracing.StartSpan(ctx, "get_user_by_email")
-  
+
 	userData, err := u.userMgr.GetUserByEmail(ctx, reqData.Email)
 	if err != nil {
 		tracing.RecordError(getUserByEmailSpan, err)
@@ -136,12 +136,12 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 		if errors.Is(err, domain.ErrUserNotFound) {
 			e.LogError(ctx, log, domain.ErrUserNotFound, err)
 			u.metrics.RecordLoginError(ctx, clientID, attribute.String("error.type", domain.ErrUserNotFound.Error()))
-			return entity.SessionTokens{}, domain.ErrUserNotFound
+			return "", entity.SessionTokens{}, domain.ErrUserNotFound
 		}
 
 		e.LogError(ctx, log, domain.ErrFailedToGetUserByEmail, err)
 		u.metrics.RecordLoginError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToGetUserByEmail.Error()))
-		return entity.SessionTokens{}, domain.ErrFailedToGetUserByEmail
+		return "", entity.SessionTokens{}, domain.ErrFailedToGetUserByEmail
 	}
 
 	getUserByEmailSpan.End()
@@ -154,13 +154,13 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 		if errors.Is(err, domain.ErrInvalidCredentials) {
 			e.LogError(ctx, log, domain.ErrInvalidCredentials, err, slog.String("user.id", userData.ID))
 			u.metrics.RecordLoginError(ctx, clientID, attribute.String("error.type", domain.ErrInvalidCredentials.Error()))
-			return entity.SessionTokens{}, domain.ErrInvalidCredentials
+			return "", entity.SessionTokens{}, domain.ErrInvalidCredentials
 		}
 
 		e.LogError(ctx, log, domain.ErrFailedToVerifyPassword, err, slog.String("user.id", userData.ID))
 		u.metrics.RecordLoginError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToVerifyPassword.Error()))
 
-		return entity.SessionTokens{}, domain.ErrFailedToVerifyPassword
+		return "", entity.SessionTokens{}, domain.ErrFailedToVerifyPassword
 	}
 
 	verifyPasswordSpan.End()
@@ -174,14 +174,12 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 		},
 	}
 
-	tokenData := entity.SessionTokens{}
-
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		txCtx, transactionSpan := tracing.StartSpan(txCtx, "transaction")
 		tracing.EndSpanOnError(transactionSpan, &err)
 
 		transactionSpan.AddEvent("Creating session")
-		tokenData, err = u.sessionMgr.CreateSession(txCtx, sessionReqData)
+		tokens, err = u.sessionMgr.CreateSession(txCtx, sessionReqData)
 		if err != nil {
 			return fmt.Errorf("%w: %w", domain.ErrFailedToCreateUserSession, err)
 		}
@@ -191,7 +189,7 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 		tracing.RecordError(span, err)
 		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.String("user.id", userData.ID))
 		u.metrics.RecordLoginError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToCommitTransaction.Error()))
-		return entity.SessionTokens{}, err
+		return "", entity.SessionTokens{}, err
 	}
 
 	log.Info("user authenticated, tokens created",
@@ -200,11 +198,20 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 
 	u.metrics.RecordLoginSuccess(ctx, clientID)
 
-	return tokenData, nil
+	return userData.ID, tokens, nil
 }
 
 // RegisterUser creates new user in the system and returns jwtoken
-func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entity.UserRequestData, verifyEmailEndpoint string) (entity.SessionTokens, error) {
+func (u *Auth) RegisterUser(
+	ctx context.Context,
+	clientID string,
+	reqData *entity.UserRequestData,
+	verifyEmailEndpoint string,
+) (
+	userID string,
+	tokens entity.SessionTokens,
+	err error,
+) {
 	const method = "usecase.Auth.RegisterUser"
 
 	ctx, span := tracing.StartSpan(ctx, method)
@@ -227,12 +234,10 @@ func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entit
 	if err != nil {
 		e.LogError(ctx, log, domain.ErrFailedToGeneratePasswordHash, err)
 		u.metrics.RecordRegistrationError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToGeneratePasswordHash.Error()))
-		return entity.SessionTokens{}, domain.ErrFailedToGeneratePasswordHash
+		return "", entity.SessionTokens{}, domain.ErrFailedToGeneratePasswordHash
 	}
 
 	newUser := entity.NewUser(reqData.Email, hash)
-
-	var tokens entity.SessionTokens
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		txCtx, transactionSpan := tracing.StartSpan(txCtx, "transaction")
@@ -272,7 +277,7 @@ func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entit
 		tracing.RecordError(span, err)
 		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.String("user.id", newUser.ID))
 		u.metrics.RecordRegistrationError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToCommitTransaction.Error()))
-		return entity.SessionTokens{}, err
+		return "", entity.SessionTokens{}, err
 	}
 
 	log.Info("user and tokens created, verification email sent",
@@ -281,7 +286,7 @@ func (u *Auth) RegisterUser(ctx context.Context, clientID string, reqData *entit
 
 	u.metrics.RecordRegistrationSuccess(ctx, clientID)
 
-	return tokens, nil
+	return newUser.ID, tokens, nil
 }
 
 func (u *Auth) handleUserStatus(ctx context.Context, status string, user entity.User) error {
@@ -484,7 +489,7 @@ func (u *Auth) ChangePassword(ctx context.Context, clientID string, reqData *ent
 
 		return nil
 	}); err != nil {
-	  tracing.RecordError(span, err)
+		tracing.RecordError(span, err)
 		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.String("token", reqData.ResetPasswordToken))
 		u.metrics.RecordChangePasswordError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToCommitTransaction.Error()))
 		return entity.ChangingPasswordResult{}, err
@@ -672,7 +677,7 @@ func (u *Auth) RefreshTokens(ctx context.Context, clientID string, reqData *enti
 	ctx, createSessionSpan := tracing.StartSpan(ctx, "create_session")
 	tokenData, err := u.sessionMgr.CreateSession(ctx, sessionReqData)
 	if err != nil {
-    tracing.RecordError(createSessionSpan, err)
+		tracing.RecordError(createSessionSpan, err)
 		createSessionSpan.End()
 
 		e.LogError(ctx, log, domain.ErrFailedToCreateUserSession, err, slog.String("user.id", userSession.UserID))
@@ -712,7 +717,7 @@ func (u *Auth) GetJWKS(ctx context.Context, clientID string) (entity.JWKS, error
 	if err != nil {
 		tracing.RecordError(getPublicKeySpan, err)
 		getPublicKeySpan.End()
-    
+
 		e.LogError(ctx, log, domain.ErrFailedToGetPublicKey, err)
 		u.metrics.RecordJWKSRetrievalError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToGetPublicKey.Error()))
 		return entity.JWKS{}, domain.ErrFailedToGetPublicKey

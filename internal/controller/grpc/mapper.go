@@ -25,8 +25,9 @@ func fromLoginRequest(req *authv1.LoginRequest) *entity.UserRequestData {
 	}
 }
 
-func toLoginResponse(tokenData entity.SessionTokens) *authv1.LoginResponse {
+func toLoginResponse(userID string, tokenData entity.SessionTokens) *authv1.LoginResponse {
 	return &authv1.LoginResponse{
+		UserId: userID,
 		TokenData: &authv1.TokenData{
 			AccessToken:      tokenData.AccessToken,
 			RefreshToken:     tokenData.RefreshToken,
@@ -50,8 +51,9 @@ func fromRegisterUserRequest(req *authv1.RegisterUserRequest) *entity.UserReques
 	}
 }
 
-func toRegisterUserResponse(tokenData entity.SessionTokens) *authv1.RegisterUserResponse {
+func toRegisterUserResponse(userID string, tokenData entity.SessionTokens) *authv1.RegisterUserResponse {
 	return &authv1.RegisterUserResponse{
+		UserId: userID,
 		TokenData: &authv1.TokenData{
 			AccessToken:      tokenData.AccessToken,
 			RefreshToken:     tokenData.RefreshToken,
