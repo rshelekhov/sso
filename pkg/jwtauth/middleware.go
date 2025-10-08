@@ -3,41 +3,7 @@ package jwtauth
 import (
 	"context"
 	"net/http"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
-
-// UnaryServerInterceptor is an interceptor that verifies a JWT token from gRPC metadata.
-//
-// UnaryServerInterceptor will extract a JWT token from gRPC metadata using the authorization key.
-func (m *manager) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		clientID, err := m.getClientIDFromGRPCMetadata(ctx)
-		if err != nil {
-			return nil, status.Error(codes.Unauthenticated, err.Error())
-		}
-
-		token, err := m.ExtractTokenFromGRPC(ctx)
-		if err != nil {
-			return nil, status.Error(codes.Unauthenticated, err.Error())
-		}
-
-		if token == "" {
-			return "", status.Error(codes.Unauthenticated, ErrTokenNotFound.Error())
-		}
-
-		if err := m.verifyToken(clientID, token); err != nil {
-			return "", status.Error(codes.Unauthenticated, err.Error())
-		}
-
-		ctx = context.WithValue(ctx, AuthorizationHeader, token)
-
-		return handler(ctx, req)
-	}
-}
 
 // HTTPMiddleware is a HTTP middleware handler that verifies a JWT token from an HTTP request.
 //
@@ -63,25 +29,6 @@ func (m *manager) HTTPMiddleware(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), AuthorizationHeader, token)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-// getClientIDFromGRPCMetadata returns the clientID from the manager struct or from gRPC metadata
-func (m *manager) getClientIDFromGRPCMetadata(ctx context.Context) (string, error) {
-	if m.clientID != "" {
-		return m.clientID, nil
-	}
-
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return "", ErrNoGRPCMetadata
-	}
-
-	values := md.Get(ClientIDHeader)
-	if len(values) == 0 {
-		return "", ErrClientIDHeaderNotFoundInGRPCMetadata
-	}
-
-	return values[0], nil
 }
 
 // getClientIDFromHTTPRequest returns the clientID from the manager struct or from the http request

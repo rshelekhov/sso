@@ -33,6 +33,7 @@ type (
 
 	Middleware interface {
 		UnaryServerInterceptor() grpc.UnaryServerInterceptor
+		AuthUnaryClientInterceptor(clientID string) grpc.UnaryClientInterceptor
 		HTTPMiddleware(next http.Handler) http.Handler
 	}
 
