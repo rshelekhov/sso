@@ -55,6 +55,8 @@ test-local: setup-dev run
 
 # Run Docker-based tests (full stack + observability)
 test-docker:
+	@echo "Cleaning up previous Docker environment..."
+	@docker compose down -v 2>/dev/null || true
 	@echo "Starting Docker test environment..."
 	@docker compose up -d $(DOCKER_COMPOSE_SERVICES)
 	@sleep 15
@@ -66,6 +68,8 @@ test-docker:
 
 # Run fully containerized tests (SSO + infrastructure + tests all in Docker)
 test-docker-full:
+	@echo "Cleaning up previous Docker environment..."
+	@docker compose down -v 2>/dev/null || true
 	@echo "Starting fully containerized test environment..."
 	@docker compose up -d $(DOCKER_COMPOSE_SERVICES)
 	@sleep 15
@@ -76,7 +80,7 @@ test-docker-full:
 
 # Stop Docker test environment  
 test-docker-clean:
-	@docker compose down
+	@docker compose down -v
 
 # ================================
 # Observability  
@@ -125,9 +129,9 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  test-local        - Local tests (setup + run + test)"
-	@echo "  test-docker       - Docker tests with full observability stack (SSO local)"
-	@echo "  test-docker-full  - Fully containerized tests (SSO + tests in Docker)"
-	@echo "  test-docker-clean - Stop Docker environment"
+	@echo "  test-docker       - Docker tests with full observability stack (auto-cleanup)"
+	@echo "  test-docker-full  - Fully containerized tests (auto-cleanup)"
+	@echo "  test-docker-clean - Stop Docker environment and remove volumes"
 	@echo ""
 	@echo "Observability:"
 	@echo "  observability     - Start observability stack"

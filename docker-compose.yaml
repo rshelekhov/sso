@@ -289,6 +289,51 @@ services:
       retries: 3
       start_period: 30s
 
+  # PostgreSQL database setup service
+  db-setup-postgres:
+    build:
+      context: .
+      target: runner
+    depends_on:
+      postgres:
+        condition: service_started
+    command: >
+      sh -c "
+        echo 'Checking PostgreSQL availability...' &&
+        if timeout 30 sh -c 'until pg_isready -h postgres -U sso_user; do sleep 1; done' 2>/dev/null; then
+          echo 'Setting up PostgreSQL database...' &&
+          migrate -database 'postgres://sso_user:sso_password@postgres:5432/sso_db?sslmode=disable' -path migrations up &&
+          echo 'Adding test client to PostgreSQL...' &&
+          psql 'postgres://sso_user:sso_password@postgres:5432/sso_db' -c \"INSERT INTO clients (id, name, secret, status, created_at, updated_at) VALUES ('test-client-id', 'test', 'test-secret', 1, NOW(), NOW()) ON CONFLICT DO NOTHING;\" &&
+          echo 'PostgreSQL setup complete.'
+        else
+          echo 'PostgreSQL not available, skipping setup.'
+        fi
+      "
+    restart: "no"
+
+  # MongoDB database setup service
+  db-setup-mongo:
+    build:
+      context: .
+      target: runner
+    depends_on:
+      mongo:
+        condition: service_started
+    command: >
+      sh -c "
+        echo 'Checking MongoDB availability...' &&
+        if timeout 30 sh -c 'until mongosh mongodb://mongo:27017 --eval \"db.adminCommand({ping:1})\" --quiet; do sleep 1; done' 2>/dev/null; then
+          echo 'Setting up MongoDB database...' &&
+          echo 'Adding test client to MongoDB...' &&
+          mongosh 'mongodb://mongo:27017/sso_dev' --eval \"db.clients.insertOne({_id: 'test-client-id', name: 'test', secret: 'test-secret', status: 1, created_at: new Date(), updated_at: new Date()})\" 2>/dev/null || echo 'Client already exists' &&
+          echo 'MongoDB setup complete.'
+        else
+          echo 'MongoDB not available, skipping setup.'
+        fi
+      "
+    restart: "no"
+
   # SSO application for full containerized testing
   sso-app:
     build:
@@ -302,8 +347,10 @@ services:
     ports:
       - "44044:44044"
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-setup-postgres:
+        condition: service_completed_successfully
+      db-setup-mongo:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       minio:

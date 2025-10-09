@@ -23,6 +23,7 @@ RUN go build -o /app ./cmd/sso
 FROM builder AS tester
 
 ENV CONFIG_PATH=/src/config/config.docker.yaml
+ENV RUN_TESTS=true
 
 # Install postgresql and busybox-extras for database setup and port checks
 RUN apk add --no-cache postgresql busybox-extras
@@ -36,7 +37,13 @@ CMD ["test-entrypoint.sh"]
 # Stage 3: Prepare the final runtime image
 FROM alpine:3.19 AS runner
 
-RUN apk update && apk add --no-cache ca-certificates make postgresql-client busybox-extras
+RUN apk update && apk add --no-cache ca-certificates make postgresql-client busybox-extras curl
+
+# Install mongosh for MongoDB support
+RUN curl -fsSL https://downloads.mongodb.com/compass/mongosh-1.10.6-linux-x64.tgz | tar -xz -C /tmp && \
+    mv /tmp/mongosh-1.10.6-linux-x64/bin/mongosh /usr/local/bin/ && \
+    chmod +x /usr/local/bin/mongosh && \
+    rm -rf /tmp/mongosh-*
 
 WORKDIR /src
 
