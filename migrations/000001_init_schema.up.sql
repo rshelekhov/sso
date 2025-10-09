@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
     id            character varying PRIMARY KEY,
     email         character varying UNIQUE NOT NULL,
     password_hash character varying NOT NULL,
+    name          character varying NOT NULL,
     verified      boolean DEFAULT FALSE,
     created_at    timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at    timestamp WITH TIME ZONE NOT NULL DEFAULT now(),
