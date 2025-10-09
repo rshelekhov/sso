@@ -1,17 +1,18 @@
 -- name: RegisterUser :exec
-INSERT INTO users (id, email, password_hash, verified, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6);
+INSERT INTO users (id, email, password_hash, name, verified, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: ReplaceSoftDeletedUser :exec
 UPDATE users
 SET
     id = $1,
     password_hash = $2,
-    verified = $3,
-    created_at = $4,
-    updated_at = $5,
+    name = $3,
+    verified = $4,
+    created_at = $5,
+    updated_at = $6,
     deleted_at = NULL
-WHERE email = $6
+WHERE email = $7
   AND deleted_at IS NOT NULL;
 
 -- name: MarkEmailVerified :exec

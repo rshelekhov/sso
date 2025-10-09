@@ -25,14 +25,15 @@ func (q *Queries) MarkEmailVerified(ctx context.Context, id string) error {
 }
 
 const registerUser = `-- name: RegisterUser :exec
-INSERT INTO users (id, email, password_hash, verified, created_at, updated_at)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO users (id, email, password_hash, name, verified, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type RegisterUserParams struct {
 	ID           string      `db:"id"`
 	Email        string      `db:"email"`
 	PasswordHash string      `db:"password_hash"`
+	Name         string      `db:"name"`
 	Verified     pgtype.Bool `db:"verified"`
 	CreatedAt    time.Time   `db:"created_at"`
 	UpdatedAt    time.Time   `db:"updated_at"`
@@ -43,6 +44,7 @@ func (q *Queries) RegisterUser(ctx context.Context, arg RegisterUserParams) erro
 		arg.ID,
 		arg.Email,
 		arg.PasswordHash,
+		arg.Name,
 		arg.Verified,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -55,17 +57,19 @@ UPDATE users
 SET
     id = $1,
     password_hash = $2,
-    verified = $3,
-    created_at = $4,
-    updated_at = $5,
+    name = $3,
+    verified = $4,
+    created_at = $5,
+    updated_at = $6,
     deleted_at = NULL
-WHERE email = $6
+WHERE email = $7
   AND deleted_at IS NOT NULL
 `
 
 type ReplaceSoftDeletedUserParams struct {
 	ID           string      `db:"id"`
 	PasswordHash string      `db:"password_hash"`
+	Name         string      `db:"name"`
 	Verified     pgtype.Bool `db:"verified"`
 	CreatedAt    time.Time   `db:"created_at"`
 	UpdatedAt    time.Time   `db:"updated_at"`
@@ -76,6 +80,7 @@ func (q *Queries) ReplaceSoftDeletedUser(ctx context.Context, arg ReplaceSoftDel
 	_, err := q.db.Exec(ctx, replaceSoftDeletedUser,
 		arg.ID,
 		arg.PasswordHash,
+		arg.Name,
 		arg.Verified,
 		arg.CreatedAt,
 		arg.UpdatedAt,

@@ -40,6 +40,7 @@ func (s *AuthStorage) ReplaceSoftDeletedUser(ctx context.Context, user entity.Us
 	params := sqlc.ReplaceSoftDeletedUserParams{
 		ID:           user.ID,
 		PasswordHash: user.PasswordHash,
+		Name:         user.Name,
 		Verified: pgtype.Bool{
 			Bool:  user.Verified,
 			Valid: true,
@@ -74,6 +75,7 @@ func (s *AuthStorage) RegisterUser(ctx context.Context, user entity.User) error 
 		ID:           user.ID,
 		Email:        user.Email,
 		PasswordHash: user.PasswordHash,
+		Name:         user.Name,
 		Verified: pgtype.Bool{
 			Bool:  user.Verified,
 			Valid: true,

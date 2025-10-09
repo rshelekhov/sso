@@ -44,6 +44,7 @@ func fromRegisterUserRequest(req *authv1.RegisterUserRequest) *entity.UserReques
 	return &entity.UserRequestData{
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),
+		Name:     req.GetName(),
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: req.UserDeviceData.GetUserAgent(),
 			IP:        req.UserDeviceData.GetIp(),
