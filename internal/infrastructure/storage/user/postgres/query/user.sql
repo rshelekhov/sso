@@ -11,7 +11,7 @@ WHERE email = $1
   AND deleted_at IS NULL;
 
 -- name: GetUserData :one
-SELECT id, email, password_hash, updated_at
+SELECT id, email, name, password_hash, updated_at
 FROM users
 WHERE id = $1
   AND deleted_at IS NULL;

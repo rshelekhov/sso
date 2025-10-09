@@ -84,7 +84,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (GetUserByIDRow, e
 }
 
 const getUserData = `-- name: GetUserData :one
-SELECT id, email, password_hash, updated_at
+SELECT id, email, name, password_hash, updated_at
 FROM users
 WHERE id = $1
   AND deleted_at IS NULL
@@ -93,6 +93,7 @@ WHERE id = $1
 type GetUserDataRow struct {
 	ID           string    `db:"id"`
 	Email        string    `db:"email"`
+	Name         string    `db:"name"`
 	PasswordHash string    `db:"password_hash"`
 	UpdatedAt    time.Time `db:"updated_at"`
 }
@@ -103,6 +104,7 @@ func (q *Queries) GetUserData(ctx context.Context, id string) (GetUserDataRow, e
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Name,
 		&i.PasswordHash,
 		&i.UpdatedAt,
 	)

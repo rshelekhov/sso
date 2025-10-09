@@ -289,7 +289,7 @@ func (u *User) DeleteUser(ctx context.Context, clientID string) error {
 			return fmt.Errorf("%w: %s", domain.ErrUnknownUserStatus, userStatus)
 		}
 	}); err != nil {
-    tracing.RecordError(span, err)
+		tracing.RecordError(span, err)
 		e.LogError(ctx, log, domain.ErrFailedToCommitTransaction, err, slog.String("user.id", userData.ID))
 		u.metrics.RecordUserDeletionsError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToCommitTransaction.Error()))
 		return err
@@ -369,6 +369,7 @@ func (u *User) updateUserFields(
 	updatedUser := entity.User{
 		ID:        userDataFromDB.ID,
 		Email:     data.Email,
+		Name:      data.Name,
 		UpdatedAt: time.Now(),
 	}
 
@@ -377,6 +378,10 @@ func (u *User) updateUserFields(
 	}
 
 	if err := u.handleEmailUpdate(ctx, userDataFromDB, &updatedUser); err != nil {
+		return entity.User{}, err
+	}
+
+	if err := u.handleNameUpdate(data, userDataFromDB, &updatedUser); err != nil {
 		return entity.User{}, err
 	}
 
@@ -472,6 +477,18 @@ func (u *User) handleEmailUpdate(ctx context.Context, userDataFromDB entity.User
 
 	if userStatus == entity.UserStatusActive.String() {
 		return domain.ErrEmailAlreadyTaken
+	}
+
+	return nil
+}
+
+func (u *User) handleNameUpdate(data entity.UserRequestData, userDataFromDB entity.User, updatedUser *entity.User) error {
+	if updatedUser.Name == "" {
+		return nil
+	}
+
+	if updatedUser.Name == userDataFromDB.Name {
+		return domain.ErrNoNameChangesDetected
 	}
 
 	return nil

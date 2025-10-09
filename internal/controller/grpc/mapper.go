@@ -149,12 +149,14 @@ func fromUpdateUserRequest(req *userv1.UpdateUserRequest) entity.UserRequestData
 		Email:           req.GetEmail(),
 		Password:        req.GetCurrentPassword(),
 		UpdatedPassword: req.GetUpdatedPassword(),
+		Name:            req.GetName(),
 	}
 }
 
 func toUpdateUserResponse(user entity.User) *userv1.UpdateUserResponse {
 	return &userv1.UpdateUserResponse{
 		Email:     user.Email,
+		Name:      user.Name,
 		UpdatedAt: timestamppb.New(user.UpdatedAt),
 	}
 }
@@ -184,6 +186,7 @@ var errorToStatus = map[error]codes.Code{
 	domain.ErrPasswordsDoNotMatch:         codes.InvalidArgument,
 	domain.ErrNoEmailChangesDetected:      codes.InvalidArgument,
 	domain.ErrNoPasswordChangesDetected:   codes.InvalidArgument,
+	domain.ErrNoNameChangesDetected:       codes.InvalidArgument,
 	domain.ErrTokenExpiredWithEmailResent: codes.FailedPrecondition,
 	domain.ErrClientIDIsNotAllowed:        codes.InvalidArgument,
 }

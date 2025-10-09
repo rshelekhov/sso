@@ -11,6 +11,7 @@ const (
 	FieldID           = "_id"
 	FieldEmail        = "email"
 	FieldPasswordHash = "password_hash"
+	FieldName         = "name"
 	FieldClientID     = "client_id"
 	FieldStatus       = "status"
 	FieldVerified     = "verified"

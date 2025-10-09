@@ -86,6 +86,7 @@ func (s *UserStorage) GetUserData(ctx context.Context, userID string) (entity.Us
 	return entity.User{
 		ID:           user.ID,
 		Email:        user.Email,
+		Name:         user.Name,
 		PasswordHash: user.PasswordHash,
 		UpdatedAt:    user.UpdatedAt,
 	}, nil
@@ -120,6 +121,11 @@ func (s *UserStorage) buildUpdateUserQuery(user entity.User) (string, []any) {
 	if user.PasswordHash != "" {
 		queryUpdate += ", password_hash = $" + strconv.Itoa(len(queryParams)+1)
 		queryParams = append(queryParams, user.PasswordHash)
+	}
+
+	if user.Name != "" {
+		queryUpdate += ", name = $" + strconv.Itoa(len(queryParams)+1)
+		queryParams = append(queryParams, user.Name)
 	}
 
 	queryUpdate += " WHERE id = $" + strconv.Itoa(len(queryParams)+1)
