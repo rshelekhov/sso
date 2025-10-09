@@ -148,21 +148,42 @@ help:
 # ================================
 
 _setup-postgres:
+	@echo "Setting up PostgreSQL environment..."
 	@if ! which psql >/dev/null 2>&1; then \
 		echo "Installing postgresql-client..."; \
 		if [ "$$(uname)" = "Darwin" ]; then brew install postgresql; \
 		else sudo apt-get update && sudo apt-get install -y postgresql-client; fi \
+	else \
+		echo "✓ postgresql-client already installed"; \
 	fi
-	@if ! psql $(POSTGRESQL_URL) -c "SELECT 1 FROM pg_tables WHERE tablename = 'clients';" | grep -q 1; then \
+	@if ! psql $(POSTGRESQL_URL) -c "SELECT 1 FROM pg_tables WHERE tablename = 'clients';" 2>/dev/null | grep -q 1; then \
 		echo "Running migrations..."; \
 		migrate -database $(POSTGRESQL_URL) -path migrations up; \
+	else \
+		echo "✓ Migrations already applied"; \
 	fi
-	@if ! psql $(POSTGRESQL_URL) -c "SELECT 1 FROM clients WHERE id = 'test-client-id';" | grep -q 1; then \
+	@if ! psql $(POSTGRESQL_URL) -c "SELECT 1 FROM clients WHERE id = 'test-client-id';" 2>/dev/null | grep -q 1; then \
 		echo "Inserting test data..."; \
-		psql $(POSTGRESQL_URL) -c "INSERT INTO clients (id, name, secret, status, created_at, updated_at) VALUES ('test-client-id', 'test', 'test-secret', 1, NOW(), NOW());"; \
+		psql $(POSTGRESQL_URL) -c "INSERT INTO clients (id, name, secret, status, created_at, updated_at) VALUES ('test-client-id', 'test', 'test-secret', 1, NOW(), NOW());" >/dev/null; \
+		echo "✓ Test client inserted"; \
+	else \
+		echo "✓ Test client already exists"; \
 	fi
+	@echo "PostgreSQL setup complete!"
 
 _setup-mongo:
-	@if [ "$$(mongosh "$(MONGO_URL)" --quiet --eval 'db.clients.countDocuments({_id: "test-client-id"})')" = "0" ]; then \
-		mongosh "$(MONGO_URL)" --eval 'db.clients.insertOne({_id: "test-client-id", name: "test", secret: "test-secret", status: 1, created_at: new Date(), updated_at: new Date()})'; \
+	@echo "Setting up MongoDB environment..."
+	@if ! which mongosh >/dev/null 2>&1; then \
+		echo "ERROR: mongosh not found. Please install MongoDB Shell."; \
+		exit 1; \
+	else \
+		echo "✓ mongosh already installed"; \
 	fi
+	@if [ "$$(mongosh "$(MONGO_URL)" --quiet --eval 'db.clients.countDocuments({_id: "test-client-id"})')" = "0" ]; then \
+		echo "Inserting test data..."; \
+		mongosh "$(MONGO_URL)" --quiet --eval 'db.clients.insertOne({_id: "test-client-id", name: "test", secret: "test-secret", status: 1, created_at: new Date(), updated_at: new Date()})' >/dev/null; \
+		echo "✓ Test client inserted"; \
+	else \
+		echo "✓ Test client already exists"; \
+	fi
+	@echo "MongoDB setup complete!"
