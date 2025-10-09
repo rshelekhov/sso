@@ -137,6 +137,7 @@ func toGetUserResponse(user entity.User) *userv1.GetUserResponse {
 		User: &userv1.User{
 			Id:        user.ID,
 			Email:     user.Email,
+			Name:      user.Name,
 			Verified:  user.Verified,
 			UpdatedAt: timestamppb.New(user.UpdatedAt),
 		},
@@ -163,6 +164,7 @@ func toGetUserByIDResponse(user entity.User) *userv1.GetUserByIDResponse {
 		User: &userv1.User{
 			Id:        user.ID,
 			Email:     user.Email,
+			Name:      user.Name,
 			Verified:  user.Verified,
 			UpdatedAt: timestamppb.New(user.UpdatedAt),
 		},

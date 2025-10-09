@@ -30,7 +30,7 @@ func (q *Queries) DeleteUser(ctx context.Context, arg DeleteUserParams) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, updated_at
+SELECT id, email, name, updated_at
 FROM users
 WHERE email = $1
   AND deleted_at IS NULL
@@ -39,18 +39,24 @@ WHERE email = $1
 type GetUserByEmailRow struct {
 	ID        string    `db:"id"`
 	Email     string    `db:"email"`
+	Name      string    `db:"name"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
 	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i GetUserByEmailRow
-	err := row.Scan(&i.ID, &i.Email, &i.UpdatedAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Name,
+		&i.UpdatedAt,
+	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, verified, updated_at
+SELECT id, email, name,verified, updated_at
 FROM users
 WHERE id = $1
   AND deleted_at IS NULL
@@ -59,6 +65,7 @@ WHERE id = $1
 type GetUserByIDRow struct {
 	ID        string      `db:"id"`
 	Email     string      `db:"email"`
+	Name      string      `db:"name"`
 	Verified  pgtype.Bool `db:"verified"`
 	UpdatedAt time.Time   `db:"updated_at"`
 }
@@ -69,6 +76,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (GetUserByIDRow, e
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Name,
 		&i.Verified,
 		&i.UpdatedAt,
 	)
