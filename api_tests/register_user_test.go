@@ -27,6 +27,7 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	// Generate data for request
 	email := gofakeit.Email()
 	pass := randomFakePassword()
+	name := gofakeit.Name()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
@@ -38,6 +39,7 @@ func TestRegisterUser_HappyPath(t *testing.T) {
 	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
+		Name:            name,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
