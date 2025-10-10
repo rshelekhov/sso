@@ -381,7 +381,7 @@ func (u *User) updateUserFields(
 		return entity.User{}, err
 	}
 
-	if err := u.handleNameUpdate(data, userDataFromDB, &updatedUser); err != nil {
+	if err := u.handleNameUpdate(userDataFromDB, &updatedUser); err != nil {
 		return entity.User{}, err
 	}
 
@@ -482,7 +482,7 @@ func (u *User) handleEmailUpdate(ctx context.Context, userDataFromDB entity.User
 	return nil
 }
 
-func (u *User) handleNameUpdate(data entity.UserRequestData, userDataFromDB entity.User, updatedUser *entity.User) error {
+func (u *User) handleNameUpdate(userDataFromDB entity.User, updatedUser *entity.User) error {
 	if updatedUser.Name == "" {
 		return nil
 	}
