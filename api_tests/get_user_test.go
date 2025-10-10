@@ -21,6 +21,7 @@ func TestGetUser_HappyPath(t *testing.T) {
 	// Generate data for requests
 	email := gofakeit.Email()
 	pass := randomFakePassword()
+	name := gofakeit.Name()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
@@ -32,6 +33,7 @@ func TestGetUser_HappyPath(t *testing.T) {
 	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
+		Name:            name,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
@@ -57,6 +59,7 @@ func TestGetUser_HappyPath(t *testing.T) {
 	respGet, err := st.UserService.GetUser(ctx, &userv1.GetUserRequest{})
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.User.GetEmail())
+	require.NotEmpty(t, respGet.User.GetName())
 	require.NotEmpty(t, respGet.User.GetUpdatedAt())
 
 	// Cleanup database after test
@@ -75,6 +78,7 @@ func TestGetUserByID_HappyPath(t *testing.T) {
 	// Register user
 	email := gofakeit.Email()
 	pass := randomFakePassword()
+	name := gofakeit.Name()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
@@ -84,6 +88,7 @@ func TestGetUserByID_HappyPath(t *testing.T) {
 	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
+		Name:            name,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
@@ -112,6 +117,7 @@ func TestGetUserByID_HappyPath(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, respGet.User.GetEmail())
 	require.Equal(t, email, respGet.User.GetEmail())
+	require.Equal(t, name, respGet.User.GetName())
 	require.NotEmpty(t, respGet.User.GetUpdatedAt())
 
 	// Cleanup database after test

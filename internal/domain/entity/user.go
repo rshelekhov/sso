@@ -22,6 +22,7 @@ type (
 	User struct {
 		ID           string
 		Email        string
+		Name         string
 		PasswordHash string
 		Verified     bool
 		Status       userStatusType
@@ -33,15 +34,17 @@ type (
 	UserRequestData struct {
 		Email           string
 		Password        string
+		Name            string
 		UpdatedPassword string
 		UserDevice      UserDeviceRequestData
 	}
 )
 
-func NewUser(email, hash string) User {
+func NewUser(email, name, hash string) User {
 	return User{
 		ID:           ksuid.New().String(),
 		Email:        email,
+		Name:         name,
 		PasswordHash: hash,
 		Verified:     false,
 		CreatedAt:    time.Now(),

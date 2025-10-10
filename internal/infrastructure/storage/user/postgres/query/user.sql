@@ -1,17 +1,17 @@
 -- name: GetUserByID :one
-SELECT id, email, verified, updated_at
+SELECT id, email, name,verified, updated_at
 FROM users
 WHERE id = $1
   AND deleted_at IS NULL;
 
 -- name: GetUserByEmail :one
-SELECT id, email, updated_at
+SELECT id, email, name, updated_at
 FROM users
 WHERE email = $1
   AND deleted_at IS NULL;
 
 -- name: GetUserData :one
-SELECT id, email, password_hash, updated_at
+SELECT id, email, name, password_hash, updated_at
 FROM users
 WHERE id = $1
   AND deleted_at IS NULL;

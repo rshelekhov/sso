@@ -20,6 +20,7 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 	// Generate data for requests
 	email := gofakeit.Email()
 	pass := randomFakePassword()
+	name := gofakeit.Name()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
@@ -31,6 +32,7 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 	respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 		Email:           email,
 		Password:        pass,
+		Name:            name,
 		VerificationUrl: cfg.VerificationURL,
 		UserDeviceData: &authv1.UserDeviceData{
 			UserAgent: userAgent,
@@ -56,12 +58,14 @@ func TestUpdateUser_HappyPath(t *testing.T) {
 	// Update user
 	resp, err := st.UserService.UpdateUser(ctx, &userv1.UpdateUserRequest{
 		Email:           updatedEmail,
+		Name:            gofakeit.Name(),
 		CurrentPassword: pass,
 		UpdatedPassword: randomFakePassword(),
 	})
 	require.NoError(t, err)
 	require.NotEmpty(t, resp)
 	require.Equal(t, updatedEmail, resp.GetEmail())
+	require.NotEqual(t, name, resp.GetName())
 
 	// Cleanup database after test
 	params := cleanupParams{
@@ -154,6 +158,7 @@ func TestUpdateUser_FailCases(t *testing.T) {
 	// Generate data for requests
 	email := gofakeit.Email()
 	pass := randomFakePassword()
+	name := gofakeit.Name()
 	userAgent := gofakeit.UserAgent()
 	ip := gofakeit.IPv4Address()
 
@@ -167,6 +172,8 @@ func TestUpdateUser_FailCases(t *testing.T) {
 		updEmail    string
 		curPassword string
 		updPassword string
+		regName     string
+		updName     string
 		clientID    string
 		expectedErr error
 	}{
@@ -175,6 +182,8 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			regEmail:    gofakeit.Email(),
 			curPassword: randomFakePassword(),
 			updPassword: randomFakePassword(),
+			regName:     name,
+			updName:     gofakeit.Name(),
 			clientID:    cfg.ClientID,
 			expectedErr: domain.ErrPasswordsDoNotMatch,
 		},
@@ -183,6 +192,8 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			regEmail:    gofakeit.Email(),
 			curPassword: "",
 			updPassword: pass,
+			regName:     name,
+			updName:     gofakeit.Name(),
 			clientID:    cfg.ClientID,
 			expectedErr: domain.ErrCurrentPasswordRequired,
 		},
@@ -191,13 +202,23 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			regEmail:    gofakeit.Email(),
 			curPassword: pass,
 			updPassword: pass,
+			regName:     name,
+			updName:     gofakeit.Name(),
 			clientID:    cfg.ClientID,
 			expectedErr: domain.ErrNoPasswordChangesDetected,
 		},
 		{
 			name:        "No email changes detected",
 			clientID:    cfg.ClientID,
+			regName:     name,
+			updName:     gofakeit.Name(),
 			expectedErr: domain.ErrNoEmailChangesDetected,
+		},
+		{
+			name:        "No name changes detected",
+			regEmail:    gofakeit.Email(),
+			clientID:    cfg.ClientID,
+			expectedErr: domain.ErrNoNameChangesDetected,
 		},
 	}
 
@@ -207,12 +228,16 @@ func TestUpdateUser_FailCases(t *testing.T) {
 				email = gofakeit.Email()
 				tt.regEmail = email
 				tt.updEmail = email
+			} else if tt.name == "No name changes detected" {
+				tt.regName = name
+				tt.updName = name
 			}
 
 			// Register user
 			respReg, err := st.AuthService.RegisterUser(ctx, &authv1.RegisterUserRequest{
 				Email:           tt.regEmail,
 				Password:        pass,
+				Name:            tt.regName,
 				VerificationUrl: cfg.VerificationURL,
 				UserDeviceData: &authv1.UserDeviceData{
 					UserAgent: userAgent,
@@ -236,6 +261,7 @@ func TestUpdateUser_FailCases(t *testing.T) {
 			// Update user
 			_, err = st.UserService.UpdateUser(ctx, &userv1.UpdateUserRequest{
 				Email:           tt.updEmail,
+				Name:            tt.updName,
 				CurrentPassword: tt.curPassword,
 				UpdatedPassword: tt.updPassword,
 			})
