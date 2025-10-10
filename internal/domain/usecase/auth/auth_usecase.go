@@ -237,7 +237,7 @@ func (u *Auth) RegisterUser(
 		return "", entity.SessionTokens{}, domain.ErrFailedToGeneratePasswordHash
 	}
 
-	newUser := entity.NewUser(reqData.Email, hash)
+	newUser := entity.NewUser(reqData.Email, reqData.Name, hash)
 
 	if err = u.txMgr.WithinTransaction(ctx, func(txCtx context.Context) error {
 		txCtx, transactionSpan := tracing.StartSpan(txCtx, "transaction")

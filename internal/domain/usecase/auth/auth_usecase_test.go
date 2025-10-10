@@ -321,6 +321,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 	clientID := "test-client-id"
 	email := "test@example.com"
 	password := "password123"
+	name := "test-name"
 	hashedPassword := "hashed_password"
 	endpoint := "https://example.com/verify/"
 	tokenStr := "test-verification-token"
@@ -329,6 +330,7 @@ func TestAuthUsecase_RegisterUser(t *testing.T) {
 	validReqData := &entity.UserRequestData{
 		Email:    email,
 		Password: password,
+		Name:     name,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: "test-agent",
 			IP:        "127.0.0.1",

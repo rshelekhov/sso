@@ -116,6 +116,7 @@ func (s *UserStorage) GetUserData(ctx context.Context, userID string) (entity.Us
 		common.FieldID:           1,
 		common.FieldEmail:        1,
 		common.FieldPasswordHash: 1,
+		common.FieldName:         1,
 		common.FieldUpdatedAt:    1,
 	})
 
@@ -175,6 +176,9 @@ func buildUpdateFields(user entity.User) bson.M {
 	}
 	if user.PasswordHash != "" {
 		update[common.FieldPasswordHash] = user.PasswordHash
+	}
+	if user.Name != "" {
+		update[common.FieldName] = user.Name
 	}
 
 	return update

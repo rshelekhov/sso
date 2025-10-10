@@ -116,6 +116,7 @@ var (
 	ErrFailedToGeneratePasswordHash   = errors.New("failed to generate password hash")
 	ErrFailedToGetUserStatusByEmail   = errors.New("failed to get user status by email")
 	ErrNoEmailChangesDetected         = errors.New("no email changes detected")
+	ErrNoNameChangesDetected          = errors.New("no name changes detected")
 	ErrEmailAlreadyTaken              = errors.New("email already taken")
 	ErrFailedToGetUserStatusByID      = errors.New("failed to get user status by ID")
 	ErrUnknownUserStatus              = errors.New("unknown user status")

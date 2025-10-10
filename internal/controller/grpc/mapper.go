@@ -44,6 +44,7 @@ func fromRegisterUserRequest(req *authv1.RegisterUserRequest) *entity.UserReques
 	return &entity.UserRequestData{
 		Email:    req.GetEmail(),
 		Password: req.GetPassword(),
+		Name:     req.GetName(),
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: req.UserDeviceData.GetUserAgent(),
 			IP:        req.UserDeviceData.GetIp(),
@@ -136,6 +137,7 @@ func toGetUserResponse(user entity.User) *userv1.GetUserResponse {
 		User: &userv1.User{
 			Id:        user.ID,
 			Email:     user.Email,
+			Name:      user.Name,
 			Verified:  user.Verified,
 			UpdatedAt: timestamppb.New(user.UpdatedAt),
 		},
@@ -147,12 +149,14 @@ func fromUpdateUserRequest(req *userv1.UpdateUserRequest) entity.UserRequestData
 		Email:           req.GetEmail(),
 		Password:        req.GetCurrentPassword(),
 		UpdatedPassword: req.GetUpdatedPassword(),
+		Name:            req.GetName(),
 	}
 }
 
 func toUpdateUserResponse(user entity.User) *userv1.UpdateUserResponse {
 	return &userv1.UpdateUserResponse{
 		Email:     user.Email,
+		Name:      user.Name,
 		UpdatedAt: timestamppb.New(user.UpdatedAt),
 	}
 }
@@ -162,6 +166,7 @@ func toGetUserByIDResponse(user entity.User) *userv1.GetUserByIDResponse {
 		User: &userv1.User{
 			Id:        user.ID,
 			Email:     user.Email,
+			Name:      user.Name,
 			Verified:  user.Verified,
 			UpdatedAt: timestamppb.New(user.UpdatedAt),
 		},
@@ -181,6 +186,7 @@ var errorToStatus = map[error]codes.Code{
 	domain.ErrPasswordsDoNotMatch:         codes.InvalidArgument,
 	domain.ErrNoEmailChangesDetected:      codes.InvalidArgument,
 	domain.ErrNoPasswordChangesDetected:   codes.InvalidArgument,
+	domain.ErrNoNameChangesDetected:       codes.InvalidArgument,
 	domain.ErrTokenExpiredWithEmailResent: codes.FailedPrecondition,
 	domain.ErrClientIDIsNotAllowed:        codes.InvalidArgument,
 }

@@ -10,32 +10,38 @@ psql 'postgres://sso_user:sso_password@postgres:5432/sso_db' -c \
    VALUES ('test-client-id', 'test', 'test-secret', 1, NOW(), NOW()) 
    ON CONFLICT DO NOTHING;"
 
-echo "Starting SSO app..."
-CONFIG_PATH=/src/config/config.ci.yaml go run ./cmd/sso > /tmp/sso.log 2>&1 &
+# Check if we should run tests or just start the app
+if [ "$RUN_TESTS" = "true" ]; then
+    echo "Starting SSO app for testing..."
+    CONFIG_PATH=/src/config/config.ci.yaml go run ./cmd/sso > /tmp/sso.log 2>&1 &
 
-echo "Waiting for app to start..."
-for i in $(seq 1 30); do
-  if timeout 1 sh -c 'echo "" | telnet localhost 44044' 2>/dev/null | grep -q "Connected"; then
-    echo 'App is ready!'
-    break
-  fi
-  echo "Waiting... ($i/30)"
-  sleep 1
-done
+    echo "Waiting for app to start..."
+    for i in $(seq 1 30); do
+      if timeout 1 sh -c 'echo "" | telnet localhost 44044' 2>/dev/null | grep -q "Connected"; then
+        echo 'App is ready!'
+        break
+      fi
+      echo "Waiting... ($i/30)"
+      sleep 1
+    done
 
-echo "Running tests..."
-go test -v ./internal/... ./api_tests
-TEST_EXIT_CODE=$?
+    echo "Running tests..."
+    go test -v ./internal/... ./api_tests
+    TEST_EXIT_CODE=$?
 
-# Always show SSO app logs
-echo "=== SSO Application Logs ==="
-cat /tmp/sso.log || echo "No SSO logs found"
+    # Always show SSO app logs
+    echo "=== SSO Application Logs ==="
+    cat /tmp/sso.log || echo "No SSO logs found"
 
-# Show last few lines of app logs if still running
-if pgrep -f "go run ./cmd/sso" > /dev/null; then
-    echo "=== App still running, showing recent logs ==="
-    tail -50 /tmp/sso.log 2>/dev/null || echo "Could not tail logs"
-fi
+    # Show last few lines of app logs if still running
+    if pgrep -f "go run ./cmd/sso" > /dev/null; then
+        echo "=== App still running, showing recent logs ==="
+        tail -50 /tmp/sso.log 2>/dev/null || echo "Could not tail logs"
+    fi
 
-# Exit with the test exit code
-exit $TEST_EXIT_CODE 
+    # Exit with the test exit code
+    exit $TEST_EXIT_CODE
+else
+    echo "Starting SSO application..."
+    exec ./sso
+fi 
