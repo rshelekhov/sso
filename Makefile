@@ -11,7 +11,7 @@ POSTGRESQL_URL ?= postgres://root:password@localhost:5432/sso_dev?sslmode=disabl
 # MONGO_URL ?= mongodb://localhost:27017/sso_dev
 DOCKER_COMPOSE_SERVICES ?= postgres redis minio minio-init otel-collector loki prometheus tempo grafana promtail # add mongo if you want to test with mongo
 
-.PHONY: help build setup-dev run stop test-local test-docker test-docker-full test-docker-clean lint observability obs-check
+.PHONY: help build setup-dev run stop test-local test-docker test-docker-full test-docker-clean lint observability obs-check security-audit security-audit-json
 
 # ================================
 # Main Commands
@@ -116,6 +116,21 @@ obs-check:
 # Run linters
 lint:
 	golangci-lint run --fix
+
+
+# Run security audit
+security-audit:
+	@echo "Running security audit..."
+	@which govulncheck > /dev/null || go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck ./...
+	@echo "Security audit completed."
+
+# Run security audit in JSON format
+security-audit-json:
+	@echo "Running security audit in JSON format..."
+	@which govulncheck > /dev/null || go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck -json ./... > security-audit.json
+	@echo "Security audit in JSON format completed. Result saved to security-audit.json"
 
 # Show help
 help:
