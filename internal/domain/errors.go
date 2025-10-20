@@ -101,6 +101,8 @@ var (
 	ErrTokenExpiredWithEmailResent        = errors.New("token expired, a new email with a new token has been sent to the user")
 	ErrFailedToGetPublicKey               = errors.New("failed to get public key")
 	ErrFailedToGetJWKS                    = errors.New("failed to get jwks")
+	ErrInvalidVerificationURL             = errors.New("invalid verification URL")
+	ErrFailedToBuildVerificationURL       = errors.New("failed to build verification URL")
 
 	// ===========================================================================
 	// User usecase errors
