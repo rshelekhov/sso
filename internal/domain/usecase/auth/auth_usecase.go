@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"net/url"
 	"time"
 
 	"github.com/rshelekhov/golib/observability/tracing"
@@ -818,13 +819,18 @@ func (u *Auth) sendEmailWithToken(ctx context.Context, tokenData entity.Verifica
 		tracing.String("email.template_type", string(templateType)),
 	)
 
+	verificationURL, err := buildVerificationURL(tokenData.Endpoint, tokenData.Token)
+	if err != nil {
+		return fmt.Errorf("%w: %w", domain.ErrFailedToBuildVerificationURL, err)
+	}
+
 	emailData := mail.Data{
 		TemplateType: templateType,
 		Subject:      templateType.Subject(),
 		Recipient:    tokenData.Email,
 		Data: map[string]string{
 			"Recipient": tokenData.Email,
-			"URL":       fmt.Sprintf("%s%s", tokenData.Endpoint, tokenData.Token),
+			"URL":       verificationURL,
 		},
 	}
 
@@ -834,6 +840,19 @@ func (u *Auth) sendEmailWithToken(ctx context.Context, tokenData entity.Verifica
 		return err
 	}
 	return nil
+}
+
+func buildVerificationURL(endpoint string, token string) (string, error) {
+	parsedURL, err := url.Parse(endpoint)
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", domain.ErrInvalidVerificationURL, err)
+	}
+
+	q := parsedURL.Query()
+	q.Set("token", token)
+	parsedURL.RawQuery = q.Encode()
+
+	return parsedURL.String(), nil
 }
 
 func (u *Auth) handleTokenProcessing(
