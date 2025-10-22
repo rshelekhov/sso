@@ -55,6 +55,48 @@ docker compose down -v
 docker compose stop sso postgres redis
 ```
 
+## 🔌 gRPC Reflection
+
+The SSO application has gRPC reflection enabled, allowing you to introspect available services and methods.
+
+### Using grpcurl
+
+```bash
+# Install grpcurl (macOS)
+brew install grpcurl
+
+# Install grpcurl (Linux)
+go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+
+# List all services
+grpcurl -plaintext localhost:44044 list
+
+# List methods of a specific service
+grpcurl -plaintext localhost:44044 list api.auth.v1.AuthService
+grpcurl -plaintext localhost:44044 list api.user.v1.UserService
+grpcurl -plaintext localhost:44044 list api.client.v1.ClientManagementService
+
+# Describe a specific method
+grpcurl -plaintext localhost:44044 describe api.auth.v1.AuthService.Login
+
+# Call a method (example)
+grpcurl -plaintext -d '{"email":"user@example.com","password":"secret"}' \
+  localhost:44044 api.auth.v1.AuthService.Login
+```
+
+### Using grpcui
+
+```bash
+# Install grpcui (macOS)
+brew install grpcui
+
+# Install grpcui (Linux)
+go install github.com/fullstorydev/grpcui/cmd/grpcui@latest
+
+# Launch interactive UI
+grpcui -plaintext localhost:44044
+```
+
 ## 🧪 Testing Commands
 
 ### Setup Test Environment
