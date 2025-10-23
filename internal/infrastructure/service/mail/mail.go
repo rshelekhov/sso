@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 
 	"github.com/rshelekhov/sso/internal/domain/entity"
-	"github.com/rshelekhov/sso/pkg/service/mail/mailgun"
-	"github.com/rshelekhov/sso/pkg/service/mail/mocks"
+	"github.com/rshelekhov/sso/internal/infrastructure/service/mail/mailgun"
+	"github.com/rshelekhov/sso/internal/infrastructure/service/mail/mocks"
 )
 
 type EmailClient interface {
