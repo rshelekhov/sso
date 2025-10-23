@@ -58,6 +58,7 @@ func ExtractError(err error) (*ExtractedError, error) {
 			extracted.ErrorCode = errDetail.Code
 			extracted.Metadata = errDetail.Metadata
 			extracted.HasDetails = true
+
 			break
 		}
 	}
