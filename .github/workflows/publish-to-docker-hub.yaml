@@ -21,6 +21,15 @@ jobs:
       - name: Check out the repo into the Go module directory
         uses: actions/checkout@v3
 
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Dump GitHub context
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
@@ -46,6 +55,6 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ env.REGISTRY_IMAGE }}:${{ github.event.inputs.version }}
+            ${{ env.REGISTRY_IMAGE }}:${{ steps.version.outputs.version }}
             ${{ env.REGISTRY_IMAGE }}:latest
           push: true
