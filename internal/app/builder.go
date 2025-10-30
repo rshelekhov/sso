@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/rshelekhov/golib/middleware/logging"
+	"github.com/rshelekhov/golib/middleware/recovery"
 	"github.com/rshelekhov/golib/observability/tracing"
 	"github.com/rshelekhov/golib/server"
 	jwksadapter "github.com/rshelekhov/sso/internal/adapter"
@@ -312,8 +314,8 @@ func (b *Builder) createServerApp() (*server.App, error) {
 	}
 
 	interceptors := []grpc.UnaryServerInterceptor{
-		server.LoggingUnaryInterceptor(b.logger),
-		server.RecoveryUnaryInterceptor(b.logger),
+		logging.UnaryServerInterceptor(b.logger),
+		recovery.UnaryServerInterceptor(b.logger),
 	}
 
 	interceptors = append(interceptors, b.ssoService.GetCustomInterceptors()...)
