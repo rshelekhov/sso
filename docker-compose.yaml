@@ -67,6 +67,7 @@ services:
       POSTGRES_USER: sso_user
       POSTGRES_PASSWORD: sso_password
       POSTGRES_DB: sso_db
+    command: ["postgres", "-c", "max_connections=200", "-c", "shared_buffers=256MB"]
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
@@ -248,20 +249,9 @@ services:
         condition: service_healthy
       prometheus:
         condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:13133",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
+    # Note: OTEL collector image is minimal and lacks health check tools
+    # We'll rely on startup delay instead of health checks
+    restart: "no"
 
   grafana:
     image: grafana/grafana:12.0.2
@@ -357,12 +347,29 @@ services:
         condition: service_healthy
       minio-init:
         condition: service_completed_successfully
+      otel-collector:
+        condition: service_started
+    command: >
+      sh -c "
+        echo 'Waiting for OTEL collector to be ready...' &&
+        sleep 10 &&
+        for i in $$(seq 1 30); do
+          if nc -z otel-collector 13133; then
+            echo 'OTEL collector is ready!'
+            break
+          fi
+          echo 'Waiting for OTEL collector... ($$i/30)'
+          sleep 1
+        done &&
+        echo 'Starting SSO application...' &&
+        ./sso
+      "
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "44044"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 45s
     labels:
       - "logging=promtail"
       - "service=sso-app"
