@@ -70,7 +70,7 @@ const (
 	RefreshTokenKey = "refresh_token"
 	UserIDKey       = "user_id"
 
-	TokenCtxKey = "Token"
+	TokenCtxKey = "token"
 
 	KidTokenHeader = "kid"
 	AlgTokenHeader = "alg"

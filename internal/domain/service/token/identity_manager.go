@@ -55,7 +55,7 @@ func (s *Service) getClaimsFromToken(ctx context.Context, clientID string) (map[
 func (s *Service) getTokenFromContext(ctx context.Context, clientID string) (*jwt.Token, error) {
 	const method = "service.token.getTokenFromContext"
 
-	token, ok := ctx.Value("Token").(string)
+	token, ok := ctx.Value(domain.TokenCtxKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("%s: %w", method, domain.ErrNoTokenFoundInContext)
 	}
