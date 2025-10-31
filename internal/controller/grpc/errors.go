@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"errors"
+	"fmt"
 
 	commonv1 "github.com/rshelekhov/sso-protos/gen/go/api/common/v1"
 	"github.com/rshelekhov/sso/internal/controller"
@@ -121,6 +122,12 @@ var domainErrorToProtoError = map[error]errorMapping{
 		codes.NotFound,
 		commonv1.ErrorCode_ERROR_CODE_CLIENT_NOT_FOUND,
 	},
+
+	// Authentication context errors
+	domain.ErrFailedToExtractUserIDFromContext: {
+		codes.Unauthenticated,
+		commonv1.ErrorCode_ERROR_CODE_SESSION_NOT_FOUND,
+	},
 }
 
 // mapErrorToGRPCStatus converts domain errors to gRPC status errors with structured details.
@@ -138,6 +145,8 @@ func mapErrorToGRPCStatus(err error) error {
 		}
 	}
 
+	// Debug logging for unmapped errors
+	fmt.Printf("DEBUG: No mapping found for error: %v, returning Internal\n", err)
 	return status.Error(codes.Internal, "internal server error")
 }
 
