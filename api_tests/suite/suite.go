@@ -131,6 +131,11 @@ func grpcAddress(cfg *appConfig.ServerSettings) string {
 	return host
 }
 
+// GrpcAddress returns the gRPC server address for testing
+func GrpcAddress(cfg *appConfig.ServerSettings) string {
+	return grpcAddress(cfg)
+}
+
 func newDBConnection(cfg settings.Storage) (*storage.DBConnection, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
