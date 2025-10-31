@@ -7,6 +7,8 @@ services:
       POSTGRES_DB: sso_db
       POSTGRES_USER: sso_user
       POSTGRES_PASSWORD: sso_password
+    command:
+      ["postgres", "-c", "max_connections=200", "-c", "shared_buffers=256MB"]
     ports:
       - "5432:5432"
     healthcheck:
