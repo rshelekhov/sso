@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"errors"
-	"fmt"
 
 	commonv1 "github.com/rshelekhov/sso-protos/gen/go/api/common/v1"
 	"github.com/rshelekhov/sso/internal/controller"
@@ -145,8 +144,6 @@ func mapErrorToGRPCStatus(err error) error {
 		}
 	}
 
-	// Debug logging for unmapped errors
-	fmt.Printf("DEBUG: No mapping found for error: %v, returning Internal\n", err)
 	return status.Error(codes.Internal, "internal server error")
 }
 

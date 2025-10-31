@@ -17,10 +17,6 @@ func (s *Service) ExtractUserIDFromTokenInContext(ctx context.Context, clientID 
 		return "", fmt.Errorf("%s: %w", method, err)
 	}
 
-	// Debug logging
-	fmt.Printf("DEBUG: ExtractUserIDFromTokenInContext - claims: %+v\n", claims)
-	fmt.Printf("DEBUG: Looking for UserIDKey '%s' in claims\n", domain.UserIDKey)
-
 	userID, ok := claims[domain.UserIDKey]
 	if !ok {
 		return "", fmt.Errorf("%s: %w", method, domain.ErrUserIDNotFoundInContext)
@@ -32,23 +28,16 @@ func (s *Service) ExtractUserIDFromTokenInContext(ctx context.Context, clientID 
 func (s *Service) getClaimsFromToken(ctx context.Context, clientID string) (map[string]interface{}, error) {
 	const method = "service.token.getClaimsFromToken"
 
-	fmt.Printf("DEBUG: getClaimsFromToken called with clientID: %s\n", clientID)
-
 	token, err := s.getTokenFromContext(ctx, clientID)
 	if err != nil {
-		fmt.Printf("DEBUG: getTokenFromContext failed: %v\n", err)
 		return nil, fmt.Errorf("%s: %w", method, err)
 	}
 
-	fmt.Printf("DEBUG: token valid: %t\n", token.Valid)
-
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		fmt.Printf("DEBUG: failed to cast token.Claims to jwt.MapClaims\n")
 		return nil, fmt.Errorf("%s: %w", method, domain.ErrFailedToParseTokenClaims)
 	}
 
-	fmt.Printf("DEBUG: claims successfully extracted: %+v\n", claims)
 	return claims, nil
 }
 
