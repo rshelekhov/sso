@@ -3,8 +3,10 @@ package domain
 const (
 	UserIDKey           = "user_id"
 	AuthorizationHeader = "authorization"
+	TokenCtxKey         = "token"
 	KIDKey              = "kid"
-	IssuerKey           = "issuer"
+	IssuerKey           = "iss"
 	ClientIDKey         = "client_id"
-	ExpirationAtKey     = "expiration_at"
+	ExpirationAtKey     = "exp"
+	IssuedAtKey         = "iat"
 )

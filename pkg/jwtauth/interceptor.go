@@ -3,6 +3,7 @@ package jwtauth
 import (
 	"context"
 
+	"github.com/golang-jwt/jwt/v5"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -11,7 +12,8 @@ import (
 
 // UnaryServerInterceptor is an interceptor that verifies a JWT token from gRPC metadata.
 //
-// UnaryServerInterceptor will extract a JWT token from gRPC metadata using the authorization key.
+// UnaryServerInterceptor will extract a JWT token from gRPC metadata using the authorization key,
+// verify it, parse claims, and add both token and claims to the context.
 func (m *manager) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		clientID, err := m.getClientIDFromGRPCMetadata(ctx)
@@ -25,14 +27,30 @@ func (m *manager) UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 		}
 
 		if token == "" {
-			return "", status.Error(codes.Unauthenticated, ErrTokenNotFound.Error())
+			return nil, status.Error(codes.Unauthenticated, ErrTokenNotFound.Error())
 		}
 
-		if err := m.verifyToken(clientID, token); err != nil {
-			return "", status.Error(codes.Unauthenticated, err.Error())
+		// Parse and verify token
+		parsedToken, err := m.ParseToken(clientID, token)
+		if err != nil {
+			return nil, status.Error(codes.Unauthenticated, Errors(err).Error())
 		}
 
-		ctx = context.WithValue(ctx, AuthorizationHeader, token)
+		if !parsedToken.Valid {
+			return nil, status.Error(codes.Unauthenticated, ErrInvalidToken.Error())
+		}
+
+		// Extract claims
+		mapClaims, ok := parsedToken.Claims.(jwt.MapClaims)
+		if !ok {
+			return nil, status.Error(codes.Unauthenticated, ErrFailedToParseTokenClaims.Error())
+		}
+
+		claims := FromMapClaims(mapClaims)
+
+		// Add token and claims to context
+		ctx = m.ToContext(ctx, token)
+		ctx = ClaimsToContext(ctx, claims)
 
 		return handler(ctx, req)
 	}

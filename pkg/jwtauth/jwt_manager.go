@@ -70,7 +70,7 @@ const (
 	RefreshTokenKey = "refresh_token"
 	UserIDKey       = "user_id"
 
-	TokenCtxKey = "Token"
+	TokenCtxKey = "token"
 
 	KidTokenHeader = "kid"
 	AlgTokenHeader = "alg"
@@ -136,10 +136,20 @@ func (m *manager) ToContext(ctx context.Context, value string) context.Context {
 	return context.WithValue(ctx, TokenCtxKey, value)
 }
 
-// ParseToken parses the given access token string and validates it using the public keys (JWKS).
-// It checks the "kid" (key ID) in the token header to select the appropriate public key.
+// TokenFromContext retrieves the token string from context.
+// This is useful when you need to forward the token to other services
+// or perform token-specific operations (e.g., revocation checks).
+// Returns empty string if token is not found.
+func TokenFromContext(ctx context.Context) string {
+	token, _ := ctx.Value(TokenCtxKey).(string)
+	return token
+}
+
+// ParseToken parses the given access token string and validates
+// it using the public keys (JWKS). It checks the "kid" (key ID)
+// in the token header to select the appropriate public key.
 func (m *manager) ParseToken(clientID, token string) (*jwt.Token, error) {
-	return jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+	return jwt.Parse(token, func(token *jwt.Token) (any, error) {
 		kidRaw, ok := token.Header[KidTokenHeader]
 		if !ok {
 			return nil, ErrKidNotFoundInTokenHeader
@@ -197,7 +207,7 @@ func (m *manager) ExtractUserID(ctx context.Context, clientID string) (string, e
 }
 
 // getClaimsFromToken returns the claims of the provided access token.
-func (m *manager) getClaimsFromToken(ctx context.Context, clientID string) (map[string]interface{}, error) {
+func (m *manager) getClaimsFromToken(ctx context.Context, clientID string) (map[string]any, error) {
 	tokenString, ok := m.FromContext(ctx)
 	if !ok {
 		return nil, ErrTokenNotFoundInContext

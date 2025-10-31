@@ -121,14 +121,96 @@ func main() {
 }
 ```
 
-### Token Verification and User Extraction
+### Extracting Claims in Downstream Services
+
+After the middleware/interceptor verifies the token, claims are automatically added to the context. You can extract them in your handlers:
+
+#### HTTP Handler Example
+
+```go
+func YourHandler(w http.ResponseWriter, r *http.Request) {
+    // Extract claims from context
+    claims := jwtauth.ClaimsFromContext(r.Context())
+    if claims == nil {
+        http.Error(w, "unauthorized", http.StatusUnauthorized)
+        return
+    }
+
+    // Access standard claims
+    userID := claims.UserID
+    email := claims.Email
+    clientID := claims.ClientID
+    deviceID := claims.DeviceID
+
+    // Check roles
+    if claims.HasRole("admin") {
+        // User is an admin
+    }
+
+    // Access custom claims
+    customValue := claims.GetString("custom_field")
+    level := claims.GetInt64("user_level")
+    verified := claims.GetBool("is_verified")
+
+    // Use the extracted data in your business logic
+    fmt.Fprintf(w, "Hello, user %s!", userID)
+}
+```
+
+#### gRPC Handler Example
+
+```go
+func (s *YourService) GetProfile(ctx context.Context, req *GetProfileRequest) (*Profile, error) {
+    // Extract claims from context
+    claims := jwtauth.ClaimsFromContext(ctx)
+    if claims == nil {
+        return nil, status.Error(codes.Unauthenticated, "unauthorized")
+    }
+
+    // Access user information
+    userID := claims.UserID
+    email := claims.Email
+
+    // Verify permissions
+    if !claims.HasRole("user") && !claims.HasRole("admin") {
+        return nil, status.Error(codes.PermissionDenied, "insufficient permissions")
+    }
+
+    // Use claims in your business logic
+    return &Profile{
+        UserID: userID,
+        Email:  email,
+    }, nil
+}
+```
+
+#### Available Claims
+
+The `Claims` struct provides:
+
+**Standard fields:**
+
+- `UserID` - User identifier
+- `Email` - User email
+- `ClientID` - Client/application identifier
+- `DeviceID` - Device identifier
+- `Roles` - Array of user roles
+- `Subject`, `Issuer`, `Audience`, `ExpiresAt`, `IssuedAt`, `NotBefore` - Standard JWT claims
+
+**Methods for custom claims:**
+
+- `GetString(key string) string` - Extract string claims
+- `GetInt64(key string) int64` - Extract integer claims
+- `GetBool(key string) bool` - Extract boolean claims
+- `HasRole(role string) bool` - Check if user has a specific role
+
+#### Legacy Token Verification
+
+If you need to manually extract user ID without using claims:
 
 ```go
 // Extract user ID from token
 userID, err := jwtManager.ExtractUserID(ctx, clientID)
-
-// Verify token manually
-err := jwtManager.verifyToken(clientID, tokenString)
 ```
 
 ## Error Handling

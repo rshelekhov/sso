@@ -1897,6 +1897,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 	refreshTokenStr := "test-refresh-token"
 	userAgent := "test-agent"
 	ip := "127.0.0.1"
+	userEmail := "test@example.com"
 
 	userDeviceReqData := entity.UserDeviceRequestData{
 		UserAgent: userAgent,
@@ -1908,9 +1909,15 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 		UserDevice:   userDeviceReqData,
 	}
 
+	userData := entity.User{
+		ID:    userID,
+		Email: userEmail,
+	}
+
 	sessionReqData := entity.SessionRequestData{
-		UserID:   userID,
-		ClientID: clientID,
+		UserID:    userID,
+		ClientID:  clientID,
+		UserEmail: userEmail,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: userAgent,
 			IP:        ip,
@@ -1939,13 +1946,13 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 
 	tests := []struct {
 		name                  string
-		mockBehavior          func(sessionMgr *mocks.SessionManager)
+		mockBehavior          func(sessionMgr *mocks.SessionManager, userMgr *mocks.UserdataManager)
 		expectedError         error
 		expectedSessionTokens entity.SessionTokens
 	}{
 		{
 			name: "Success",
-			mockBehavior: func(sessionMgr *mocks.SessionManager) {
+			mockBehavior: func(sessionMgr *mocks.SessionManager, userMgr *mocks.UserdataManager) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(userSession, nil)
@@ -1958,6 +1965,10 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(nil)
 
+				userMgr.EXPECT().GetUserData(ctx, userID).
+					Once().
+					Return(userData, nil)
+
 				sessionMgr.EXPECT().CreateSession(ctx, sessionReqData).
 					Once().
 					Return(expectedSessionTokens, nil)
@@ -1967,7 +1978,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 		},
 		{
 			name: "Session not found",
-			mockBehavior: func(sessionMgr *mocks.SessionManager) {
+			mockBehavior: func(sessionMgr *mocks.SessionManager, userMgr *mocks.UserdataManager) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(entity.Session{}, domain.ErrSessionNotFound)
@@ -1977,7 +1988,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 		},
 		{
 			name: "Session expired",
-			mockBehavior: func(sessionMgr *mocks.SessionManager) {
+			mockBehavior: func(sessionMgr *mocks.SessionManager, userMgr *mocks.UserdataManager) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(entity.Session{}, domain.ErrSessionExpired)
@@ -1987,7 +1998,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 		},
 		{
 			name: "User device not found",
-			mockBehavior: func(sessionMgr *mocks.SessionManager) {
+			mockBehavior: func(sessionMgr *mocks.SessionManager, userMgr *mocks.UserdataManager) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(userSession, nil)
@@ -2001,7 +2012,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 		},
 		{
 			name: "Failed to get session by refresh token",
-			mockBehavior: func(sessionMgr *mocks.SessionManager) {
+			mockBehavior: func(sessionMgr *mocks.SessionManager, userMgr *mocks.UserdataManager) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(entity.Session{}, domain.ErrFailedToGetSessionByRefreshToken)
@@ -2011,7 +2022,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 		},
 		{
 			name: "Failed to delete refresh token",
-			mockBehavior: func(sessionMgr *mocks.SessionManager) {
+			mockBehavior: func(sessionMgr *mocks.SessionManager, userMgr *mocks.UserdataManager) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(userSession, nil)
@@ -2029,7 +2040,7 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 		},
 		{
 			name: "Failed to create session",
-			mockBehavior: func(sessionMgr *mocks.SessionManager) {
+			mockBehavior: func(sessionMgr *mocks.SessionManager, userMgr *mocks.UserdataManager) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(userSession, nil)
@@ -2041,6 +2052,10 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 				sessionMgr.EXPECT().DeleteRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(nil)
+
+				userMgr.EXPECT().GetUserData(ctx, userID).
+					Once().
+					Return(userData, nil)
 
 				sessionMgr.EXPECT().CreateSession(ctx, sessionReqData).
 					Once().
@@ -2054,15 +2069,16 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sessionMgr := mocks.NewSessionManager(t)
+			userMgr := mocks.NewUserdataManager(t)
 
-			tt.mockBehavior(sessionMgr)
+			tt.mockBehavior(sessionMgr, userMgr)
 
 			log := slogdiscard.NewDiscardLogger()
 
 			auth := auth.NewUsecase(
 				log,
 				sessionMgr,
-				nil,
+				userMgr,
 				nil,
 				nil,
 				nil,

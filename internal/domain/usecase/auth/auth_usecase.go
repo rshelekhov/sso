@@ -167,8 +167,9 @@ func (u *Auth) Login(ctx context.Context, clientID string, reqData *entity.UserR
 	verifyPasswordSpan.End()
 
 	sessionReqData := entity.SessionRequestData{
-		UserID:   userData.ID,
-		ClientID: clientID,
+		UserID:    userData.ID,
+		ClientID:  clientID,
+		UserEmail: userData.Email,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: reqData.UserDevice.UserAgent,
 			IP:        reqData.UserDevice.IP,
@@ -254,8 +255,9 @@ func (u *Auth) RegisterUser(
 		}
 
 		sessionReq := entity.SessionRequestData{
-			UserID:   newUser.ID,
-			ClientID: clientID,
+			UserID:    newUser.ID,
+			ClientID:  clientID,
+			UserEmail: newUser.Email,
 			UserDevice: entity.UserDeviceRequestData{
 				UserAgent: reqData.UserDevice.UserAgent,
 				IP:        reqData.UserDevice.IP,
@@ -535,8 +537,9 @@ func (u *Auth) LogoutUser(ctx context.Context, clientID string, reqData *entity.
 	extractUserIDSpan.End()
 
 	sessionReqData := entity.SessionRequestData{
-		UserID:   userID,
-		ClientID: clientID,
+		UserID:    userID,
+		ClientID:  clientID,
+		UserEmail: "", // Email not needed for logout
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: reqData.UserAgent,
 			IP:        reqData.IP,
@@ -666,9 +669,23 @@ func (u *Auth) RefreshTokens(ctx context.Context, clientID string, reqData *enti
 
 	deleteRefreshTokenSpan.End()
 
+	// Get user data to include email in the new token
+	ctx, getUserSpan := tracing.StartSpan(ctx, "get_user_by_id")
+	userData, err := u.userMgr.GetUserData(ctx, userSession.UserID)
+	if err != nil {
+		tracing.RecordError(getUserSpan, err)
+		getUserSpan.End()
+		e.LogError(ctx, log, domain.ErrFailedToGetUserByID, err)
+		u.metrics.RecordRefreshTokensError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToGetUserByID.Error()))
+		return entity.SessionTokens{}, domain.ErrFailedToGetUserByID
+	}
+
+	getUserSpan.End()
+
 	sessionReqData := entity.SessionRequestData{
-		UserID:   userSession.UserID,
-		ClientID: clientID,
+		UserID:    userSession.UserID,
+		ClientID:  clientID,
+		UserEmail: userData.Email,
 		UserDevice: entity.UserDeviceRequestData{
 			UserAgent: reqData.UserDevice.UserAgent,
 			IP:        reqData.UserDevice.IP,
