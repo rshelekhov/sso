@@ -679,6 +679,7 @@ func (u *Auth) RefreshTokens(ctx context.Context, clientID string, reqData *enti
 		u.metrics.RecordRefreshTokensError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToGetUserByID.Error()))
 		return entity.SessionTokens{}, domain.ErrFailedToGetUserByID
 	}
+
 	getUserSpan.End()
 
 	sessionReqData := entity.SessionRequestData{
