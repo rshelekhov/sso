@@ -89,6 +89,7 @@ func extractAudienceClaim(claims *Claims, mapClaims jwt.MapClaims) {
 		claims.Audience = jwt.ClaimStrings{v}
 	case []any:
 		auds := make([]string, 0, len(v))
+
 		for _, a := range v {
 			if audStr, ok := a.(string); ok {
 				auds = append(auds, audStr)
