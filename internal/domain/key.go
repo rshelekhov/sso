@@ -9,4 +9,6 @@ const (
 	ClientIDKey         = "client_id"
 	ExpirationAtKey     = "exp"
 	IssuedAtKey         = "iat"
+	EmailKey            = "email"
+	DeviceIDKey         = "device_id"
 )

@@ -242,8 +242,8 @@ func (s *Session) createTokens(
 		domain.ClientIDKey:     session.ClientID,
 		domain.ExpirationAtKey: currentTime.Add(accessTokenTTL).Unix(),
 		domain.IssuedAtKey:     currentTime.Unix(),
-		"email":                session.UserEmail,
-		"device_id":            session.DeviceID,
+		domain.EmailKey:        session.UserEmail,
+		domain.DeviceIDKey:     session.DeviceID,
 	}
 
 	accessToken, err = s.jwtMgr.NewAccessToken(session.ClientID, kid, additionalClaims)
