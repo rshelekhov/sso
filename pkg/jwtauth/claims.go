@@ -64,54 +64,52 @@ func FromMapClaims(mapClaims jwt.MapClaims) *Claims {
 }
 
 func extractStandardRegisteredClaims(claims *Claims, mapClaims jwt.MapClaims) {
-	if sub, ok := mapClaims["sub"].(string); ok {
-		claims.Subject = sub
+	extractStringClaim(&claims.Subject, mapClaims, "sub")
+	extractStringClaim(&claims.Issuer, mapClaims, "iss")
+	extractAudienceClaim(claims, mapClaims)
+	extractTimeClaim(&claims.ExpiresAt, mapClaims, "exp")
+	extractTimeClaim(&claims.IssuedAt, mapClaims, "iat")
+	extractTimeClaim(&claims.NotBefore, mapClaims, "nbf")
+}
+
+func extractStringClaim(target *string, mapClaims jwt.MapClaims, key string) {
+	if value, ok := mapClaims[key].(string); ok {
+		*target = value
+	}
+}
+
+func extractAudienceClaim(claims *Claims, mapClaims jwt.MapClaims) {
+	aud, ok := mapClaims["aud"]
+	if !ok {
+		return
 	}
 
-	if iss, ok := mapClaims["iss"].(string); ok {
-		claims.Issuer = iss
-	}
-
-	if aud, ok := mapClaims["aud"]; ok {
-		switch v := aud.(type) {
-		case string:
-			claims.Audience = jwt.ClaimStrings{v}
-		case []any:
-			auds := make([]string, 0, len(v))
-
-			for _, a := range v {
-				if audStr, ok := a.(string); ok {
-					auds = append(auds, audStr)
-				}
+	switch v := aud.(type) {
+	case string:
+		claims.Audience = jwt.ClaimStrings{v}
+	case []any:
+		auds := make([]string, 0, len(v))
+		for _, a := range v {
+			if audStr, ok := a.(string); ok {
+				auds = append(auds, audStr)
 			}
-			claims.Audience = auds
 		}
+		claims.Audience = auds
+	}
+}
+
+func extractTimeClaim(target **jwt.NumericDate, mapClaims jwt.MapClaims, key string) {
+	value, ok := mapClaims[key]
+	if !ok {
+		return
 	}
 
-	switch v := mapClaims["exp"].(type) {
+	switch v := value.(type) {
 	case float64:
-		claims.ExpiresAt = jwt.NewNumericDate(time.Unix(int64(v), 0))
+		*target = jwt.NewNumericDate(time.Unix(int64(v), 0))
 	case json.Number:
 		if ts, err := v.Int64(); err == nil {
-			claims.ExpiresAt = jwt.NewNumericDate(time.Unix(ts, 0))
-		}
-	}
-
-	switch v := mapClaims["iat"].(type) {
-	case float64:
-		claims.IssuedAt = jwt.NewNumericDate(time.Unix(int64(v), 0))
-	case json.Number:
-		if ts, err := v.Int64(); err == nil {
-			claims.IssuedAt = jwt.NewNumericDate(time.Unix(ts, 0))
-		}
-	}
-
-	switch v := mapClaims["nbf"].(type) {
-	case float64:
-		claims.NotBefore = jwt.NewNumericDate(time.Unix(int64(v), 0))
-	case json.Number:
-		if ts, err := v.Int64(); err == nil {
-			claims.NotBefore = jwt.NewNumericDate(time.Unix(ts, 0))
+			*target = jwt.NewNumericDate(time.Unix(ts, 0))
 		}
 	}
 }
