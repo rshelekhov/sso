@@ -9,7 +9,7 @@ SERVER_PORT ?= 44044
 DB_TYPE ?= postgres
 POSTGRESQL_URL ?= postgres://root:password@localhost:5432/sso_dev?sslmode=disable
 # MONGO_URL ?= mongodb://localhost:27017/sso_dev
-DOCKER_COMPOSE_SERVICES ?= postgres redis minio minio-init otel-collector loki prometheus tempo grafana promtail # add mongo if you want to test with mongo
+DOCKER_COMPOSE_SERVICES ?= postgres redis minio minio-init loki prometheus tempo otel-collector grafana promtail # add mongo if you want to test with mongo
 
 .PHONY: help build setup-dev run stop test-local test-docker test-docker-full test-docker-clean lint observability obs-check security-audit security-audit-json
 

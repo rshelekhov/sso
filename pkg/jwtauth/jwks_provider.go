@@ -7,6 +7,7 @@ import (
 	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 type (
@@ -57,6 +58,10 @@ func NewRemoteJWKSProvider(target string, opts ...grpc.DialOption) (*RemoteJWKSP
 }
 
 func (p *RemoteJWKSProvider) GetJWKS(ctx context.Context, clientID string) ([]JWK, error) {
+	// Add clientID to gRPC metadata for the SSO service
+	md := metadata.Pairs("x-client-id", clientID)
+	ctx = metadata.NewOutgoingContext(ctx, md)
+
 	resp, err := p.client.GetJWKS(ctx, &authv1.GetJWKSRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get jwks: %w", err)

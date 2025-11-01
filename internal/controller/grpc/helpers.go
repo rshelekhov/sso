@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/rshelekhov/golib/middleware/requestid"
 	"github.com/rshelekhov/sso/internal/controller"
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/lib/interceptor/clientid"
-	"github.com/rshelekhov/sso/internal/lib/interceptor/requestid"
 )
 
 func (c *gRPCController) getRequestID(ctx context.Context) (string, error) {

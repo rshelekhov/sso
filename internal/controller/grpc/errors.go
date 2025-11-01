@@ -121,6 +121,12 @@ var domainErrorToProtoError = map[error]errorMapping{
 		codes.NotFound,
 		commonv1.ErrorCode_ERROR_CODE_CLIENT_NOT_FOUND,
 	},
+
+	// Authentication context errors
+	domain.ErrFailedToExtractUserIDFromContext: {
+		codes.Unauthenticated,
+		commonv1.ErrorCode_ERROR_CODE_SESSION_NOT_FOUND,
+	},
 }
 
 // mapErrorToGRPCStatus converts domain errors to gRPC status errors with structured details.

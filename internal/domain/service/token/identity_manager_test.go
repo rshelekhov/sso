@@ -23,7 +23,7 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 		{
 			name: "Success",
 			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), domain.AuthorizationHeader, createSignedToken(t, privateKey, jwt.MapClaims{
+				return context.WithValue(context.Background(), domain.TokenCtxKey, createSignedToken(t, privateKey, jwt.MapClaims{
 					"user_id": "test-user-id",
 				}))
 			},
@@ -38,7 +38,7 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 		{
 			name: "User ID not found",
 			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), domain.AuthorizationHeader, createSignedToken(t, privateKey, jwt.MapClaims{}))
+				return context.WithValue(context.Background(), domain.TokenCtxKey, createSignedToken(t, privateKey, jwt.MapClaims{}))
 			},
 			mockBehavior: func() {
 				mockKeyStorage.EXPECT().GetPrivateKey(clientID).
@@ -60,7 +60,7 @@ func TestTokenService_ExtractUserIDFromContext(t *testing.T) {
 		{
 			name: "Invalid token",
 			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), domain.AuthorizationHeader, "invalid-token")
+				return context.WithValue(context.Background(), domain.TokenCtxKey, "invalid-token")
 			},
 			mockBehavior:  func() {}, // No need to mock anything, as the token not valid and will not be parsed
 			expectedID:    "",

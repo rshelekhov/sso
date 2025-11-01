@@ -18,7 +18,7 @@ require (
 	github.com/rshelekhov/golib/db/redis v1.0.0
 	github.com/rshelekhov/golib/db/s3 v1.1.0
 	github.com/rshelekhov/golib/observability v1.5.2
-	github.com/rshelekhov/golib/server v1.1.0
+	github.com/rshelekhov/golib/server v1.2.0
 	github.com/rshelekhov/sso-protos v0.3.6
 	github.com/segmentio/ksuid v1.0.4
 	github.com/stretchr/testify v1.10.0
@@ -71,6 +71,9 @@ require (
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/otlptranslator v0.0.0-20250722230409-fce624024a14 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
+	github.com/rshelekhov/golib/middleware/logging v1.0.0 // indirect
+	github.com/rshelekhov/golib/middleware/recovery v1.0.0 // indirect
+	github.com/rshelekhov/golib/middleware/requestid v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/vgarvardt/pgx-google-uuid/v5 v5.6.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect

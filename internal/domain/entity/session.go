@@ -22,6 +22,7 @@ type (
 		UserID     string
 		DeviceID   string
 		ClientID   string
+		UserEmail  string
 		UserDevice UserDeviceRequestData
 	}
 
