@@ -2031,6 +2031,10 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 					Once().
 					Return(deviceID, nil)
 
+				userMgr.EXPECT().GetUserData(ctx, userID).
+					Once().
+					Return(userData, nil)
+
 				sessionMgr.EXPECT().DeleteRefreshToken(ctx, reqData.RefreshToken).
 					Once().
 					Return(domain.ErrFailedToDeleteRefreshToken)

@@ -657,18 +657,6 @@ func (u *Auth) RefreshTokens(ctx context.Context, clientID string, reqData *enti
 
 	getUserDeviceIDSpan.End()
 
-	ctx, deleteRefreshTokenSpan := tracing.StartSpan(ctx, "delete_refresh_token")
-	if err = u.sessionMgr.DeleteRefreshToken(ctx, reqData.RefreshToken); err != nil {
-		tracing.RecordError(deleteRefreshTokenSpan, err)
-		deleteRefreshTokenSpan.End()
-
-		e.LogError(ctx, log, domain.ErrFailedToDeleteRefreshToken, err)
-		u.metrics.RecordRefreshTokensError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToDeleteRefreshToken.Error()))
-		return entity.SessionTokens{}, domain.ErrFailedToDeleteRefreshToken
-	}
-
-	deleteRefreshTokenSpan.End()
-
 	// Get user data to include email in the new token
 	ctx, getUserSpan := tracing.StartSpan(ctx, "get_user_by_id")
 	userData, err := u.userMgr.GetUserData(ctx, userSession.UserID)
@@ -681,6 +669,18 @@ func (u *Auth) RefreshTokens(ctx context.Context, clientID string, reqData *enti
 	}
 
 	getUserSpan.End()
+
+	ctx, deleteRefreshTokenSpan := tracing.StartSpan(ctx, "delete_refresh_token")
+	if err = u.sessionMgr.DeleteRefreshToken(ctx, reqData.RefreshToken); err != nil {
+		tracing.RecordError(deleteRefreshTokenSpan, err)
+		deleteRefreshTokenSpan.End()
+
+		e.LogError(ctx, log, domain.ErrFailedToDeleteRefreshToken, err)
+		u.metrics.RecordRefreshTokensError(ctx, clientID, attribute.String("error.type", domain.ErrFailedToDeleteRefreshToken.Error()))
+		return entity.SessionTokens{}, domain.ErrFailedToDeleteRefreshToken
+	}
+
+	deleteRefreshTokenSpan.End()
 
 	sessionReqData := entity.SessionRequestData{
 		UserID:    userSession.UserID,
