@@ -71,7 +71,7 @@ func (m *manager) AuthUnaryClientInterceptor(clientID string) grpc.UnaryClientIn
 		md := metadata.Pairs(ClientIDHeader, clientID)
 
 		// Try to extract authorization token from context
-		if token, ok := ctx.Value(AuthorizationHeader).(string); ok && token != "" {
+		if token, ok := ctx.Value(TokenCtxKey).(string); ok && token != "" {
 			// Add authorization token to metadata
 			md.Set(AuthorizationHeader, token)
 		}

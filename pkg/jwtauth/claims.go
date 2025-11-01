@@ -2,6 +2,7 @@ package jwtauth
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -87,16 +88,31 @@ func extractStandardRegisteredClaims(claims *Claims, mapClaims jwt.MapClaims) {
 		}
 	}
 
-	if exp, ok := mapClaims["exp"].(float64); ok {
-		claims.ExpiresAt = jwt.NewNumericDate(time.Unix(int64(exp), 0))
+	switch v := mapClaims["exp"].(type) {
+	case float64:
+		claims.ExpiresAt = jwt.NewNumericDate(time.Unix(int64(v), 0))
+	case json.Number:
+		if ts, err := v.Int64(); err == nil {
+			claims.ExpiresAt = jwt.NewNumericDate(time.Unix(ts, 0))
+		}
 	}
 
-	if iat, ok := mapClaims["iat"].(float64); ok {
-		claims.IssuedAt = jwt.NewNumericDate(time.Unix(int64(iat), 0))
+	switch v := mapClaims["iat"].(type) {
+	case float64:
+		claims.IssuedAt = jwt.NewNumericDate(time.Unix(int64(v), 0))
+	case json.Number:
+		if ts, err := v.Int64(); err == nil {
+			claims.IssuedAt = jwt.NewNumericDate(time.Unix(ts, 0))
+		}
 	}
 
-	if nbf, ok := mapClaims["nbf"].(float64); ok {
-		claims.NotBefore = jwt.NewNumericDate(time.Unix(int64(nbf), 0))
+	switch v := mapClaims["nbf"].(type) {
+	case float64:
+		claims.NotBefore = jwt.NewNumericDate(time.Unix(int64(v), 0))
+	case json.Number:
+		if ts, err := v.Int64(); err == nil {
+			claims.NotBefore = jwt.NewNumericDate(time.Unix(ts, 0))
+		}
 	}
 }
 
@@ -237,4 +253,3 @@ func MustGetClaims(ctx context.Context) (*Claims, error) {
 func ClaimsToContext(ctx context.Context, claims *Claims) context.Context {
 	return context.WithValue(ctx, ClaimsCtxKey, claims)
 }
-

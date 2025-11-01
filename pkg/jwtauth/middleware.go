@@ -1,7 +1,9 @@
 package jwtauth
 
 import (
+	"errors"
 	"net/http"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -56,20 +58,36 @@ func (m *manager) findVerifyAndParseClaims(
 	clientID string,
 	findTokenFns ...func(r *http.Request) (string, error),
 ) (string, *Claims, error) {
-	tokenString, err := m.findAndVerifyToken(r, clientID, findTokenFns...)
+	tokenString, err := m.findToken(r, findTokenFns...)
 	if err != nil {
 		return "", nil, err
 	}
 
+	ctx := r.Context()
+	start := time.Now()
+
 	// Parse and verify token in one go
 	parsedToken, err := m.ParseToken(clientID, tokenString)
 	if err != nil {
+		switch {
+		case errors.Is(err, jwt.ErrTokenExpired):
+			m.recordTokenExpired(ctx, clientID)
+		case errors.Is(err, jwt.ErrSignatureInvalid):
+			m.recordTokenInvalid(ctx, clientID)
+		default:
+			m.recordTokenMalformed(ctx, clientID)
+		}
 		return "", nil, Errors(err)
 	}
 
 	if !parsedToken.Valid {
+		m.recordTokenInvalid(ctx, clientID)
 		return "", nil, ErrInvalidToken
 	}
+
+	// Record successful validation metrics
+	m.recordTokenValidationDuration(ctx, clientID, time.Since(start).Seconds())
+	m.recordTokenSuccess(ctx, clientID)
 
 	// Extract claims
 	mapClaims, ok := parsedToken.Claims.(jwt.MapClaims)
@@ -82,11 +100,10 @@ func (m *manager) findVerifyAndParseClaims(
 	return tokenString, claims, nil
 }
 
-// findAndVerifyToken searches for a JWT token using the provided search functions (header and cookie).
-// Returns the found token string or an error if no valid token is found.
-func (m *manager) findAndVerifyToken(
+// findToken searches for a JWT token using the provided search functions (header and cookie).
+// Returns the found token string or an error if no token is found.
+func (m *manager) findToken(
 	r *http.Request,
-	clientID string,
 	findTokenFns ...func(r *http.Request) (string, error),
 ) (string, error) {
 	var tokenString string
@@ -100,10 +117,6 @@ func (m *manager) findAndVerifyToken(
 
 	if tokenString == "" {
 		return "", ErrTokenNotFound
-	}
-
-	if err := m.verifyToken(clientID, tokenString); err != nil {
-		return "", err
 	}
 
 	return tokenString, nil
