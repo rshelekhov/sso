@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rshelekhov/sso/pkg/jwtauth/cache"
@@ -224,38 +223,6 @@ func (m *manager) getClaimsFromToken(ctx context.Context, clientID string) (map[
 	}
 
 	return claims, nil
-}
-
-// verifyToken checks the validity of the provided access token.
-// It parses the token, verifies the signature, and ensures it is not expired.
-func (m *manager) verifyToken(clientID, token string) error {
-	ctx := context.Background()
-	start := time.Now()
-
-	parsedToken, err := m.ParseToken(clientID, token)
-	if err != nil {
-		switch {
-		case errors.Is(err, jwt.ErrTokenExpired):
-			m.recordTokenExpired(ctx, clientID)
-			return Errors(err)
-		case errors.Is(err, jwt.ErrSignatureInvalid):
-			m.recordTokenInvalid(ctx, clientID)
-			return Errors(err)
-		default:
-			m.recordTokenMalformed(ctx, clientID)
-		}
-		return Errors(err)
-	}
-
-	if !parsedToken.Valid {
-		m.recordTokenInvalid(ctx, clientID)
-		return ErrInvalidToken
-	}
-
-	m.recordTokenValidationDuration(ctx, clientID, time.Since(start).Seconds())
-	m.recordTokenSuccess(ctx, clientID)
-
-	return nil
 }
 
 func (m *manager) recordTokenSuccess(ctx context.Context, clientID string) {
