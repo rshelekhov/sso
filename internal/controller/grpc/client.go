@@ -2,11 +2,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
-
-	"github.com/rshelekhov/sso/internal/controller"
-	"github.com/rshelekhov/sso/internal/lib/e"
 
 	clientv1 "github.com/rshelekhov/sso-protos/gen/go/api/client/v1"
 )
@@ -14,19 +9,15 @@ import (
 func (c *gRPCController) RegisterClient(ctx context.Context, req *clientv1.RegisterClientRequest) (*clientv1.RegisterClientResponse, error) {
 	const method = "controller.gRPC.RegisterClient"
 
-	log := c.log.With(slog.String("method", method))
-
-	reqID, err := c.getRequestID(ctx)
+	ctx, log, err := c.setupRequest(ctx, method)
 	if err != nil {
-		e.LogError(ctx, log, controller.ErrFailedToGetRequestID, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrFailedToGetRequestID, err))
+		return nil, err
 	}
 
-	log = log.With(slog.String("requestID", reqID))
-
-	if err = validateRegisterClientRequest(req); err != nil {
-		e.LogError(ctx, log, controller.ErrValidationError, err)
-		return nil, mapErrorToGRPCStatus(fmt.Errorf("%w: %w", controller.ErrValidationError, err))
+	if err := c.validateRequest(ctx, log, req, func(r any) error {
+		return validateRegisterClientRequest(r.(*clientv1.RegisterClientRequest))
+	}); err != nil {
+		return nil, err
 	}
 
 	clientName := req.GetClientName()
