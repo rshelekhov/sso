@@ -21,7 +21,10 @@ var (
 	ErrFailedToRefreshTokens  = errors.New("failed to refresh tokens")
 	ErrFailedToGetJWKS        = errors.New("failed to get JWKS")
 
-	ErrFailedToGetUser    = errors.New("failed to get user")
-	ErrFailedToUpdateUser = errors.New("failed to update user")
-	ErrFailedToDeleteUser = errors.New("failed to delete user")
+	ErrFailedToGetUser         = errors.New("failed to get user")
+	ErrFailedToUpdateUser      = errors.New("failed to update user")
+	ErrFailedToDeleteUser      = errors.New("failed to delete user")
+	ErrFailedToSearchUsers     = errors.New("failed to search users")
+	ErrInvalidPageToken        = errors.New("invalid page token")
+	ErrFailedToEncodePageToken = errors.New("failed to encode page token")
 )

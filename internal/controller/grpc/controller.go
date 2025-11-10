@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
 	clientv1 "github.com/rshelekhov/sso-protos/gen/go/api/client/v1"
@@ -46,6 +47,21 @@ type (
 		UpdateUser(ctx context.Context, clientID string, data entity.UserRequestData) (entity.User, error)
 		DeleteUser(ctx context.Context, clientID string) error
 		DeleteUserByID(ctx context.Context, clientID, userID string) error
+		SearchUsers(
+			ctx context.Context,
+			clientID string,
+			query string,
+			pageSize int32,
+			cursorCreatedAt *time.Time,
+			cursorID *string,
+		) (
+			users []entity.User,
+			totalCount int32,
+			lastCreatedAt *time.Time,
+			lastID *string,
+			hasMore bool,
+			err error,
+		)
 	}
 )
 

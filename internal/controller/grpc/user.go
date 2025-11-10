@@ -2,10 +2,14 @@ package grpc
 
 import (
 	"context"
+	"time"
 
 	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"github.com/rshelekhov/sso/internal/controller"
+	"github.com/rshelekhov/sso/internal/lib/cursor"
 	"github.com/rshelekhov/sso/internal/lib/e"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (c *gRPCController) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*userv1.GetUserResponse, error) {
@@ -134,4 +138,70 @@ func (c *gRPCController) DeleteUserByID(ctx context.Context, req *userv1.DeleteU
 	}
 
 	return &userv1.DeleteUserByIDResponse{}, nil
+}
+
+func (c *gRPCController) SearchUsers(
+	ctx context.Context,
+	req *userv1.SearchUsersRequest,
+) (*userv1.SearchUsersResponse, error) {
+	const method = "controller.gRPC.SearchUsers"
+
+	ctx, log, err := c.setupRequest(ctx, method)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.validateRequest(ctx, log, req, func(r any) error {
+		return validateSearchUsersRequest(r.(*userv1.SearchUsersRequest))
+	}); err != nil {
+		return nil, err
+	}
+
+	clientID, err := c.getAndValidateClientID(ctx, log)
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode page_token to cursor fields (controller responsibility)
+	var cursorCreatedAt *time.Time
+	var cursorID *string
+	if req.GetPageToken() != "" {
+		decodedCursor, err := cursor.Decode(req.GetPageToken())
+		if err != nil {
+			e.LogError(ctx, log, controller.ErrInvalidPageToken, err)
+			return nil, status.Error(codes.InvalidArgument, "invalid page_token")
+		}
+		cursorCreatedAt = &decodedCursor.CreatedAt
+		cursorID = &decodedCursor.UserID
+	}
+
+	// Call usecase with decoded cursor fields
+	users, totalCount, lastCreatedAt, lastID, hasMore, err := c.userUsecase.SearchUsers(
+		ctx,
+		clientID,
+		req.GetQuery(),
+		req.GetPageSize(),
+		cursorCreatedAt,
+		cursorID,
+	)
+	if err != nil {
+		e.LogError(ctx, log, controller.ErrFailedToSearchUsers, err)
+		return nil, mapErrorToGRPCStatus(err)
+	}
+
+	// Encode next page token from last user's fields (controller responsibility)
+	var nextPageToken string
+	if hasMore && lastCreatedAt != nil && lastID != nil {
+		nextCursor := &cursor.SearchCursor{
+			CreatedAt: *lastCreatedAt,
+			UserID:    *lastID,
+		}
+		nextPageToken, err = cursor.Encode(nextCursor)
+		if err != nil {
+			e.LogError(ctx, log, controller.ErrFailedToEncodePageToken, err)
+			return nil, status.Error(codes.Internal, "failed to encode page token")
+		}
+	}
+
+	return toSearchUsersResponse(users, totalCount, nextPageToken, hasMore), nil
 }
