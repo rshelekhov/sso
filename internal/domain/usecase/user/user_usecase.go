@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/rshelekhov/golib/observability/tracing"
@@ -48,6 +49,8 @@ type (
 		GetUserStatusByID(ctx context.Context, userID string) (string, error)
 		UpdateUserData(ctx context.Context, user entity.User) error
 		DeleteUser(ctx context.Context, user entity.User) error
+		SearchUsers(ctx context.Context, query string, limit int32, cursorCreatedAt *time.Time, cursorID *string) ([]entity.User, error)
+		CountSearchUsers(ctx context.Context, query string) (int32, error)
 	}
 
 	PasswordManager interface {
@@ -512,4 +515,111 @@ func (u *User) cleanupUserData(ctx context.Context, user entity.User) error {
 	}
 
 	return nil
+}
+
+// SearchUsers searches for users matching the query with cursor-based pagination.
+// Returns users, total count, last user's cursor fields, and whether there are more results.
+// The controller layer is responsible for encoding/decoding cursor fields to/from page tokens.
+func (u *User) SearchUsers(
+	ctx context.Context,
+	clientID string,
+	query string,
+	pageSize int32,
+	cursorCreatedAt *time.Time,
+	cursorID *string,
+) (
+	users []entity.User,
+	totalCount int32,
+	lastCreatedAt *time.Time,
+	lastID *string,
+	hasMore bool,
+	err error,
+) {
+	const method = "usecase.User.SearchUsers"
+
+	ctx, span := tracing.StartSpan(ctx, method)
+	defer span.End()
+
+	span.SetAttributes(
+		tracing.String("client.id", clientID),
+		tracing.String("query", query),
+		tracing.Int("page_size", int(pageSize)),
+	)
+
+	log := u.log.With(slog.String("method", method))
+
+	// Set default page size if not provided
+	if pageSize == 0 {
+		pageSize = 50
+	}
+
+	// Enforce maximum page size
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	// Sanitize query to escape PostgreSQL ILIKE special characters
+	sanitizedQuery := sanitizeSearchQuery(query)
+
+	// Fetch pageSize+1 results to determine if there are more pages
+	ctx, searchSpan := tracing.StartSpan(ctx, "search_users_storage")
+	limit := pageSize + 1
+
+	users, err = u.userMgr.SearchUsers(ctx, sanitizedQuery, limit, cursorCreatedAt, cursorID)
+	if err != nil {
+		tracing.RecordError(searchSpan, err)
+		searchSpan.End()
+		e.LogError(ctx, log, domain.ErrFailedToSearchUsers, err)
+		return nil, 0, nil, nil, false, fmt.Errorf("%w: %w", domain.ErrFailedToSearchUsers, err)
+	}
+
+	searchSpan.End()
+
+	// Fetch total count
+	ctx, countSpan := tracing.StartSpan(ctx, "count_users_storage")
+	totalCount, err = u.userMgr.CountSearchUsers(ctx, sanitizedQuery)
+	if err != nil {
+		tracing.RecordError(countSpan, err)
+		countSpan.End()
+		e.LogError(ctx, log, domain.ErrFailedToCountSearchUsers, err)
+		return nil, 0, nil, nil, false, fmt.Errorf("%w: %w", domain.ErrFailedToCountSearchUsers, err)
+	}
+
+	countSpan.End()
+
+	// Determine if there are more results
+	hasMore = len(users) > int(pageSize)
+
+	// Trim to page size if we fetched pageSize+1
+	if hasMore {
+		users = users[:pageSize]
+	}
+
+	// Extract last user's cursor fields for controller to encode
+	if hasMore && len(users) > 0 {
+		lastUser := users[len(users)-1]
+		lastCreatedAt = &lastUser.CreatedAt
+		lastID = &lastUser.ID
+	}
+
+	// Record metrics
+	u.metrics.RecordUserSearchRequest(ctx, clientID)
+	u.metrics.RecordUserSearchResults(ctx, clientID, len(users))
+
+	log.Info("users search completed",
+		slog.Int("result_count", len(users)),
+		slog.Int("total_count", int(totalCount)),
+		slog.Bool("has_more", hasMore),
+	)
+
+	return users, totalCount, lastCreatedAt, lastID, hasMore, nil
+}
+
+// sanitizeSearchQuery escapes PostgreSQL ILIKE special characters (% and _).
+// This prevents users from using wildcards in their search queries.
+func sanitizeSearchQuery(query string) string {
+	// Escape % and _ for PostgreSQL ILIKE
+	query = strings.ReplaceAll(query, "%", "\\%")
+	query = strings.ReplaceAll(query, "_", "\\_")
+	return query
 }

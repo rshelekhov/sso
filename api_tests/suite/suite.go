@@ -37,10 +37,24 @@ const (
 	defaultConfigPath = "../config/config.yaml"
 )
 
-// New creates new test suite
+// New creates new test suite with parallel execution enabled
 func New(t *testing.T) (context.Context, *Suite) {
 	t.Helper()
 	t.Parallel()
+	return newSuite(t)
+}
+
+// NewSequential creates new test suite WITHOUT parallel execution
+// Use this for tests that need to run sequentially to avoid interference
+func NewSequential(t *testing.T) (context.Context, *Suite) {
+	t.Helper()
+	// Intentionally NOT calling t.Parallel() to avoid test interference
+	return newSuite(t)
+}
+
+// newSuite is the common suite initialization logic
+func newSuite(t *testing.T) (context.Context, *Suite) {
+	t.Helper()
 
 	cfg := mustLoadConfig(configPath())
 

@@ -19,3 +19,9 @@ func createHistogram(meter metric.Meter, name, description, unit string) (metric
 		metric.WithDescription(description),
 		metric.WithUnit(unit))
 }
+
+func createInt64Histogram(meter metric.Meter, name, description, unit string) (metric.Int64Histogram, error) {
+	return meter.Int64Histogram(name,
+		metric.WithDescription(description),
+		metric.WithUnit(unit))
+}

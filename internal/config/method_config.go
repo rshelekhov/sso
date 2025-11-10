@@ -107,6 +107,11 @@ func initGRPCMethodSettings() map[string]GRPCMethodSettings {
 			RequireClientID: true,
 			SkipUserID:      false,
 		},
+		"/api.user.v1.UserService/SearchUsers": {
+			RequireJWT:      true,
+			RequireClientID: true,
+			SkipUserID:      false,
+		},
 
 		// Admin methods
 		"/api.user.v1.UserService/GetUserByID": {

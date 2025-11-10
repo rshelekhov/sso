@@ -53,3 +53,30 @@ SELECT CASE
                  AND deleted_at IS NOT NULL
            ) THEN 'soft_deleted'
            ELSE 'not_found' END AS status;
+
+-- name: SearchUsers :many
+SELECT id, email, name, verified, created_at, updated_at
+FROM users
+WHERE deleted_at IS NULL
+  AND (
+    email ILIKE '%' || sqlc.arg(query)::text || '%'
+    OR name ILIKE '%' || sqlc.arg(query)::text || '%'
+  )
+  AND (
+    -- Cursor filtering: return results BEFORE the cursor (created_at < cursor OR (created_at = cursor AND id < cursor_id))
+    sqlc.narg(cursor_created_at)::timestamptz IS NULL
+    OR created_at < sqlc.narg(cursor_created_at)::timestamptz
+    OR (created_at = sqlc.narg(cursor_created_at)::timestamptz
+        AND id < sqlc.narg(cursor_id)::text)
+  )
+ORDER BY created_at DESC, id DESC
+LIMIT sqlc.arg(page_size)::int;
+
+-- name: CountSearchUsers :one
+SELECT COUNT(*)
+FROM users
+WHERE deleted_at IS NULL
+  AND (
+    email ILIKE '%' || sqlc.arg(query)::text || '%'
+    OR name ILIKE '%' || sqlc.arg(query)::text || '%'
+  );

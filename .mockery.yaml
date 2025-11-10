@@ -60,3 +60,4 @@ packages:
       IdentityManager:
       VerificationManager:
       TransactionManager:
+      MetricsRecorder:
