@@ -203,14 +203,10 @@ github.com/rshelekhov/golib/middleware/requestid v1.0.0 h1:kKPiYTmGCizuWSQuqOJWU
 github.com/rshelekhov/golib/middleware/requestid v1.0.0/go.mod h1:egHRKp3fYM5cEum2ycjnl1r9EYofuFXbrYSWAYvSa+k=
 github.com/rshelekhov/golib/observability v1.5.2 h1:aiTNXr3VVwelo7kf0AglUl/4EZ/1xbPmxM50tWZJNNw=
 github.com/rshelekhov/golib/observability v1.5.2/go.mod h1:7g2YGdzOdGQvybFYaYtO0OaOTNb5CDS0qsrYi0Nm/KY=
-github.com/rshelekhov/golib/server v1.1.0 h1:bXHo2sz0TLnVpc2DmM7gla3Ei+FJlpcE7/60srUIOZM=
-github.com/rshelekhov/golib/server v1.1.0/go.mod h1:36slksgY3+ujEDW5op43YVBH0ZxQLoKx/tT4e5QJk0k=
 github.com/rshelekhov/golib/server v1.2.0 h1:PV/oh8n3rmndwFRsk0PUkX/mgGOJERd0k8VQmq7QTts=
 github.com/rshelekhov/golib/server v1.2.0/go.mod h1:TBWkiYBjmfKArG5Q1zJOyU95Rq77RFEY9xwIx6RO+Ug=
-github.com/rshelekhov/sso-protos v0.3.5 h1:7i2+8VL8FofipHz+Nf/3m3Bn0SY339pCU5Axi+NjWiE=
-github.com/rshelekhov/sso-protos v0.3.5/go.mod h1:+1CtdHjjBbGQOuMRoL/SFZErCHcuBe8dwfFIsu5n/2A=
-github.com/rshelekhov/sso-protos v0.3.6 h1:qGgFFHSrNWf2iMD8NJGVjW1DyVjDVRRa1renlncYe9g=
-github.com/rshelekhov/sso-protos v0.3.6/go.mod h1:+1CtdHjjBbGQOuMRoL/SFZErCHcuBe8dwfFIsu5n/2A=
+github.com/rshelekhov/sso-protos v0.3.7 h1:qPAj/aFRt8zCyWRwJvc1cNeOujBRDK1cFGa5ja4/CVc=
+github.com/rshelekhov/sso-protos v0.3.7/go.mod h1:+1CtdHjjBbGQOuMRoL/SFZErCHcuBe8dwfFIsu5n/2A=
 github.com/segmentio/ksuid v1.0.4 h1:sBo2BdShXjmcugAMwjugoGUdUV0pcxY5mW4xKRn3v4c=
 github.com/segmentio/ksuid v1.0.4/go.mod h1:/XUiZBD3kVx5SmUOl55voK5yeAbBNNIed+2O73XgrPE=
 github.com/shirou/gopsutil/v4 v4.25.1 h1:QSWkTc+fu9LTAWfkZwZ6j8MSUk4A2LV7rbH0ZqmLjXs=
