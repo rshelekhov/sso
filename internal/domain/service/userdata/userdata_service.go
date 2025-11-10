@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/rshelekhov/sso/internal/domain"
 	"github.com/rshelekhov/sso/internal/domain/entity"
@@ -22,6 +23,8 @@ type Storage interface {
 	GetUserStatusByEmail(ctx context.Context, email string) (string, error)
 	GetUserStatusByID(ctx context.Context, userID string) (string, error)
 	DeleteUser(ctx context.Context, user entity.User) error
+	SearchUsers(ctx context.Context, query string, limit int32, cursorCreatedAt *time.Time, cursorID *string) ([]entity.User, error)
+	CountSearchUsers(ctx context.Context, query string) (int32, error)
 }
 
 func NewService(storage Storage) *UserData {
@@ -124,4 +127,35 @@ func (d *UserData) DeleteUser(ctx context.Context, user entity.User) error {
 	}
 
 	return nil
+}
+
+func (d *UserData) SearchUsers(
+	ctx context.Context,
+	query string,
+	limit int32,
+	cursorCreatedAt *time.Time,
+	cursorID *string,
+) ([]entity.User, error) {
+	const method = "service.user.SearchUsers"
+
+	users, err := d.storage.SearchUsers(ctx, query, limit, cursorCreatedAt, cursorID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", method, err)
+	}
+
+	return users, nil
+}
+
+func (d *UserData) CountSearchUsers(
+	ctx context.Context,
+	query string,
+) (int32, error) {
+	const method = "service.user.CountSearchUsers"
+
+	count, err := d.storage.CountSearchUsers(ctx, query)
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", method, err)
+	}
+
+	return count, nil
 }

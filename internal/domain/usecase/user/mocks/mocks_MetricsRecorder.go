@@ -17,3 +17,8 @@ func (m *NoOpMetricsRecorder) RecordUserDeletionsSuccess(ctx context.Context, cl
 
 func (m *NoOpMetricsRecorder) RecordUserDeletionsError(ctx context.Context, clientID string, attrs ...attribute.KeyValue) {
 }
+
+func (m *NoOpMetricsRecorder) RecordUserSearchRequest(ctx context.Context, clientID string) {}
+
+func (m *NoOpMetricsRecorder) RecordUserSearchResults(ctx context.Context, clientID string, resultCount int) {
+}
