@@ -77,7 +77,7 @@ test-docker-full:
 	@docker compose up --build sso-app sso-tests --abort-on-container-exit
 	@echo "Tests completed. Grafana: http://localhost:3000 (admin/admin)"
 	@echo "Don't forget to run 'make test-docker-clean' to stop the environment."
-
+	
 # Stop Docker test environment  
 test-docker-clean:
 	@docker compose down -v

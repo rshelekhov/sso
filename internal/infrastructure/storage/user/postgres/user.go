@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -209,4 +210,71 @@ func (s *UserStorage) GetUserStatusByID(ctx context.Context, userID string) (str
 	}
 
 	return status, nil
+}
+
+// SearchUsers searches for users matching the query with cursor-based pagination.
+// Returns up to limit users. Use cursorCreatedAt and cursorID for pagination.
+func (s *UserStorage) SearchUsers(
+	ctx context.Context,
+	query string,
+	limit int32,
+	cursorCreatedAt *time.Time,
+	cursorID *string,
+) ([]entity.User, error) {
+	const method = "storage.user.postgres.SearchUsers"
+
+	// Build sqlc params
+	params := sqlc.SearchUsersParams{
+		Query:    query,
+		PageSize: limit,
+	}
+
+	// Add cursor params if provided
+	if cursorCreatedAt != nil {
+		params.CursorCreatedAt = pgtype.Timestamptz{
+			Time:  *cursorCreatedAt,
+			Valid: true,
+		}
+	}
+	if cursorID != nil {
+		params.CursorID = pgtype.Text{
+			String: *cursorID,
+			Valid:  true,
+		}
+	}
+
+	rows, err := s.queries.SearchUsers(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to search users: %w", method, err)
+	}
+
+	// Convert to entity.User slice
+	users := make([]entity.User, len(rows))
+	for i, row := range rows {
+		users[i] = entity.User{
+			ID:        row.ID,
+			Email:     row.Email,
+			Name:      row.Name,
+			Verified:  row.Verified.Bool,
+			CreatedAt: row.CreatedAt,
+			UpdatedAt: row.UpdatedAt,
+		}
+	}
+
+	return users, nil
+}
+
+// CountSearchUsers returns the total count of users matching the query.
+func (s *UserStorage) CountSearchUsers(
+	ctx context.Context,
+	query string,
+) (int32, error) {
+	const method = "storage.user.postgres.CountSearchUsers"
+
+	count, err := s.queries.CountSearchUsers(ctx, query)
+	if err != nil {
+		return 0, fmt.Errorf("%s: failed to count search users: %w", method, err)
+	}
+
+	return int32(count), nil
 }

@@ -71,3 +71,26 @@ func (d *UserStorageDecorator) DeleteUser(ctx context.Context, user entity.User)
 	d.recorder.RecordDBOperation(d.dbType, "user.delete", time.Since(start), err)
 	return err
 }
+
+func (d *UserStorageDecorator) SearchUsers(
+	ctx context.Context,
+	query string,
+	limit int32,
+	cursorCreatedAt *time.Time,
+	cursorID *string,
+) ([]entity.User, error) {
+	start := time.Now()
+	users, err := d.storage.SearchUsers(ctx, query, limit, cursorCreatedAt, cursorID)
+	d.recorder.RecordDBOperation(d.dbType, "user.search", time.Since(start), err)
+	return users, err
+}
+
+func (d *UserStorageDecorator) CountSearchUsers(
+	ctx context.Context,
+	query string,
+) (int32, error) {
+	start := time.Now()
+	count, err := d.storage.CountSearchUsers(ctx, query)
+	d.recorder.RecordDBOperation(d.dbType, "user.count_search", time.Since(start), err)
+	return count, err
+}
