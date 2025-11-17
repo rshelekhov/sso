@@ -63,7 +63,7 @@ func WithMetricsRecorder(metrics MetricsRecorder) Option {
 
 const (
 	AuthorizationHeader = "authorization"
-	ClientIDHeader      = "X-Client-ID"
+	ClientIDHeader      = "x-client-id"  // Lowercase to match grpc-gateway forwarding
 
 	AccessTokenKey  = "access_token"
 	RefreshTokenKey = "refresh_token"
