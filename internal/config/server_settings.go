@@ -7,6 +7,7 @@ import (
 type ServerSettings struct {
 	App                 settings.App                 `yaml:"App"`
 	GRPCServer          settings.GRPCServer          `yaml:"GRPCServer"`
+	HTTPServer          settings.HTTPServer          `yaml:"HTTPServer"`
 	Storage             settings.Storage             `yaml:"Storage"`
 	Cache               settings.Cache               `yaml:"Cache"`
 	JWT                 settings.JWT                 `yaml:"JWT"`

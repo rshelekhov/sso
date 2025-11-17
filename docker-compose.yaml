@@ -24,7 +24,8 @@ services:
       - ./config/config.docker.yaml:/app/config.yaml
       - ./certs:/src/certs
     ports:
-      - "44044:44044"
+      - "44044:44044"  # gRPC server
+      - "8080:8080"    # HTTP/REST gateway
     labels:
       - "logging=promtail"
       - "service=sso"
@@ -336,7 +337,8 @@ services:
       - ./config/config.docker.yaml:/src/config/config.docker.yaml
       - ./static:/src/static
     ports:
-      - "44044:44044"
+      - "44044:44044"  # gRPC server
+      - "8080:8080"    # HTTP/REST gateway
     depends_on:
       db-setup-postgres:
         condition: service_completed_successfully

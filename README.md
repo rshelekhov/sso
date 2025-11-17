@@ -1,17 +1,19 @@
-# gRPC SSO app
+# SSO Service (gRPC + HTTP/REST)
 
-A comprehensive authentication and identity management solution built with Go and modern observability stack.
+A comprehensive authentication and identity management solution built with Go, offering both gRPC and HTTP/REST APIs with a modern observability stack.
 
 ## Overview
 
-This SSO (Single Sign-On) service combines authentication and user information management in a single, production-ready application. It includes both core authentication features and a complete observability stack for monitoring and debugging.
+This SSO (Single Sign-On) service combines authentication and user information management in a single, production-ready application. It provides **dual API access** (gRPC for high performance and HTTP/REST for easy integration), complete observability, and full multi-tenancy support.
 
 **Key Capabilities:**
 
-- **Authentication**: User registration, login, password management
-- **Multi-tenancy**: Support for multiple client applications
-- **Observability**: Comprehensive metrics, logs, and tracing
+- **Dual API**: Both gRPC (port 44044) and HTTP/REST (port 8080) running simultaneously
+- **Authentication**: User registration, email verification, login, password management
+- **Multi-tenancy**: Support for multiple client applications with JWT-based auth
+- **Observability**: Comprehensive metrics, logs, and distributed tracing
 - **Production-ready**: Docker Compose setup with all dependencies
+- **SDK-friendly**: HTTP API designed for TypeScript/JavaScript SDK development
 
 ## Getting Started
 
@@ -48,6 +50,87 @@ For Go development without Docker:
 3. **Set environment**: `export CONFIG_PATH=./config/config.yaml`
 4. **Run migrations**: `make migrate` (if you use postgres you need to install [golang-migrate](https://github.com/golang-migrate/migrate) tool for running database migrations for postgres. And you need to have `psql` (PostgreSQL interactive terminal), because this tool is used in the commands described in the makefile.)
 5. **Start server**: `make run-server`
+
+## API Access
+
+The SSO service provides **both gRPC and HTTP/REST APIs** running simultaneously:
+
+- **gRPC Server**: `localhost:44044` - High-performance gRPC API
+- **HTTP/REST Gateway**: `localhost:8080` - RESTful HTTP API (via grpc-gateway)
+
+### HTTP/REST API Examples
+
+Quick test of the HTTP API:
+
+```bash
+# Health check (Get JWKS - public endpoint)
+curl http://localhost:8080/v1/auth/.well-known/jwks.json
+
+# Register a new user
+curl -X POST http://localhost:8080/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -H "X-Client-Id: test-client-id" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePassword123!",
+    "confirm_password": "SecurePassword123!",
+    "name": "John Doe"
+  }'
+
+# Login
+curl -X POST http://localhost:8080/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -H "X-Client-Id: test-client-id" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePassword123!",
+    "user_device_data": {
+      "user_agent": "curl/8.0",
+      "ip": "127.0.0.1",
+      "platform": "PLATFORM_WEB"
+    }
+  }'
+```
+
+### Available Endpoints
+
+**Authentication** (`/v1/auth/*`):
+- `POST /v1/auth/register` - Register new user
+- `POST /v1/auth/verify-email` - Verify email address
+- `POST /v1/auth/login` - User login
+- `POST /v1/auth/refresh` - Refresh access token
+- `POST /v1/auth/logout` - User logout
+- `POST /v1/auth/reset-password` - Request password reset
+- `POST /v1/auth/change-password` - Change password
+- `GET /v1/auth/.well-known/jwks.json` - Get JWKS for token verification
+
+**User Management** (`/v1/user/*`):
+- `GET /v1/user` - Get current user profile
+- `GET /v1/user/{user_id}` - Get user by ID (admin)
+- `PATCH /v1/user` - Update current user
+- `DELETE /v1/user` - Delete current user
+- `DELETE /v1/user/{user_id}` - Delete user by ID (admin)
+- `GET /v1/users/search` - Search users
+
+**Client Management** (`/v1/clients/*`):
+- `POST /v1/clients/register` - Register new client application
+
+### Documentation & Examples
+
+- **Complete HTTP API Documentation**: See [`docs/HTTP_API_EXAMPLES.md`](docs/HTTP_API_EXAMPLES.md)
+- **TypeScript/Bun Examples**: See [`examples/http/`](examples/http/)
+  - Authentication flow
+  - Token refresh
+  - Error handling
+  - User management
+
+### Building a TypeScript SDK
+
+If you're building a TypeScript SDK for this service:
+
+1. Check [`SDK_BEST_PRACTICES.md`](SDK_BEST_PRACTICES.md) for comprehensive SDK development guidelines
+2. Use the TypeScript examples in `examples/http/` as reference implementations
+3. The HTTP API works with Bun, Node.js 18+, Deno, and browsers
 
 ## Testing
 

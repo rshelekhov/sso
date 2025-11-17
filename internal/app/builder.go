@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/rshelekhov/golib/middleware/logging"
 	"github.com/rshelekhov/golib/middleware/recovery"
 	"github.com/rshelekhov/golib/observability/tracing"
@@ -313,6 +314,16 @@ func (b *Builder) createServerApp() (*server.App, error) {
 		return nil, fmt.Errorf("invalid gRPC port: %w", err)
 	}
 
+	httpPort := b.cfg.HTTPServer.Port
+	if httpPort == "" {
+		return nil, fmt.Errorf("HTTP port is not configured")
+	}
+
+	var httpPortInt int
+	if _, err := fmt.Sscanf(httpPort, "%d", &httpPortInt); err != nil {
+		return nil, fmt.Errorf("invalid HTTP port: %w", err)
+	}
+
 	interceptors := []grpc.UnaryServerInterceptor{
 		logging.UnaryServerInterceptor(b.logger),
 		recovery.UnaryServerInterceptor(b.logger),
@@ -322,13 +333,29 @@ func (b *Builder) createServerApp() (*server.App, error) {
 
 	statsHandler := tracing.GRPCServerStatsHandler()
 
+	// Configure grpc-gateway to forward HTTP headers to gRPC metadata
+	muxOpts := []runtime.ServeMuxOption{
+		runtime.WithIncomingHeaderMatcher(func(key string) (string, bool) {
+			switch key {
+			case "X-Client-Id", "x-client-id":
+				return "x-client-id", true // Forward as lowercase to gRPC metadata
+			case "Authorization", "authorization":
+				return "authorization", true
+			default:
+				return "", false
+			}
+		}),
+	}
+
 	app, err := server.NewApp(
 		context.Background(),
 		server.WithGRPCPort(port),
+		server.WithHTTPPort(httpPortInt),
 		server.WithLogger(b.logger),
 		server.WithShutdownTimeout(10*time.Second),
 		server.WithUnaryInterceptors(interceptors...),
 		server.WithStatsHandler(statsHandler),
+		server.WithMuxOptions(muxOpts...),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create server app: %w", err)

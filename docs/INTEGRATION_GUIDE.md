@@ -5,7 +5,11 @@ This guide explains how to integrate your application with the SSO service.
 ## Table of Contents
 
 - [Overview](#overview)
-- [Authentication Flow](#authentication-flow)
+- [Integration Methods](#integration-methods)
+  - [HTTP/REST API](#httprest-api)
+  - [gRPC API](#grpc-api)
+- [HTTP Authentication Flow](#http-authentication-flow)
+- [gRPC Authentication Flow](#grpc-authentication-flow)
 - [Email Verification](#email-verification)
 - [Password Reset](#password-reset)
 - [Session Management](#session-management)
@@ -14,21 +18,162 @@ This guide explains how to integrate your application with the SSO service.
 
 ## Overview
 
-The SSO service provides authentication and user management via gRPC. Your application (API gateway, web app, etc.) communicates with SSO to handle user registration, login, and email verification.
+The SSO service provides authentication and user management via both HTTP/REST and gRPC APIs. Choose the integration method that best fits your application architecture.
 
 ### Architecture
 
 ```
-User Browser
+User Browser / Client App
     ↓
-Your API Gateway (HTTP)
-    ↓ (gRPC)
+Your Application
+    ↓ (HTTP/REST or gRPC)
 SSO Service
     ↓
 Database / Email Service
 ```
 
-## Authentication Flow
+## Integration Methods
+
+The SSO service supports two integration methods:
+
+### HTTP/REST API
+
+**Best for:**
+- Web applications (JavaScript/TypeScript frontends)
+- Mobile apps (iOS, Android)
+- Serverless functions
+- Quick prototyping
+- When you want a simple HTTP-based integration
+
+**Endpoints:** `http://localhost:8080` (default)
+
+**Features:**
+- RESTful JSON API via grpc-gateway
+- Standard HTTP methods (GET, POST, PATCH, DELETE)
+- Bearer token authentication (requires "Bearer " prefix per RFC 6750)
+- Automatic camelCase field conversion
+
+**Example:**
+```bash
+curl -X POST http://localhost:8080/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -H "X-Client-Id: your-client-id" \
+  -d '{
+    "email": "user@example.com",
+    "password": "password123",
+    "user_device_data": {
+      "user_agent": "Mozilla/5.0...",
+      "ip": "192.168.1.100",
+      "platform": "PLATFORM_WEB"
+    }
+  }'
+```
+
+See [HTTP_API_EXAMPLES.md](./HTTP_API_EXAMPLES.md) for complete HTTP API documentation.
+
+### gRPC API
+
+**Best for:**
+- Backend microservices
+- High-performance applications
+- Strong typing requirements
+- Go/Java/Python backend services
+
+**Endpoints:** `localhost:44044` (default gRPC port)
+
+**Features:**
+- Protocol Buffers for efficient serialization
+- Strong typing via generated code
+- Streaming support
+- Lower latency
+
+**Example:**
+```go
+import authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+
+resp, err := ssoClient.Login(ctx, &authv1.LoginRequest{
+    Email:    "user@example.com",
+    Password: "password123",
+    UserDeviceData: &authv1.UserDeviceData{
+        UserAgent: "MyApp/1.0",
+        Ip:        "192.168.1.100",
+        Platform:  authv1.Platform_PLATFORM_WEB,
+    },
+})
+```
+
+## HTTP Authentication Flow
+
+### User Registration (HTTP)
+
+**Step 1: Register via HTTP POST**
+
+```bash
+curl -X POST http://localhost:8080/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -H "X-Client-Id: your-client-id" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePassword123!",
+    "confirm_password": "SecurePassword123!",
+    "name": "John Doe",
+    "verification_url": "https://your-app.com/verify-email"
+  }'
+```
+
+**Step 2: Response**
+
+```json
+{
+  "userId": "2abc3Def4ghI5jkl6Mno7pQr",
+  "message": "Verification email sent",
+  "tokenData": {
+    "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expiresAt": "2025-11-17T15:30:00Z"
+  }
+}
+```
+
+**Step 3: Login**
+
+```bash
+curl -X POST http://localhost:8080/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -H "X-Client-Id: your-client-id" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePassword123!",
+    "user_device_data": {
+      "user_agent": "Mozilla/5.0...",
+      "ip": "192.168.1.100",
+      "platform": "PLATFORM_WEB"
+    }
+  }'
+```
+
+**Response:**
+```json
+{
+  "tokenData": {
+    "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expiresAt": "2025-11-17T15:30:00Z"
+  }
+}
+```
+
+**Step 4: Access Protected Resources**
+
+```bash
+curl http://localhost:8080/v1/user \
+  -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "X-Client-Id: your-client-id"
+```
+
+**Note:** The Authorization header follows RFC 6750 and requires the "Bearer " prefix.
+
+## gRPC Authentication Flow
 
 ### User Registration
 
@@ -234,8 +379,21 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 - **Storage:** Client-side (localStorage, memory)
 - **Usage:** Include in Authorization header
 
+**HTTP/REST:**
+```bash
+# Required format per RFC 6750
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**gRPC:**
 ```go
-req.Header.Set("Authorization", "Bearer "+accessToken)
+// Option 1: Just the token (native gRPC style)
+md := metadata.Pairs("authorization", accessToken)
+ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+// Option 2: With "Bearer " prefix (also supported)
+md := metadata.Pairs("authorization", "Bearer "+accessToken)
+ctx := metadata.NewOutgoingContext(context.Background(), md)
 ```
 
 ### Refresh Token
