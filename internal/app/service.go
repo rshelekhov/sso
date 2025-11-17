@@ -1,8 +1,11 @@
 package app
 
 import (
+	"context"
+	"fmt"
 	"log/slog"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/redis/go-redis/v9"
 	"github.com/rshelekhov/golib/middleware/requestid"
 	"github.com/rshelekhov/sso/internal/config"
@@ -13,7 +16,11 @@ import (
 	metricsInterceptor "github.com/rshelekhov/sso/internal/lib/interceptor/metrics"
 	"github.com/rshelekhov/sso/internal/observability/metrics/infrastructure"
 	"github.com/rshelekhov/sso/pkg/jwtauth"
+	authv1 "github.com/rshelekhov/sso-protos/gen/go/api/auth/v1"
+	clientv1 "github.com/rshelekhov/sso-protos/gen/go/api/client/v1"
+	userv1 "github.com/rshelekhov/sso-protos/gen/go/api/user/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type SSOService struct {
@@ -61,6 +68,30 @@ func (s *SSOService) RegisterGRPC(grpcServer *grpc.Server) {
 		s.authUsecase,
 		s.userUsecase,
 	)
+}
+
+func (s *SSOService) RegisterHTTP(ctx context.Context, mux *runtime.ServeMux) error {
+	// Connect to the gRPC server running on localhost
+	// The HTTP gateway acts as a client to the gRPC server
+	grpcAddr := "localhost:44044"
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+
+	// Register Auth service HTTP handlers
+	if err := authv1.RegisterAuthServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register auth service HTTP handler: %w", err)
+	}
+
+	// Register User service HTTP handlers
+	if err := userv1.RegisterUserServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register user service HTTP handler: %w", err)
+	}
+
+	// Register Client service HTTP handlers
+	if err := clientv1.RegisterClientManagementServiceHandlerFromEndpoint(ctx, mux, grpcAddr, opts); err != nil {
+		return fmt.Errorf("failed to register client service HTTP handler: %w", err)
+	}
+
+	return nil
 }
 
 func (s *SSOService) GetCustomInterceptors() []grpc.UnaryServerInterceptor {
