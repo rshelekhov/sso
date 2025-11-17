@@ -18,6 +18,12 @@ GRPCServer:
   Timeout: "30s"
   RetriesCount: 3
 
+# HTTP Server settings (REST API via grpc-gateway)
+HTTPServer:
+  Host: "0.0.0.0"
+  Port: "8080"
+  Timeout: "30s"
+
 # Storage configuration
 Storage:
   Type: "postgres" # postgres or mongo
