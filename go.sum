@@ -205,8 +205,8 @@ github.com/rshelekhov/golib/observability v1.5.2 h1:aiTNXr3VVwelo7kf0AglUl/4EZ/1
 github.com/rshelekhov/golib/observability v1.5.2/go.mod h1:7g2YGdzOdGQvybFYaYtO0OaOTNb5CDS0qsrYi0Nm/KY=
 github.com/rshelekhov/golib/server v1.2.0 h1:PV/oh8n3rmndwFRsk0PUkX/mgGOJERd0k8VQmq7QTts=
 github.com/rshelekhov/golib/server v1.2.0/go.mod h1:TBWkiYBjmfKArG5Q1zJOyU95Rq77RFEY9xwIx6RO+Ug=
-github.com/rshelekhov/sso-protos v0.4.0 h1:kjV2xyQOeZXCtkARhpwzkbY9mq8oxTSIM+Oc/SD/lHk=
-github.com/rshelekhov/sso-protos v0.4.0/go.mod h1:+1CtdHjjBbGQOuMRoL/SFZErCHcuBe8dwfFIsu5n/2A=
+github.com/rshelekhov/sso-protos v0.4.1 h1:OuSg239iJMRfu/TkyA5kNkrauf4vZczIfNGNLEay6vo=
+github.com/rshelekhov/sso-protos v0.4.1/go.mod h1:+1CtdHjjBbGQOuMRoL/SFZErCHcuBe8dwfFIsu5n/2A=
 github.com/segmentio/ksuid v1.0.4 h1:sBo2BdShXjmcugAMwjugoGUdUV0pcxY5mW4xKRn3v4c=
 github.com/segmentio/ksuid v1.0.4/go.mod h1:/XUiZBD3kVx5SmUOl55voK5yeAbBNNIed+2O73XgrPE=
 github.com/shirou/gopsutil/v4 v4.25.1 h1:QSWkTc+fu9LTAWfkZwZ6j8MSUk4A2LV7rbH0ZqmLjXs=

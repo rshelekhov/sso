@@ -23,7 +23,7 @@ require (
 	github.com/rshelekhov/golib/middleware/requestid v1.0.0
 	github.com/rshelekhov/golib/observability v1.5.2
 	github.com/rshelekhov/golib/server v1.2.0
-	github.com/rshelekhov/sso-protos v0.4.0
+	github.com/rshelekhov/sso-protos v0.4.1
 	github.com/segmentio/ksuid v1.0.4
 	github.com/stretchr/testify v1.10.0
 	go.mongodb.org/mongo-driver v1.17.4
