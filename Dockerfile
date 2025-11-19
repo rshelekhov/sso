@@ -54,6 +54,10 @@ COPY --from=builder /src/static ./static
 COPY --from=builder /src/config ./config
 COPY --from=builder /go/bin/migrate /usr/local/bin/migrate
 
-EXPOSE 44044
+# Copy and make executable the test script (for integration tests in SDKs)
+COPY scripts/test-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/test-entrypoint.sh
+
+EXPOSE 44044 8080
 
 CMD ["./sso"]
