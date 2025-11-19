@@ -75,22 +75,27 @@ curl -X POST http://localhost:8080/v1/auth/register \
 
 ### 2. Verify Email
 
-Verify user email with token from registration email.
+Verify user email with token from registration email. This endpoint uses GET with query parameter, so users can verify by simply clicking the link in their email.
 
+**Email Link Example:**
+```
+http://localhost:8080/v1/auth/verify-email?token=verification_token_from_email
+```
+
+**cURL Example:**
 ```bash
-curl -X POST http://localhost:8080/v1/auth/verify-email \
-  -H "Content-Type: application/json" \
-  -d '{
-    "token": "verification_token_from_email"
-  }'
+curl "http://localhost:8080/v1/auth/verify-email?token=verification_token_from_email"
 ```
 
 **Response:**
 ```json
-{
-  "message": "Email verified successfully"
-}
+{}
 ```
+
+**Notes:**
+- This is a GET endpoint - users click the link directly from email
+- No authentication headers required
+- Empty response body on success (HTTP 200)
 
 ### 3. Login
 
@@ -176,27 +181,36 @@ curl http://localhost:8080/v1/auth/.well-known/jwks.json
 
 ### 6. Reset Password
 
-Request password reset email.
+Request password reset email. The email will contain a link to your frontend page (specified in `confirm_url`) with the reset token as a query parameter.
 
 ```bash
 curl -X POST http://localhost:8080/v1/auth/reset-password \
   -H "Content-Type: application/json" \
   -H "X-Client-Id: test-client-id" \
   -d '{
-    "email": "user@example.com"
+    "email": "user@example.com",
+    "confirm_url": "https://your-frontend.com/reset-password"
   }'
 ```
 
 **Response:**
 ```json
-{
-  "message": "If the email exists, a password reset link has been sent"
-}
+{}
 ```
+
+**Email Flow:**
+1. SSO sends email with link: `https://your-frontend.com/reset-password?token=abc123`
+2. User clicks link → Your frontend page opens
+3. User enters new password on your form
+4. Your frontend calls `/v1/auth/change-password` (see next section)
+
+**Notes:**
+- Empty response body on success (HTTP 200)
+- For security, the message doesn't reveal if the email exists
 
 ### 7. Change Password
 
-Change password using reset token.
+Change password using reset token from email. This is called by your frontend after user enters new password.
 
 ```bash
 curl -X POST http://localhost:8080/v1/auth/change-password \
@@ -204,17 +218,20 @@ curl -X POST http://localhost:8080/v1/auth/change-password \
   -H "X-Client-Id: test-client-id" \
   -d '{
     "token": "reset_token_from_email",
-    "new_password": "NewSecurePassword123!",
-    "confirm_password": "NewSecurePassword123!"
+    "updated_password": "NewSecurePassword123!"
   }'
 ```
 
 **Response:**
 ```json
-{
-  "message": "Password changed successfully"
-}
+{}
 ```
+
+**Notes:**
+- Empty response body on success (HTTP 200)
+- Token is single-use and time-limited (typically 15 minutes)
+- Password confirmation should be validated on your frontend
+- If token expired, user must request a new reset link
 
 ### 8. Logout
 
@@ -463,11 +480,7 @@ curl -X POST http://localhost:8080/v1/auth/register \
   }'
 
 # 2. Verify email (get token from email or logs)
-curl -X POST http://localhost:8080/v1/auth/verify-email \
-  -H "Content-Type: application/json" \
-  -d '{
-    "token": "your_verification_token"
-  }'
+curl "http://localhost:8080/v1/auth/verify-email?token=your_verification_token"
 
 # 3. Login
 ACCESS_TOKEN=$(curl -X POST http://localhost:8080/v1/auth/login \
