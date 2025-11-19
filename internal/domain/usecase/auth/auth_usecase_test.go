@@ -2043,6 +2043,24 @@ func TestAuthUsecase_RefreshTokens(t *testing.T) {
 			expectedSessionTokens: entity.SessionTokens{},
 		},
 		{
+			name: "Failed to get user data",
+			mockBehavior: func(sessionMgr *mocks.SessionManager, userMgr *mocks.UserdataManager) {
+				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).
+					Once().
+					Return(userSession, nil)
+
+				sessionMgr.EXPECT().GetUserDeviceID(ctx, userID, userAgent).
+					Once().
+					Return(deviceID, nil)
+
+				userMgr.EXPECT().GetUserData(ctx, userID).
+					Once().
+					Return(entity.User{}, domain.ErrFailedToGetUserByID)
+			},
+			expectedError:         domain.ErrFailedToGetUserByID,
+			expectedSessionTokens: entity.SessionTokens{},
+		},
+		{
 			name: "Failed to create session",
 			mockBehavior: func(sessionMgr *mocks.SessionManager, userMgr *mocks.UserdataManager) {
 				sessionMgr.EXPECT().GetSessionByRefreshToken(ctx, reqData.RefreshToken).

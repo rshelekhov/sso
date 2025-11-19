@@ -296,3 +296,108 @@ func (s *UserStorage) DeleteUser(ctx context.Context, user entity.User) error {
 
 	return nil
 }
+
+// SearchUsers searches for users matching the query with cursor-based pagination.
+// Returns up to limit users. Use cursorCreatedAt and cursorID for pagination.
+func (s *UserStorage) SearchUsers(
+	ctx context.Context,
+	query string,
+	limit int32,
+	cursorCreatedAt *time.Time,
+	cursorID *string,
+) ([]entity.User, error) {
+	const method = "storage.user.mongo.SearchUsers"
+
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	// Build base filter for active users matching search query
+	filter := bson.M{
+		common.FieldDeletedAt: bson.M{"$exists": false},
+		"$or": []bson.M{
+			{common.FieldEmail: bson.M{"$regex": query, "$options": "i"}},
+			{common.FieldName: bson.M{"$regex": query, "$options": "i"}},
+		},
+	}
+
+	// Add cursor filter if provided
+	if cursorCreatedAt != nil && cursorID != nil {
+		// Lexicographic comparison: (created_at, _id) < (cursor_created_at, cursor_id)
+		cursorFilter := bson.M{
+			"$or": []bson.M{
+				{common.FieldCreatedAt: bson.M{"$lt": *cursorCreatedAt}},
+				{
+					common.FieldCreatedAt: *cursorCreatedAt,
+					common.FieldID:        bson.M{"$lt": *cursorID},
+				},
+			},
+		}
+
+		// Combine with existing filter using $and
+		filter = bson.M{
+			"$and": []bson.M{
+				{
+					common.FieldDeletedAt: bson.M{"$exists": false},
+					"$or": []bson.M{
+						{common.FieldEmail: bson.M{"$regex": query, "$options": "i"}},
+						{common.FieldName: bson.M{"$regex": query, "$options": "i"}},
+					},
+				},
+				cursorFilter,
+			},
+		}
+	}
+
+	// Set sort order and limit
+	opts := options.Find().
+		SetSort(bson.D{
+			{Key: common.FieldCreatedAt, Value: -1}, // DESC
+			{Key: common.FieldID, Value: -1},        // DESC
+		}).
+		SetLimit(int64(limit))
+
+	cursor, err := s.coll.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed to search users: %w", method, err)
+	}
+	defer cursor.Close(ctx)
+
+	var docs []common.UserDocument
+	if err := cursor.All(ctx, &docs); err != nil {
+		return nil, fmt.Errorf("%s: failed to decode users: %w", method, err)
+	}
+
+	// Convert to entity.User slice
+	users := make([]entity.User, len(docs))
+	for i, doc := range docs {
+		users[i] = common.ToUserEntity(doc)
+	}
+
+	return users, nil
+}
+
+// CountSearchUsers returns the total count of users matching the query.
+func (s *UserStorage) CountSearchUsers(
+	ctx context.Context,
+	query string,
+) (int32, error) {
+	const method = "storage.user.mongo.CountSearchUsers"
+
+	ctx, cancel := context.WithTimeout(ctx, s.timeout)
+	defer cancel()
+
+	filter := bson.M{
+		common.FieldDeletedAt: bson.M{"$exists": false},
+		"$or": []bson.M{
+			{common.FieldEmail: bson.M{"$regex": query, "$options": "i"}},
+			{common.FieldName: bson.M{"$regex": query, "$options": "i"}},
+		},
+	}
+
+	count, err := s.coll.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, fmt.Errorf("%s: failed to count search users: %w", method, err)
+	}
+
+	return int32(count), nil
+}

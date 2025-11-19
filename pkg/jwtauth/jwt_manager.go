@@ -63,7 +63,7 @@ func WithMetricsRecorder(metrics MetricsRecorder) Option {
 
 const (
 	AuthorizationHeader = "authorization"
-	ClientIDHeader      = "X-Client-ID"
+	ClientIDHeader      = "x-client-id"  // Lowercase to match grpc-gateway forwarding
 
 	AccessTokenKey  = "access_token"
 	RefreshTokenKey = "refresh_token"
@@ -76,7 +76,9 @@ const (
 )
 
 // ExtractTokenFromGRPC retrieves the JWT token from gRPC metadata.
-// It expects the token to be in the "X-Access-Token" header.
+// It accepts the token in two formats for flexibility:
+// 1. "Bearer <token>" (HTTP-style, forwarded by grpc-gateway)
+// 2. "<token>" (native gRPC style)
 func (m *manager) ExtractTokenFromGRPC(ctx context.Context) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
@@ -88,7 +90,13 @@ func (m *manager) ExtractTokenFromGRPC(ctx context.Context) (string, error) {
 		return "", ErrAuthorizationHeaderNotFoundInGRPCMetadata
 	}
 
-	return values[0], nil
+	token := values[0]
+	// Strip "Bearer " prefix if present (for HTTP requests via grpc-gateway)
+	if len(token) > 7 && strings.ToUpper(token[0:6]) == "BEARER" {
+		return token[7:], nil
+	}
+	// Otherwise return token as-is (for native gRPC clients)
+	return token, nil
 }
 
 // ExtractTokenFromHTTP retrieves the JWT token from the "Authorization" HTTP header.

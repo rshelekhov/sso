@@ -28,6 +28,10 @@ var (
 	ErrCurrentPasswordIsRequired                   = errors.New("current password is required")
 	ErrAppNameIsRequired                           = errors.New("app name is required")
 	ErrAppNameCannotContainSpaces                  = errors.New("app name cannot contain spaces")
+	ErrQueryIsRequired                             = errors.New("query is required")
+	ErrQueryTooShort                               = errors.New("query must be at least 3 characters")
+	ErrQueryTooLong                                = errors.New("query must be at most 255 characters")
+	ErrPageSizeTooLarge                            = errors.New("page_size must not exceed 100")
 )
 
 func validateUserCredentials(email, password string) error {
@@ -216,5 +220,38 @@ func validateDeleteUserByIDRequest(req *userv1.DeleteUserByIDRequest) error {
 	if req.GetUserId() == "" {
 		return status.Error(codes.InvalidArgument, ErrUserIDIsRequired.Error())
 	}
+	return nil
+}
+
+func validateSearchUsersRequest(req *userv1.SearchUsersRequest) error {
+	var errMessages []string
+
+	query := req.GetQuery()
+	pageSize := req.GetPageSize()
+
+	// Validate query length (3-255 characters)
+	switch {
+	case query == emptyValue:
+		errMessages = append(errMessages, ErrQueryIsRequired.Error())
+	case len(query) < 3:
+		errMessages = append(errMessages, ErrQueryTooShort.Error())
+	case len(query) > 255:
+		errMessages = append(errMessages, ErrQueryTooLong.Error())
+	}
+
+	// Validate page_size (1-100, 0 means use default)
+	switch {
+	case pageSize < 0:
+		errMessages = append(errMessages, "page_size must be non-negative")
+	case pageSize > 100:
+		errMessages = append(errMessages, ErrPageSizeTooLarge.Error())
+	}
+
+	// page_token validation happens in controller layer during decode
+
+	if len(errMessages) > 0 {
+		return fmt.Errorf("%s", strings.Join(errMessages, "; "))
+	}
+
 	return nil
 }

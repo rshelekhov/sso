@@ -9,12 +9,14 @@ import (
 )
 
 type Querier interface {
+	CountSearchUsers(ctx context.Context, query string) (int64, error)
 	DeleteUser(ctx context.Context, arg DeleteUserParams) error
 	GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, id string) (GetUserByIDRow, error)
 	GetUserData(ctx context.Context, id string) (GetUserDataRow, error)
 	GetUserStatusByEmail(ctx context.Context, email string) (string, error)
 	GetUserStatusByID(ctx context.Context, id string) (string, error)
+	SearchUsers(ctx context.Context, arg SearchUsersParams) ([]SearchUsersRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

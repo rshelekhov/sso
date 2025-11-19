@@ -165,3 +165,29 @@ func toGetUserByIDResponse(user entity.User) *userv1.GetUserByIDResponse {
 		},
 	}
 }
+
+func toSearchUsersResponse(
+	users []entity.User,
+	totalCount int32,
+	nextPageToken string,
+	hasMore bool,
+) *userv1.SearchUsersResponse {
+	// Convert entity.User slice to proto User slice
+	protoUsers := make([]*userv1.User, len(users))
+	for i, user := range users {
+		protoUsers[i] = &userv1.User{
+			Id:        user.ID,
+			Email:     user.Email,
+			Name:      user.Name,
+			Verified:  user.Verified,
+			UpdatedAt: timestamppb.New(user.UpdatedAt),
+		}
+	}
+
+	return &userv1.SearchUsersResponse{
+		Users:         protoUsers,
+		TotalCount:    totalCount,
+		NextPageToken: nextPageToken,
+		HasMore:       hasMore,
+	}
+}

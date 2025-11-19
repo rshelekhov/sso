@@ -12,6 +12,23 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countSearchUsers = `-- name: CountSearchUsers :one
+SELECT COUNT(*)
+FROM users
+WHERE deleted_at IS NULL
+  AND (
+    email ILIKE '%' || $1::text || '%'
+    OR name ILIKE '%' || $1::text || '%'
+  )
+`
+
+func (q *Queries) CountSearchUsers(ctx context.Context, query string) (int64, error) {
+	row := q.db.QueryRow(ctx, countSearchUsers, query)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const deleteUser = `-- name: DeleteUser :exec
 UPDATE users
 SET deleted_at = $1
@@ -157,4 +174,71 @@ func (q *Queries) GetUserStatusByID(ctx context.Context, id string) (string, err
 	var status string
 	err := row.Scan(&status)
 	return status, err
+}
+
+const searchUsers = `-- name: SearchUsers :many
+SELECT id, email, name, verified, created_at, updated_at
+FROM users
+WHERE deleted_at IS NULL
+  AND (
+    email ILIKE '%' || $1::text || '%'
+    OR name ILIKE '%' || $1::text || '%'
+  )
+  AND (
+    -- Cursor filtering: return results BEFORE the cursor (created_at < cursor OR (created_at = cursor AND id < cursor_id))
+    $2::timestamptz IS NULL
+    OR created_at < $2::timestamptz
+    OR (created_at = $2::timestamptz
+        AND id < $3::text)
+  )
+ORDER BY created_at DESC, id DESC
+LIMIT $4::int
+`
+
+type SearchUsersParams struct {
+	Query           string             `db:"query"`
+	CursorCreatedAt pgtype.Timestamptz `db:"cursor_created_at"`
+	CursorID        pgtype.Text        `db:"cursor_id"`
+	PageSize        int32              `db:"page_size"`
+}
+
+type SearchUsersRow struct {
+	ID        string      `db:"id"`
+	Email     string      `db:"email"`
+	Name      string      `db:"name"`
+	Verified  pgtype.Bool `db:"verified"`
+	CreatedAt time.Time   `db:"created_at"`
+	UpdatedAt time.Time   `db:"updated_at"`
+}
+
+func (q *Queries) SearchUsers(ctx context.Context, arg SearchUsersParams) ([]SearchUsersRow, error) {
+	rows, err := q.db.Query(ctx, searchUsers,
+		arg.Query,
+		arg.CursorCreatedAt,
+		arg.CursorID,
+		arg.PageSize,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchUsersRow{}
+	for rows.Next() {
+		var i SearchUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.Name,
+			&i.Verified,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

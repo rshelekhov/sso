@@ -9,6 +9,7 @@ require (
 	github.com/cristalhq/aconfig/aconfigdotenv v0.17.1
 	github.com/cristalhq/aconfig/aconfigyaml v0.17.1
 	github.com/golang-migrate/migrate/v4 v4.18.3
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/mailgun/mailgun-go/v4 v4.23.0
 	github.com/redis/go-redis/v9 v9.11.0
@@ -17,9 +18,12 @@ require (
 	github.com/rshelekhov/golib/db/postgres/pgxv5 v1.1.0
 	github.com/rshelekhov/golib/db/redis v1.0.0
 	github.com/rshelekhov/golib/db/s3 v1.1.0
+	github.com/rshelekhov/golib/middleware/logging v1.0.0
+	github.com/rshelekhov/golib/middleware/recovery v1.0.0
+	github.com/rshelekhov/golib/middleware/requestid v1.0.0
 	github.com/rshelekhov/golib/observability v1.5.2
 	github.com/rshelekhov/golib/server v1.2.0
-	github.com/rshelekhov/sso-protos v0.3.6
+	github.com/rshelekhov/sso-protos v0.4.1
 	github.com/segmentio/ksuid v1.0.4
 	github.com/stretchr/testify v1.10.0
 	go.mongodb.org/mongo-driver v1.17.4
@@ -47,7 +51,6 @@ require (
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grafana/regexp v0.0.0-20240518133315-a468a5bfb3bc // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -71,9 +74,6 @@ require (
 	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/otlptranslator v0.0.0-20250722230409-fce624024a14 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
-	github.com/rshelekhov/golib/middleware/logging v1.0.0 // indirect
-	github.com/rshelekhov/golib/middleware/recovery v1.0.0 // indirect
-	github.com/rshelekhov/golib/middleware/requestid v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/vgarvardt/pgx-google-uuid/v5 v5.6.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
