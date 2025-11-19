@@ -287,6 +287,28 @@ func (c *HTTPClient) deleteUser(accessToken string) error {
 	return nil
 }
 
+func (c *HTTPClient) verifyEmail(token string) error {
+	// VerifyEmail is now GET with query parameter
+	endpoint := fmt.Sprintf("/v1/auth/verify-email?token=%s", token)
+
+	resp, err := c.doRequest("GET", endpoint, nil, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		var errResp HTTPErrorResponse
+		if err := json.Unmarshal(bodyBytes, &errResp); err != nil {
+			return fmt.Errorf("verify email failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+		}
+		return fmt.Errorf("verify email failed: %s (code: %s)", errResp.Message, errResp.Code)
+	}
+
+	return nil
+}
+
 func getHTTPBaseURL() string {
 	// Check for environment variable (used in Docker)
 	if host := os.Getenv("SSO_HOST"); host != "" {
